@@ -6,6 +6,7 @@ namespace TaskApp.Data;
 public class DailyTaskData : TaskData
 {
     public RepeatCadence Cadence { get; set; }
+    public int RepeatEvery { get; set; }
     public int CurrentStreak { get; set; }
     public int BestStreak { get; set; }
     public int StreakGoal { get; set; }

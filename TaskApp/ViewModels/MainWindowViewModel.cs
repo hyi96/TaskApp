@@ -177,7 +177,7 @@ public class MainWindowViewModel : ViewModelBase
         
         RefreshFilter();
 
-        var rewards = await _storageService.LoadRewardsAsync(tasks);
+        var rewards = await _storageService.LoadRewardsAsync();
         _allRewards.Clear();
         _allRewards.AddRange(rewards);
         

@@ -12,17 +12,110 @@ public enum RepeatCadence
 
 public class DailyTask : TaskBase
 {
-    public RepeatCadence Cadence { get; internal set; } = RepeatCadence.Daily;
+    private RepeatCadence _cadence = RepeatCadence.Daily;
+    private int _repeatEvery = 1;
+    private int _currentStreak;
+    private int _bestStreak;
+    private int _streakGoal;
+    private DateOnly? _lastCompletionPeriod;
+    private bool _rewardGoalFulfilled;
 
-    public int CurrentStreak { get; internal set; }
+    public RepeatCadence Cadence
+    {
+        get => _cadence;
+        internal set
+        {
+            if (_cadence != value)
+            {
+                _cadence = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+            }
+        }
+    }
 
-    public int BestStreak { get; internal set; }
+    public int RepeatEvery
+    {
+        get => _repeatEvery;
+        internal set
+        {
+            var newValue = value < 1 ? 1 : value;
+            if (_repeatEvery != newValue)
+            {
+                _repeatEvery = newValue;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+            }
+        }
+    }
 
-    public int StreakGoal { get; internal set; }
+    public int CurrentStreak
+    {
+        get => _currentStreak;
+        internal set
+        {
+            if (_currentStreak != value)
+            {
+                _currentStreak = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
-    public DateOnly? LastCompletionPeriod { get; internal set; }
+    public int BestStreak
+    {
+        get => _bestStreak;
+        internal set
+        {
+            if (_bestStreak != value)
+            {
+                _bestStreak = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
-    public bool RewardGoalFulfilled { get; internal set; }
+    public int StreakGoal
+    {
+        get => _streakGoal;
+        internal set
+        {
+            if (_streakGoal != value)
+            {
+                _streakGoal = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public DateOnly? LastCompletionPeriod
+    {
+        get => _lastCompletionPeriod;
+        internal set
+        {
+            if (_lastCompletionPeriod != value)
+            {
+                _lastCompletionPeriod = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+            }
+        }
+    }
+
+    public bool RewardGoalFulfilled
+    {
+        get => _rewardGoalFulfilled;
+        internal set
+        {
+            if (_rewardGoalFulfilled != value)
+            {
+                _rewardGoalFulfilled = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public bool IsCompleteForCurrentPeriod => LastCompletionPeriod is DateOnly period && period == GetPeriodStart(DateTimeOffset.UtcNow.ToLocalTime(), Cadence, RepeatEvery, CreatedAt);
 
     public override TaskType Type => TaskType.Daily;
 
@@ -31,25 +124,24 @@ public class DailyTask : TaskBase
     public override void Complete(DateTimeOffset? completedAt = null)
     {
         var localTime = (completedAt ?? DateTimeOffset.UtcNow).ToLocalTime();
-        var periodStart = GetPeriodStart(localTime, Cadence);
+        var periodStart = GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
 
-        if (LastCompletionPeriod is DateOnly lastPeriod)
+        if (LastCompletionPeriod is DateOnly lastPeriod && lastPeriod == periodStart)
         {
-            if (periodStart == lastPeriod)
+            // already completed this period
+            return;
+        }
+
+        if (LastCompletionPeriod is DateOnly existingPeriod)
+        {
+            var expectedPrev = GetPreviousPeriodStart(periodStart, Cadence, RepeatEvery);
+            if (existingPeriod == expectedPrev)
             {
-                // already completed this period; do not change streak
+                CurrentStreak++;
             }
             else
             {
-                var expectedPrev = GetPreviousPeriodStart(periodStart, Cadence);
-                if (lastPeriod == expectedPrev)
-                {
-                    CurrentStreak++;
-                }
-                else
-                {
-                    CurrentStreak = 1;
-                }
+                CurrentStreak = 1;
             }
         }
         else
@@ -94,6 +186,21 @@ public class DailyTask : TaskBase
         Cadence = cadence;
     }
 
+    public void SetRepeatEvery(int repeatEvery)
+    {
+        RepeatEvery = repeatEvery;
+    }
+
+    public void SetCurrentStreak(int value)
+    {
+        CurrentStreak = value < 0 ? 0 : value;
+        if (CurrentStreak > BestStreak)
+        {
+            BestStreak = CurrentStreak;
+        }
+        RewardGoalFulfilled = StreakGoal > 0 && CurrentStreak >= StreakGoal;
+    }
+
     public void SetStreakGoal(int goal)
     {
         StreakGoal = goal < 0 ? 0 : goal;
@@ -105,27 +212,52 @@ public class DailyTask : TaskBase
         RewardGoalFulfilled = false;
     }
 
-    private static DateOnly GetPeriodStart(DateTimeOffset localTime, RepeatCadence cadence)
+    private static DateOnly GetPeriodStart(DateTimeOffset localTime, RepeatCadence cadence, int repeatEvery, DateTimeOffset createdAt)
     {
         var date = DateOnly.FromDateTime(localTime.DateTime);
+        var anchor = DateOnly.FromDateTime(createdAt.ToLocalTime().DateTime);
+        var interval = repeatEvery < 1 ? 1 : repeatEvery;
+
         return cadence switch
         {
-            RepeatCadence.Daily => date,
-            RepeatCadence.Weekly => date.AddDays(-GetDaysSinceWeekStart(localTime.DayOfWeek)),
-            RepeatCadence.Monthly => new DateOnly(date.Year, date.Month, 1),
-            RepeatCadence.Yearly => new DateOnly(date.Year, 1, 1),
+            RepeatCadence.Daily => anchor.AddDays(((date.DayNumber - anchor.DayNumber) / interval) * interval),
+            RepeatCadence.Weekly => GetWeeklyPeriodStart(date, anchor, interval),
+            RepeatCadence.Monthly => GetMonthlyPeriodStart(date, anchor, interval),
+            RepeatCadence.Yearly => new DateOnly(anchor.Year + ((date.Year - anchor.Year) / interval) * interval, 1, 1),
             _ => date
         };
     }
 
-    private static DateOnly GetPreviousPeriodStart(DateOnly currentPeriodStart, RepeatCadence cadence)
+    private static DateOnly GetWeeklyPeriodStart(DateOnly currentDate, DateOnly anchor, int interval)
     {
+        var currentStart = currentDate.AddDays(-GetDaysSinceWeekStart(currentDate.DayOfWeek));
+        var anchorStart = anchor.AddDays(-GetDaysSinceWeekStart(anchor.DayOfWeek));
+        var weeks = (currentStart.DayNumber - anchorStart.DayNumber) / 7;
+        var periodIndex = weeks / interval * interval;
+        return anchorStart.AddDays(periodIndex * 7);
+    }
+
+    private static DateOnly GetMonthlyPeriodStart(DateOnly currentDate, DateOnly anchor, int interval)
+    {
+        var anchorMonthIndex = anchor.Year * 12 + anchor.Month - 1;
+        var currentMonthIndex = currentDate.Year * 12 + currentDate.Month - 1;
+        var monthsDiff = currentMonthIndex - anchorMonthIndex;
+        var periodIndex = monthsDiff / interval * interval;
+        var targetMonthIndex = anchorMonthIndex + periodIndex;
+        var year = targetMonthIndex / 12;
+        var month = targetMonthIndex % 12 + 1;
+        return new DateOnly(year, month, 1);
+    }
+
+    private static DateOnly GetPreviousPeriodStart(DateOnly currentPeriodStart, RepeatCadence cadence, int repeatEvery)
+    {
+        var interval = repeatEvery < 1 ? 1 : repeatEvery;
         return cadence switch
         {
-            RepeatCadence.Daily => currentPeriodStart.AddDays(-1),
-            RepeatCadence.Weekly => currentPeriodStart.AddDays(-7),
-            RepeatCadence.Monthly => currentPeriodStart.AddMonths(-1),
-            RepeatCadence.Yearly => currentPeriodStart.AddYears(-1),
+            RepeatCadence.Daily => currentPeriodStart.AddDays(-interval),
+            RepeatCadence.Weekly => currentPeriodStart.AddDays(-7 * interval),
+            RepeatCadence.Monthly => currentPeriodStart.AddMonths(-interval),
+            RepeatCadence.Yearly => currentPeriodStart.AddYears(-interval),
             _ => currentPeriodStart
         };
     }

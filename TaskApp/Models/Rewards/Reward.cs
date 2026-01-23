@@ -1,16 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using TaskApp.Models.Tasks;
-using TaskApp.ViewModels;
 
 namespace TaskApp.Models.Rewards;
 
 public class Reward : INotifyPropertyChanged
 {
-    private readonly List<TaskBase> _linkedTasks = new();
     private string _title = string.Empty;
     private string? _notes;
     private double _goldCost;
@@ -90,8 +85,6 @@ public class Reward : INotifyPropertyChanged
 
     public System.Collections.Generic.List<string> Tags { get; internal set; } = new();
 
-    public IReadOnlyList<TaskBase> LinkedTasks => _linkedTasks;
-
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -136,32 +129,6 @@ public class Reward : INotifyPropertyChanged
         }
     }
 
-    public void LinkTask(TaskBase task)
-    {
-        if (task is null) throw new ArgumentNullException(nameof(task));
-        if (task.Type == TaskType.Habit)
-        {
-            throw new InvalidOperationException("Habit tasks cannot be linked to rewards.");
-        }
-
-        if (_linkedTasks.Any(t => t.Id == task.Id))
-        {
-            return; // already linked
-        }
-
-        _linkedTasks.Add(task);
-    }
-
-    public void UnlinkTask(Guid taskId)
-    {
-        var existing = _linkedTasks.FirstOrDefault(t => t.Id == taskId);
-        if (existing != null)
-        {
-            existing.ResetRewardProgress();
-            _linkedTasks.Remove(existing);
-        }
-    }
-
     public bool CanClaim(double availableGold)
     {
         if (availableGold < GoldCost)
@@ -169,17 +136,12 @@ public class Reward : INotifyPropertyChanged
             return false;
         }
 
-        if (_linkedTasks.Count == 0)
-        {
-            return IsRepeatable || !IsClaimed;
-        }
-
         if (!IsRepeatable && IsClaimed)
         {
             return false;
         }
 
-        return _linkedTasks.All(t => t.IsRewardGoalMet);
+        return true;
     }
 
     public bool TryClaim(double availableGold, DateTimeOffset? claimedAt = null)
@@ -192,15 +154,6 @@ public class Reward : INotifyPropertyChanged
         IsClaimed = true;
         ClaimedAt = claimedAt ?? DateTimeOffset.UtcNow;
         ClaimCount++;
-
-        foreach (var task in _linkedTasks.ToList())
-        {
-            task.ResetRewardProgress();
-            if (task.Type == TaskType.Todo)
-            {
-                _linkedTasks.Remove(task);
-            }
-        }
 
         if (IsRepeatable)
         {

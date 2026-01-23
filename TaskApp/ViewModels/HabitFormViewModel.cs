@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TaskApp.Models.Tasks;
 
@@ -10,6 +11,7 @@ public class HabitFormViewModel : TaskFormViewModel
     private bool _incrementEnabled = true;
     private bool _decrementEnabled = true;
     private double _count;
+    private HabitResetCadence _resetCadence = HabitResetCadence.Never;
 
     public double Count
     {
@@ -35,6 +37,14 @@ public class HabitFormViewModel : TaskFormViewModel
         set => SetProperty(ref _decrementEnabled, value);
     }
 
+    public HabitResetCadence ResetCadence
+    {
+        get => _resetCadence;
+        set => SetProperty(ref _resetCadence, value);
+    }
+
+    public HabitResetCadence[] ResetCadenceOptions { get; } = Enum.GetValues<HabitResetCadence>();
+
     public HabitFormViewModel(IEnumerable<SelectableTag> availableTags, HabitTask? habitTask = null)
         : base(availableTags, habitTask?.Tags)
     {
@@ -50,6 +60,7 @@ public class HabitFormViewModel : TaskFormViewModel
             IncrementEnabled = _habitTask.IncrementEnabled;
             DecrementEnabled = _habitTask.DecrementEnabled;
             Count = _habitTask.Count;
+            ResetCadence = _habitTask.ResetCadence;
         }
     }
 
@@ -63,6 +74,7 @@ public class HabitFormViewModel : TaskFormViewModel
             _habitTask.SetIncrementAmount(IncrementAmount);
             _habitTask.SetIncrementEnabled(IncrementEnabled);
             _habitTask.SetDecrementEnabled(DecrementEnabled);
+            _habitTask.SetResetCadence(ResetCadence);
             _habitTask.Count = Count;
             SaveTags(_habitTask);
         }

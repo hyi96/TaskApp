@@ -84,7 +84,7 @@ public class StorageService
         await File.WriteAllTextAsync(filePath, json);
     }
 
-    public async Task<List<Reward>> LoadRewardsAsync(IEnumerable<TaskBase> tasks)
+    public async Task<List<Reward>> LoadRewardsAsync()
     {
         var filePath = Path.Combine(_dataDirectory, RewardsFileName);
         if (!File.Exists(filePath))
@@ -97,9 +97,7 @@ public class StorageService
         
         if (dataList == null) return new List<Reward>();
 
-        var taskMap = tasks.ToDictionary(t => t.Id);
-
-        return dataList.Select(d => RewardMapper.ToModel(d, id => taskMap.TryGetValue(id, out var t) ? t : null)).ToList();
+        return dataList.Select(RewardMapper.ToModel).ToList();
     }
 
     public async Task SaveUserProfileAsync(UserProfile user)

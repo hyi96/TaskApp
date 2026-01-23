@@ -35,6 +35,14 @@ public abstract class TaskFormViewModel : ViewModelBase
 
     public TaskType Type { get; protected set; }
 
+    public virtual string FormTitle => Type switch
+    {
+        TaskType.Habit => "Edit Habit",
+        TaskType.Daily => "Edit Daily",
+        TaskType.Todo => "Edit To-do",
+        _ => "Edit Task"
+    };
+
     public event Action? RequestClose;
     public event Action? RequestDelete;
 

@@ -130,6 +130,11 @@ public partial class MainWindow : Window
     {
         if (sender is Control control && control.DataContext is TaskBase task && DataContext is MainWindowViewModel mainVm)
         {
+            if (task is DailyTask dailyTask && dailyTask.IsCompleteForCurrentPeriod)
+            {
+                return;
+            }
+
             task.Complete();
             mainVm.AddGold(task.GoldReward);
             

@@ -14,5 +14,4 @@ public class RewardData
     public DateTimeOffset? ClaimedAt { get; set; }
     public double GoldCost { get; set; }
     public System.Collections.Generic.List<string> Tags { get; set; } = new();
-    public List<Guid> LinkedTaskIds { get; set; } = new();
 }

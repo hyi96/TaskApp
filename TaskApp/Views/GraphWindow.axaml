@@ -4,12 +4,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
         x:Class="TaskApp.Views.GraphWindow"
-        Title="Statistics"
+        Title="Graph"
         Width="600" Height="450">
     <Border Background="#F5F5F5" Padding="12" Margin="16" CornerRadius="6">
         <Grid RowDefinitions="Auto,Auto,*">
             <TextBlock Grid.Row="0"
-                       Text="Task Insights"
+                       Text="Graphical Insights"
                        FontSize="18"
                        FontWeight="SemiBold"
                        Margin="0,0,0,12"/>

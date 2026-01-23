@@ -15,15 +15,11 @@ public class RewardFormViewModel : TaskFormViewModel
         set => SetProperty(ref _isRepeatable, value);
     }
 
-    // Placeholder for Linked Tasks
-    public string LinkedTasksSummary => "0 Linked Tasks";
+    public override string FormTitle => "Edit Reward";
 
     public RewardFormViewModel(IEnumerable<SelectableTag> availableTags, Reward? reward = null)
         : base(availableTags, reward?.Tags)
     {
-        // Type property in base is TaskType, but Reward isn't a TaskType enum value exactly (it's separate). 
-        // We can ignore Type or add a value if needed, but for now we'll just not set it or treat as special.
-        
         _reward = reward;
         if (_reward != null)
         {

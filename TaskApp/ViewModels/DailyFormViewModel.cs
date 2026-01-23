@@ -9,7 +9,9 @@ public class DailyFormViewModel : TaskFormViewModel
 {
     private readonly DailyTask? _dailyTask;
     private RepeatCadence _cadence = RepeatCadence.Daily;
-    private int _streakGoal;
+    private int _repeatEvery = 1;
+    private int _streakGoal = 1;
+    private int _currentStreak;
 
     public RepeatCadence Cadence
     {
@@ -17,10 +19,22 @@ public class DailyFormViewModel : TaskFormViewModel
         set => SetProperty(ref _cadence, value);
     }
 
+    public int RepeatEvery
+    {
+        get => _repeatEvery;
+        set => SetProperty(ref _repeatEvery, value < 1 ? 1 : value);
+    }
+
+    public int CurrentStreak
+    {
+        get => _currentStreak;
+        set => SetProperty(ref _currentStreak, value < 0 ? 0 : value);
+    }
+
     public int StreakGoal
     {
         get => _streakGoal;
-        set => SetProperty(ref _streakGoal, value);
+        set => SetProperty(ref _streakGoal, value < 0 ? 0 : value);
     }
 
     public List<RepeatCadence> CadenceOptions { get; } = Enum.GetValues<RepeatCadence>().ToList();
@@ -37,7 +51,9 @@ public class DailyFormViewModel : TaskFormViewModel
             Notes = _dailyTask.Notes ?? string.Empty;
             GoldValue = _dailyTask.GoldReward;
             Cadence = _dailyTask.Cadence;
+            RepeatEvery = _dailyTask.RepeatEvery;
             StreakGoal = _dailyTask.StreakGoal;
+            CurrentStreak = _dailyTask.CurrentStreak;
         }
     }
 
@@ -49,7 +65,9 @@ public class DailyFormViewModel : TaskFormViewModel
             _dailyTask.UpdateNotes(Notes);
             _dailyTask.SetGoldReward(GoldValue);
             _dailyTask.SetCadence(Cadence);
+            _dailyTask.SetRepeatEvery(RepeatEvery);
             _dailyTask.SetStreakGoal(StreakGoal);
+            _dailyTask.SetCurrentStreak(CurrentStreak);
             SaveTags(_dailyTask);
         }
     }

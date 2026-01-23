@@ -1,14 +1,11 @@
-using System;
-using System.Linq;
 using TaskApp.Data;
 using TaskApp.Models.Rewards;
-using TaskApp.Models.Tasks;
 
 namespace TaskApp.Services;
 
 public static class RewardMapper
 {
-    public static Reward ToModel(RewardData data, Func<Guid, TaskBase?> taskResolver)
+    public static Reward ToModel(RewardData data)
     {
         var reward = new Reward(data.Title, data.Notes, data.IsRepeatable, data.GoldCost)
         {
@@ -22,16 +19,6 @@ public static class RewardMapper
         if (data.Tags != null)
         {
             reward.Tags.AddRange(data.Tags);
-        }
-        
-        // Linked Tasks
-        foreach (var taskId in data.LinkedTaskIds)
-        {
-            var task = taskResolver(taskId);
-            if (task != null)
-            {
-                reward.LinkTask(task);
-            }
         }
 
         return reward;
@@ -49,8 +36,7 @@ public static class RewardMapper
             ClaimCount = model.ClaimCount,
             ClaimedAt = model.ClaimedAt,
             GoldCost = model.GoldCost,
-            Tags = model.Tags,
-            LinkedTaskIds = model.LinkedTasks.Select(t => t.Id).ToList()
+            Tags = model.Tags
         };
     }
 }

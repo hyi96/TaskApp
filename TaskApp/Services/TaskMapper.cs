@@ -42,6 +42,7 @@ public static class TaskMapper
                     Id = dailyData.Id,
                     CreatedAt = dailyData.CreatedAt,
                     Cadence = dailyData.Cadence,
+                    RepeatEvery = dailyData.RepeatEvery == 0 ? 1 : dailyData.RepeatEvery,
                     CurrentStreak = dailyData.CurrentStreak,
                     BestStreak = dailyData.BestStreak,
                     StreakGoal = dailyData.StreakGoal,
@@ -57,7 +58,9 @@ public static class TaskMapper
                     Count = habitData.Count,
                     IncrementAmount = habitData.IncrementAmount,
                     IncrementEnabled = habitData.IncrementEnabled,
-                    DecrementEnabled = habitData.DecrementEnabled
+                    DecrementEnabled = habitData.DecrementEnabled,
+                    ResetCadence = habitData.ResetCadence,
+                    LastResetPeriod = habitData.LastResetPeriod
                 };
                 break;
             default:
@@ -101,6 +104,7 @@ public static class TaskMapper
                 data = new DailyTaskData
                 {
                     Cadence = daily.Cadence,
+                    RepeatEvery = daily.RepeatEvery,
                     CurrentStreak = daily.CurrentStreak,
                     BestStreak = daily.BestStreak,
                     StreakGoal = daily.StreakGoal,
@@ -114,7 +118,9 @@ public static class TaskMapper
                     Count = habit.Count,
                     IncrementAmount = habit.IncrementAmount,
                     IncrementEnabled = habit.IncrementEnabled,
-                    DecrementEnabled = habit.DecrementEnabled
+                    DecrementEnabled = habit.DecrementEnabled,
+                    ResetCadence = habit.ResetCadence,
+                    LastResetPeriod = habit.LastResetPeriod
                 };
                 break;
             default:
