@@ -20,7 +20,7 @@ public class DailyTask : TaskBase
     private int _bestStreak;
     private DateOnly? _lastCompletionPeriod;
     private bool _rewardGoalFulfilled;
-    private readonly List<StreakBonusRule> _streakBonusRules = new();
+    private readonly List<StreakBonusRule> _streakBonusRules = new List<StreakBonusRule> { new(7, 10), new(14, 20), new(30, 30) };
 
     public RepeatCadence Cadence
     {
