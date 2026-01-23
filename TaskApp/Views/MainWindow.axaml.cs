@@ -136,14 +136,21 @@ public partial class MainWindow : Window
             }
 
             task.Complete();
-            mainVm.AddGold(task.GoldReward);
-            
+
+            double rewardAmount = task.GoldReward;
+            if (task is DailyTask completedDaily)
+            {
+                rewardAmount = completedDaily.GetGoldRewardWithBonus();
+            }
+
+            mainVm.AddGold(rewardAmount);
+             
             // Remove TodoTask from the list when completed
             if (task is TodoTask todo)
             {
                 mainVm.DeleteTodo(todo);
             }
-            
+             
             _ = mainVm.SaveDataAsync();
         }
     }

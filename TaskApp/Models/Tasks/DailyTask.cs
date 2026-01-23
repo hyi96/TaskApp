@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace TaskApp.Models.Tasks;
 
@@ -16,9 +18,9 @@ public class DailyTask : TaskBase
     private int _repeatEvery = 1;
     private int _currentStreak;
     private int _bestStreak;
-    private int _streakGoal;
     private DateOnly? _lastCompletionPeriod;
     private bool _rewardGoalFulfilled;
+    private readonly List<StreakBonusRule> _streakBonusRules = new();
 
     public RepeatCadence Cadence
     {
@@ -75,19 +77,6 @@ public class DailyTask : TaskBase
         }
     }
 
-    public int StreakGoal
-    {
-        get => _streakGoal;
-        internal set
-        {
-            if (_streakGoal != value)
-            {
-                _streakGoal = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
     public DateOnly? LastCompletionPeriod
     {
         get => _lastCompletionPeriod;
@@ -115,15 +104,50 @@ public class DailyTask : TaskBase
         }
     }
 
-    public bool IsCompleteForCurrentPeriod => LastCompletionPeriod is DateOnly period && period == GetPeriodStart(DateTimeOffset.UtcNow.ToLocalTime(), Cadence, RepeatEvery, CreatedAt);
+    public bool IsCompleteForCurrentPeriod => IsCompleteForPeriod(DateTimeOffset.UtcNow.ToLocalTime());
+
+    public IReadOnlyList<StreakBonusRule> StreakBonusRules => _streakBonusRules;
 
     public override TaskType Type => TaskType.Daily;
 
     public override bool IsRewardGoalMet => RewardGoalFulfilled;
 
+    public double GetGoldRewardWithBonus()
+    {
+        var bonusPercent = GetCurrentBonusPercent();
+        return GoldReward * (1 + bonusPercent / 100.0);
+    }
+
+    public void SetStreakBonusRules(IEnumerable<StreakBonusRule> rules)
+    {
+        _streakBonusRules.Clear();
+        if (rules == null) return;
+
+        foreach (var rule in rules)
+        {
+            if (!_streakBonusRules.Any(r => r.StreakGoal == rule.StreakGoal))
+            {
+                _streakBonusRules.Add(new StreakBonusRule(rule.StreakGoal, rule.BonusPercent));
+            }
+        }
+
+        OnPropertyChanged(nameof(StreakBonusRules));
+    }
+
+    private double GetCurrentBonusPercent()
+    {
+        if (_streakBonusRules.Count == 0) return 0;
+        return _streakBonusRules
+            .Where(r => CurrentStreak >= r.StreakGoal)
+            .Select(r => r.BonusPercent)
+            .DefaultIfEmpty(0)
+            .Max();
+    }
+
     public override void Complete(DateTimeOffset? completedAt = null)
     {
         var localTime = (completedAt ?? DateTimeOffset.UtcNow).ToLocalTime();
+        RefreshForCurrentPeriod(localTime);
         var periodStart = GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
 
         if (LastCompletionPeriod is DateOnly lastPeriod && lastPeriod == periodStart)
@@ -152,11 +176,6 @@ public class DailyTask : TaskBase
         if (CurrentStreak > BestStreak)
         {
             BestStreak = CurrentStreak;
-        }
-
-        if (!RewardGoalFulfilled && StreakGoal > 0 && CurrentStreak >= StreakGoal)
-        {
-            RewardGoalFulfilled = true;
         }
 
         LastCompletionPeriod = periodStart;
@@ -198,18 +217,43 @@ public class DailyTask : TaskBase
         {
             BestStreak = CurrentStreak;
         }
-        RewardGoalFulfilled = StreakGoal > 0 && CurrentStreak >= StreakGoal;
-    }
-
-    public void SetStreakGoal(int goal)
-    {
-        StreakGoal = goal < 0 ? 0 : goal;
-        RewardGoalFulfilled = StreakGoal > 0 && CurrentStreak >= StreakGoal;
     }
 
     public override void ResetRewardProgress()
     {
         RewardGoalFulfilled = false;
+    }
+
+    public void RefreshForCurrentPeriod(DateTimeOffset? now = null)
+    {
+        var localTime = (now ?? DateTimeOffset.UtcNow).ToLocalTime();
+        var currentPeriod = GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
+        var wasComplete = IsCompleteForPeriod(localTime);
+
+        if (LastCompletionPeriod is DateOnly lastPeriod)
+        {
+            var expectedPrev = GetPreviousPeriodStart(currentPeriod, Cadence, RepeatEvery);
+            if (lastPeriod < expectedPrev)
+            {
+                CurrentStreak = 0;
+                RewardGoalFulfilled = false;
+            }
+        }
+        else
+        {
+            RewardGoalFulfilled = false;
+        }
+
+        var isComplete = IsCompleteForPeriod(localTime);
+        if (isComplete != wasComplete)
+        {
+            OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+        }
+    }
+
+    private bool IsCompleteForPeriod(DateTimeOffset localTime)
+    {
+        return LastCompletionPeriod is DateOnly period && period == GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
     }
 
     private static DateOnly GetPeriodStart(DateTimeOffset localTime, RepeatCadence cadence, int repeatEvery, DateTimeOffset createdAt)

@@ -59,8 +59,37 @@
                 </StackPanel>
                 
                 <StackPanel>
-                    <TextBlock Text="Streak Goal"/>
-                    <NumericUpDown Value="{Binding StreakGoal}" Minimum="1" Increment="1"/>
+                    <TextBlock Text="Best Streak"/>
+                    <TextBlock Text="{Binding BestStreak}"/>
+                </StackPanel>
+                
+                <Separator Height="1" Background="#E0E0E0"/>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Streak Bonus Rules" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="2*,2*,Auto" RowDefinitions="Auto">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Streak Goal"/>
+                            <NumericUpDown Value="{Binding NewBonusStreakGoal}" Minimum="1" Increment="1"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Bonus %"/>
+                            <NumericUpDown Value="{Binding NewBonusPercent}" Minimum="0" Increment="1"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="Add" Margin="8,20,0,0" Click="AddStreakBonusRule_Click"/>
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding StreakBonusRules}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,*,Auto" Margin="0,2">
+                                    <TextBlock Grid.Column="0" Text="{Binding StreakGoal, StringFormat='Streak ? {0}'}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding BonusPercent, StringFormat='+{0}% gold'}"/>
+                                    <Button Grid.Column="2" Content="Remove" Click="RemoveStreakBonusRule_Click"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </StackPanel>
         </DataTemplate>

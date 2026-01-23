@@ -45,7 +45,6 @@ public static class TaskMapper
                     RepeatEvery = dailyData.RepeatEvery == 0 ? 1 : dailyData.RepeatEvery,
                     CurrentStreak = dailyData.CurrentStreak,
                     BestStreak = dailyData.BestStreak,
-                    StreakGoal = dailyData.StreakGoal,
                     LastCompletionPeriod = dailyData.LastCompletionPeriod,
                     RewardGoalFulfilled = dailyData.RewardGoalFulfilled
                 };
@@ -75,6 +74,19 @@ public static class TaskMapper
         }
         task.LastCompletedDate = data.LastCompletedDate;
         task.GoldReward = data.GoldReward;
+
+        if (task is DailyTask dailyTask)
+        {
+            if (data is DailyTaskData dailyData && dailyData.StreakBonusRules != null)
+            {
+                var rules = dailyData.StreakBonusRules
+                    .Select(r => new StreakBonusRule(r.StreakGoal, r.BonusPercent))
+                    .ToList();
+                dailyTask.SetStreakBonusRules(rules);
+            }
+
+            dailyTask.RefreshForCurrentPeriod();
+        }
 
         return task;
     }
@@ -107,9 +119,13 @@ public static class TaskMapper
                     RepeatEvery = daily.RepeatEvery,
                     CurrentStreak = daily.CurrentStreak,
                     BestStreak = daily.BestStreak,
-                    StreakGoal = daily.StreakGoal,
                     LastCompletionPeriod = daily.LastCompletionPeriod,
-                    RewardGoalFulfilled = daily.RewardGoalFulfilled
+                    RewardGoalFulfilled = daily.RewardGoalFulfilled,
+                    StreakBonusRules = daily.StreakBonusRules.Select(r => new StreakBonusRuleData
+                    {
+                        StreakGoal = r.StreakGoal,
+                        BonusPercent = r.BonusPercent
+                    }).ToList()
                 };
                 break;
             case HabitTask habit:

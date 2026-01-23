@@ -61,4 +61,20 @@ public partial class TaskFormWindow : Window
             vm.RemoveChecklistItem(item);
         }
     }
+
+    private void AddStreakBonusRule_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is DailyFormViewModel vm)
+        {
+            vm.AddStreakBonusRule();
+        }
+    }
+
+    private void RemoveStreakBonusRule_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control control && control.DataContext is StreakBonusRuleViewModel rule && DataContext is DailyFormViewModel vm)
+        {
+            vm.RemoveStreakBonusRule(rule);
+        }
+    }
 }
