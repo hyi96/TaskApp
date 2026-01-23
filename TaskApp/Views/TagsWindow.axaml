@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:TaskApp.ViewModels"
+        xmlns:sys="using:System"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+        x:Class="TaskApp.Views.TagsWindow"
+        x:DataType="vm:TagsViewModel"
+        Title="Tags Manager"
+        Width="400" Height="500"
+        WindowStartupLocation="CenterOwner">
+    <Border Background="#F5F5F5" Padding="16">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <TextBlock Text="Manage Tags"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Margin="0,0,0,16"/>
+
+            <!-- List of Tags -->
+            <ScrollViewer Grid.Row="1" Margin="0,0,0,16">
+                <ItemsControl ItemsSource="{Binding Tags}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SelectableTag">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
+                                <CheckBox Grid.Column="0" 
+                                          IsChecked="{Binding IsSelected}" 
+                                          VerticalAlignment="Center" 
+                                          Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" 
+                                           Text="{Binding Name}" 
+                                           VerticalAlignment="Center"
+                                           FontSize="16"/>
+                                <Button Grid.Column="2" 
+                                        Content="X"
+                                        Background="#B00020"
+                                        Foreground="White"
+                                        Click="RemoveTag_Click"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Add Tag Section -->
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                <TextBox Watermark="New tag name..." 
+                         Margin="0,0,8,0"
+                         Text="{Binding NewTagValue}"
+                         KeyDown="AddTag_KeyDown"/>
+                <Button Grid.Column="1" 
+                        Content="Add Tag"
+                        Background="#E0E0E0"
+                        Foreground="Black"
+                        Command="{Binding AddTag}"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
+

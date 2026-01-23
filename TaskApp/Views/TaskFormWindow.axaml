@@ -1,0 +1,194 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:TaskApp.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="600"
+        x:Class="TaskApp.Views.TaskFormWindow"
+        x:DataType="vm:TaskFormViewModel"
+        Title="Edit Task"
+        Width="400" Height="600"
+        WindowStartupLocation="CenterOwner">
+
+    <Design.DataContext>
+        <vm:HabitFormViewModel Title="Design Time Habit" Notes="This is a design time note."/>
+    </Design.DataContext>
+    
+    <Window.DataTemplates>
+        <!-- Habit Template -->
+        <DataTemplate DataType="{x:Type vm:HabitFormViewModel}">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Habit Settings" FontWeight="SemiBold"/>
+                
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <TextBlock Text="Count" VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1" Value="{Binding Count}" Minimum="0" Increment="1" Width="120" Margin="0,0,0,12"/>
+
+                    <TextBlock Grid.Row="1" Text="Increment Amount" VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding IncrementAmount}" Minimum="0.1" Increment="0.5" Width="120"/>
+                    
+                    <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Content="Enable Increment" IsChecked="{Binding IncrementEnabled}"/>
+                    <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Content="Enable Decrement" IsChecked="{Binding DecrementEnabled}"/>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Daily Template -->
+        <DataTemplate DataType="{x:Type vm:DailyFormViewModel}">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Daily Settings" FontWeight="SemiBold"/>
+                
+                <StackPanel>
+                    <TextBlock Text="Repeat Cadence"/>
+                    <ComboBox ItemsSource="{Binding CadenceOptions}" 
+                              SelectedItem="{Binding Cadence}"
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel>
+                    <TextBlock Text="Streak Goal"/>
+                    <NumericUpDown Value="{Binding StreakGoal}" Minimum="1" Increment="1"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Todo Template -->
+        <DataTemplate DataType="{x:Type vm:TodoFormViewModel}">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Todo Settings" FontWeight="SemiBold"/>
+                
+                <StackPanel>
+                    <TextBlock Text="Due Date"/>
+                    <DatePicker SelectedDate="{Binding DueDate}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Checklist"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0" 
+                                 Text="{Binding NewChecklistItem}" 
+                                 Watermark="Add checklist item..."
+                                 KeyDown="AddChecklistItem_KeyDown"/>
+                        <Button Grid.Column="1" 
+                                Content="Add" 
+                                Margin="4,0,0,0"
+                                Click="AddChecklistItem_Click"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding ChecklistItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+                                    <CheckBox Grid.Column="0" 
+                                              IsChecked="{Binding IsCompleted}" 
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding Text}" 
+                                               VerticalAlignment="Center"/>
+                                    <Button Grid.Column="2" 
+                                            Content="X" 
+                                            Padding="6,2"
+                                            Background="#B00020"
+                                            Foreground="White"
+                                            Click="RemoveChecklistItem_Click"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Reward Template -->
+        <DataTemplate DataType="{x:Type vm:RewardFormViewModel}">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Reward Settings" FontWeight="SemiBold"/>
+                
+                <CheckBox Content="Is Repeatable" IsChecked="{Binding IsRepeatable}"/>
+                
+                <StackPanel>
+                    <TextBlock Text="Linked Tasks"/>
+                    <TextBlock Text="{Binding LinkedTasksSummary}" Opacity="0.7"/>
+                    <Button Content="Manage Links..." HorizontalAlignment="Left"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <Border Background="#F5F5F5" Padding="16">
+        <Grid RowDefinitions="Auto,*,Auto">
+            
+            <TextBlock Text="Edit Task"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Margin="0,0,0,16"/>
+
+            <!-- Form Content -->
+            <ScrollViewer Grid.Row="1" Margin="0,0,0,16">
+                <StackPanel Spacing="16" Margin="0,0,20,0">
+                    
+                    <!-- Common Fields -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Title" FontWeight="Medium"/>
+                        <TextBox Text="{Binding Title}" Watermark="Task Title"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Notes" FontWeight="Medium"/>
+                        <TextBox Text="{Binding Notes}" Watermark="Add notes..." AcceptsReturn="True" TextWrapping="Wrap" Height="80"/>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Tags" FontWeight="Medium"/>
+                        <Button Content="Select Tags" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="White" BorderBrush="Gray" BorderThickness="1">
+                            <Button.Flyout>
+                                <Flyout Placement="Bottom" ShowMode="Standard">
+                                    <ScrollViewer MaxHeight="300" MinWidth="200">
+                                        <ItemsControl ItemsSource="{Binding TaskTags}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Name}" Margin="0,2"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Gold Value" FontWeight="Medium"/>
+                        <NumericUpDown Value="{Binding GoldValue}" Minimum="0" Increment="0.1"/>
+                    </StackPanel>
+
+                    <Separator Height="1" Background="#E0E0E0"/>
+
+                    <!-- Specific Fields -->
+                    <ContentControl Content="{Binding}"/>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Buttons -->
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button Grid.Column="0" 
+                        Content="Delete" 
+                        Background="#B00020" 
+                        Foreground="White"
+                        Click="Delete_Click"/>
+                
+                <Button Grid.Column="2" 
+                        Content="Cancel" 
+                        Margin="0,0,8,0"
+                        Click="Cancel_Click"/>
+                
+                <Button Grid.Column="3" 
+                        Content="Save" 
+                        Background="#404040" 
+                        Foreground="White"
+                        Click="Save_Click"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

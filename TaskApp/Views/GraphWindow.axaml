@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
+        x:Class="TaskApp.Views.GraphWindow"
+        Title="Statistics"
+        Width="600" Height="450">
+    <Border Background="#F5F5F5" Padding="12" Margin="16" CornerRadius="6">
+        <Grid RowDefinitions="Auto,Auto,*">
+            <TextBlock Grid.Row="0"
+                       Text="Task Insights"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,12"/>
+
+            <StackPanel Grid.Row="1"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        Margin="0,0,0,12">
+                <Button Content="Day"/>
+                <Button Content="Week"/>
+                <Button Content="Month"/>
+                <Button Content="Year"/>
+            </StackPanel>
+
+            <Border Grid.Row="2"
+                    Background="#E0E0E0"
+                    CornerRadius="4"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
+
+                <TextBlock Text="Graph placeholder"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Opacity="0.5"/>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
