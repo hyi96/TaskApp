@@ -17,18 +17,15 @@
             <StackPanel Spacing="12">
                 <TextBlock Text="Habit Settings" FontWeight="SemiBold"/>
                 
-                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
                     <TextBlock Text="Count" VerticalAlignment="Center"/>
                     <NumericUpDown Grid.Column="1" Value="{Binding Count}" Minimum="0" Increment="1" Width="120" Margin="0,0,0,12"/>
 
                     <TextBlock Grid.Row="1" Text="Increment Amount" VerticalAlignment="Center"/>
                     <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding IncrementAmount}" Minimum="0.1" Increment="0.5" Width="120"/>
-                    
-                    <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Content="Enable Increment" IsChecked="{Binding IncrementEnabled}"/>
-                    <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Content="Enable Decrement" IsChecked="{Binding DecrementEnabled}"/>
 
-                    <TextBlock Grid.Row="4" Text="Reset Counter" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="4" Grid.Column="1"
+                    <TextBlock Grid.Row="2" Text="Reset Counter" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="2" Grid.Column="1"
                               ItemsSource="{Binding ResetCadenceOptions}"
                               SelectedItem="{Binding ResetCadence}"
                               Width="140"/>
@@ -207,19 +204,24 @@
             </ScrollViewer>
 
             <!-- Buttons -->
-            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto">
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
                 <Button Grid.Column="0"
                         Content="Delete"
                         Background="#B00020"
                         Foreground="White"
                         Click="Delete_Click"/>
 
-                <Button Grid.Column="2"
+                <Button Grid.Column="1"
+                        Content="Set as Current Activity"
+                        Margin="8,0"
+                        Click="SetCurrentActivity_Click"/>
+
+                <Button Grid.Column="3"
                         Content="Cancel"
                         Margin="0,0,8,0"
                         Click="Cancel_Click"/>
 
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Content="Save"
                         Background="#404040"
                         Foreground="White"

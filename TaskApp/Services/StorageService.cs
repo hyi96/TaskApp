@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using TaskApp.Data;
 using TaskApp.Models;
+using TaskApp.Models.Logs;
 using TaskApp.Models.Rewards;
 using TaskApp.Models.Tasks;
 
@@ -18,6 +20,7 @@ public class StorageService
     private const string RewardsFileName = "rewards.json";
     private const string TagsFileName = "tags.json";
     private const string UserProfileFileName = "user.json";
+    private const string LogsDbFileName = "logs.db";
 
     public StorageService()
     {
@@ -29,6 +32,8 @@ public class StorageService
             Directory.CreateDirectory(_dataDirectory);
         }
     }
+
+    public string DataDirectory => _dataDirectory;
 
     public async Task SaveTagsAsync(IEnumerable<string> tags)
     {
@@ -125,5 +130,87 @@ public class StorageService
         {
             return new UserProfile();
         }
+    }
+
+    private string GetLogsDbPath() => Path.Combine(_dataDirectory, LogsDbFileName);
+
+    private async Task EnsureLogsTableAsync()
+    {
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"CREATE TABLE IF NOT EXISTS LogEntries (
+                                    Id TEXT PRIMARY KEY,
+                                    Timestamp TEXT NOT NULL,
+                                    Type INTEGER NOT NULL,
+                                    TaskId TEXT NULL,
+                                    RewardId TEXT NULL,
+                                    GoldDelta INTEGER NOT NULL,
+                                    DurationTicks INTEGER NULL,
+                                    TitleSnapshot TEXT NOT NULL
+                                );";
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task AddLogEntryAsync(LogEntry entry)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, DurationTicks, TitleSnapshot)
+                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $durationTicks, $titleSnapshot);";
+        command.Parameters.AddWithValue("$id", entry.Id.ToString());
+        command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
+        command.Parameters.AddWithValue("$type", (int)entry.Type);
+        command.Parameters.AddWithValue("$taskId", (object?)entry.TaskId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$rewardId", (object?)entry.RewardId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$goldDelta", entry.GoldDelta);
+        command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
+        command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task<List<LogEntry>> LoadRecentLogEntriesAsync(int count = 50)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, DurationTicks, TitleSnapshot
+                                FROM LogEntries
+                                ORDER BY Timestamp DESC
+                                LIMIT $limit;";
+        command.Parameters.AddWithValue("$limit", count);
+
+        var entries = new List<LogEntry>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var entry = new LogEntry
+            {
+                Id = Guid.Parse(reader.GetString(0)),
+                Timestamp = DateTime.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind),
+                Type = (LogType)reader.GetInt32(2),
+                TaskId = reader.IsDBNull(3) ? null : Guid.Parse(reader.GetString(3)),
+                RewardId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)),
+                GoldDelta = reader.GetInt32(5),
+                Duration = reader.IsDBNull(6) ? null : TimeSpan.FromTicks(reader.GetInt64(6)),
+                TitleSnapshot = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
+            };
+
+            entries.Add(entry);
+        }
+
+        return entries;
     }
 }

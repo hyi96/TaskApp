@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+       xmlns:vm="using:TaskApp.ViewModels"
+       mc:Ignorable="d"
+       x:Class="TaskApp.Views.LogsWindow"
+       x:DataType="vm:LogsViewModel"
+       d:DesignWidth="600"
+       d:DesignHeight="400"
+       Width="640"
+       Height="480"
+       Title="Logs">
+    <Border Padding="12">
+        <ScrollViewer>
+            <StackPanel Spacing="12">
+                <TextBlock Text="Recent Logs" FontSize="20" FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding Logs}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LogEntryViewModel">
+                            <Border Padding="8" Margin="0,0,0,6" BorderBrush="#E0E0E0" BorderThickness="0 0 0 1">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <TextBlock Grid.Column="0" Text="{Binding Message}" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Timestamp}" HorizontalAlignment="Right" Foreground="#666"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</Window>

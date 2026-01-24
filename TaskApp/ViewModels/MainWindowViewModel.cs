@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using TaskApp.Models;
+using TaskApp.Models.Logs;
 using TaskApp.Models.Rewards;
 using TaskApp.Models.Tasks;
 using TaskApp.Services;
@@ -27,6 +29,10 @@ public class MainWindowViewModel : ViewModelBase
     public ObservableCollection<Reward> Rewards { get; } = new();
     
     public ObservableCollection<SelectableTag> AvailableTags { get; } = new();
+ 
+    public CurrentActivityViewModel CurrentActivity { get; } = new();
+ 
+    public StorageService StorageService => _storageService;
 
     // Internal full lists
     private readonly List<HabitTask> _allHabits = new();
@@ -67,6 +73,11 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(StorageService storageService)
     {
         _storageService = storageService;
+ 
+        CurrentActivity.ActivityDurationRecorded += async (duration, title) =>
+        {
+            await LogActivityDurationAsync(duration, title);
+        };
     }
 
     public void AddHabit()
@@ -232,6 +243,8 @@ public class MainWindowViewModel : ViewModelBase
             }
             
             _ = SaveDataAsync();
+ 
+            _ = LogRewardClaimedAsync(reward, reward.GoldCost);
         }
     }
 
@@ -262,26 +275,93 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void AvailableTags_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    public void SetCurrentActivity(string title)
     {
-        if (e.NewItems != null)
-        {
-            foreach (SelectableTag tag in e.NewItems)
-            {
-                tag.SelectionChanged += RefreshFilter;
-            }
-        }
-        
-        if (e.OldItems != null)
-        {
-            foreach (SelectableTag tag in e.OldItems)
-            {
-                tag.SelectionChanged -= RefreshFilter;
-            }
-        }
-        
-        RefreshFilter();
+        CurrentActivity.SetTitleAndReset(title ?? string.Empty);
     }
+
+    public void StartCurrentActivity()
+    {
+        CurrentActivity.Start();
+    }
+
+    public void PauseCurrentActivity()
+    {
+        CurrentActivity.Pause();
+    }
+
+    public void ResetCurrentActivity()
+    {
+        CurrentActivity.Reset();
+    }
+ 
+    public Task<List<LogEntry>> LoadRecentLogsAsync(int count = 50)
+    {
+        return _storageService.LoadRecentLogEntriesAsync(count);
+    }
+ 
+    public Task LogHabitIncrementAsync(HabitTask habit, double goldDelta)
+    {
+        return LogAsync(LogType.HabitIncremented, task: habit, goldDelta: goldDelta);
+    }
+ 
+    public Task LogDailyCompletedAsync(DailyTask daily, double goldDelta)
+    {
+        return LogAsync(LogType.DailyCompleted, task: daily, goldDelta: goldDelta);
+    }
+ 
+    public Task LogTodoCompletedAsync(TodoTask todo, double goldDelta)
+    {
+        return LogAsync(LogType.TodoCompleted, task: todo, goldDelta: goldDelta);
+    }
+ 
+    public Task LogRewardClaimedAsync(Reward reward, double goldDelta)
+    {
+        return LogAsync(LogType.RewardClaimed, reward: reward, goldDelta: -Math.Abs(goldDelta));
+    }
+ 
+    public Task LogActivityDurationAsync(TimeSpan duration, string title)
+    {
+        return LogAsync(LogType.ActivityDuration, duration: duration, title: title);
+    }
+ 
+    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, TimeSpan? duration = null, string? title = null)
+    {
+        var entry = new LogEntry
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            Type = type,
+            TaskId = task?.Id,
+            RewardId = reward?.Id,
+            GoldDelta = (int)Math.Round(goldDelta),
+            Duration = duration,
+            TitleSnapshot = title ?? task?.Title ?? reward?.Title ?? string.Empty
+        };
+ 
+        return _storageService.AddLogEntryAsync(entry);
+    }
+ 
+     private void AvailableTags_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+     {
+         if (e.NewItems != null)
+         {
+             foreach (SelectableTag tag in e.NewItems)
+             {
+                 tag.SelectionChanged += RefreshFilter;
+             }
+         }
+         
+         if (e.OldItems != null)
+         {
+             foreach (SelectableTag tag in e.OldItems)
+             {
+                 tag.SelectionChanged -= RefreshFilter;
+             }
+         }
+         
+         RefreshFilter();
+     }
 
     public void RemoveTagFromAllTasks(string tagName)
     {

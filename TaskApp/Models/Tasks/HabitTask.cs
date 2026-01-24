@@ -15,7 +15,7 @@ public class HabitTask : TaskBase
     private double _count;
     private double _incrementAmount = 1.0;
     private bool _incrementEnabled = true;
-    private bool _decrementEnabled = true;
+    private bool _decrementEnabled = false;
     private HabitResetCadence _resetCadence = HabitResetCadence.Never;
     private DateOnly? _lastResetPeriod;
 

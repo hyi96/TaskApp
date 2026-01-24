@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using TaskApp.Models.Rewards;
 using TaskApp.Models.Tasks;
 using TaskApp.ViewModels;
@@ -35,6 +36,22 @@ public partial class MainWindow : Window
         }
     }
 
+    public async void OpenLogsWindow_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel mainVm)
+        {
+            var vm = new LogsViewModel(mainVm.StorageService);
+            await vm.LoadAsync();
+
+            var logsWindow = new LogsWindow
+            {
+                DataContext = vm
+            };
+
+            await logsWindow.ShowDialog(this);
+        }
+    }
+
     public void EditTask_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Control control && control.DataContext is object item && DataContext is MainWindowViewModel mainVm)
@@ -64,6 +81,8 @@ public partial class MainWindow : Window
 
             if (vm != null)
             {
+                vm.RequestSetAsCurrentActivity += title => mainVm.SetCurrentActivity(title);
+
                 var taskWindow = new TaskFormWindow
                 {
                     DataContext = vm
@@ -107,26 +126,52 @@ public partial class MainWindow : Window
         }
     }
 
-    public void IncrementHabit_Click(object? sender, RoutedEventArgs e)
+    public void ActivityTitle_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            StartActivityButton?.Focus();
+            e.Handled = true;
+        }
+    }
+
+    public void StartActivity_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.StartCurrentActivity();
+        }
+    }
+
+    public void PauseActivity_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.PauseCurrentActivity();
+        }
+    }
+
+    public void ResetActivity_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.ResetCurrentActivity();
+        }
+    }
+ 
+    public async void IncrementHabit_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Control control && control.DataContext is HabitTask habit && DataContext is MainWindowViewModel mainVm)
         {
             habit.Increment();
             mainVm.AddGold(habit.GoldReward);
             _ = mainVm.SaveDataAsync();
+
+            await mainVm.LogHabitIncrementAsync(habit, habit.GoldReward);
         }
     }
 
-    public void DecrementHabit_Click(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control control && control.DataContext is HabitTask habit && DataContext is MainWindowViewModel mainVm)
-        {
-            habit.Decrement();
-            _ = mainVm.SaveDataAsync();
-        }
-    }
-
-    public void CompleteTask_Click(object? sender, RoutedEventArgs e)
+    public async void CompleteTask_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Control control && control.DataContext is TaskBase task && DataContext is MainWindowViewModel mainVm)
         {
@@ -144,16 +189,29 @@ public partial class MainWindow : Window
             }
 
             mainVm.AddGold(rewardAmount);
-             
+              
             // Remove TodoTask from the list when completed
             if (task is TodoTask todo)
             {
                 mainVm.DeleteTodo(todo);
             }
-             
+              
             _ = mainVm.SaveDataAsync();
-        }
-    }
+
+            switch (task)
+            {
+                case HabitTask habitTask:
+                    await mainVm.LogHabitIncrementAsync(habitTask, rewardAmount);
+                    break;
+                case DailyTask daily:
+                    await mainVm.LogDailyCompletedAsync(daily, rewardAmount);
+                    break;
+                case TodoTask todoTask:
+                    await mainVm.LogTodoCompletedAsync(todoTask, rewardAmount);
+                    break;
+            }
+         }
+     }
 
     public void ClaimReward_Click(object? sender, RoutedEventArgs e)
     {

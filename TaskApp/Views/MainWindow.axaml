@@ -1,25 +1,26 @@
 <Window xmlns="https://github.com/avaloniaui"
-xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-xmlns:vm="using:TaskApp.ViewModels"
-xmlns:tasks="using:TaskApp.Models.Tasks"
-xmlns:rewards="using:TaskApp.Models.Rewards"
-xmlns:conv="using:TaskApp.Converters"
-mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-x:Class="TaskApp.Views.MainWindow"
-x:DataType="vm:MainWindowViewModel"
-Width="1000"
-        Height="600"
-        MinWidth="800"
-        MinHeight="450"
-        Title="TaskApp">
-    <Window.Resources>
-        <conv:BooleanNegationConverter x:Key="InverseBooleanConverter" />
-        <conv:BooleanToTextDecorationConverter x:Key="BoolToTextDecorationConverter" />
-    </Window.Resources>
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+         xmlns:vm="using:TaskApp.ViewModels"
+         xmlns:tasks="using:TaskApp.Models.Tasks"
+         xmlns:rewards="using:TaskApp.Models.Rewards"
+         xmlns:conv="using:TaskApp.Converters"
+         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+         x:Class="TaskApp.Views.MainWindow"
+         x:Name="MainWindowRoot"
+         x:DataType="vm:MainWindowViewModel"
+         Width="1000"
+                 Height="600"
+                 MinWidth="800"
+                 MinHeight="450"
+                 Title="TaskApp">
+     <Window.Resources>
+         <conv:BooleanNegationConverter x:Key="InverseBooleanConverter" />
+         <conv:BooleanToTextDecorationConverter x:Key="BoolToTextDecorationConverter" />
+     </Window.Resources>
     <Grid RowDefinitions="Auto,*,Auto" Margin="16">
-        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,0,0,12">
             <TextBlock Grid.Column="0"
                        Text="TaskApp"
                        FontSize="24"
@@ -38,6 +39,11 @@ Width="1000"
             <Button Grid.Column="2"
                     Content="Insights"
                     Click="OpenGraphWindow_Click"
+                    VerticalAlignment="Center"/>
+
+            <Button Grid.Column="3"
+                    Content="Logs"
+                    Click="OpenLogsWindow_Click"
                     VerticalAlignment="Center"/>
         </Grid>
 
@@ -65,10 +71,9 @@ Width="1000"
                                             Click="EditTask_Click" 
                                             HorizontalAlignment="Stretch"
                                             Margin="0,2"/>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" Margin="4,0,0,0">
-                                        <Button Content="-" Click="DecrementHabit_Click" IsEnabled="{Binding DecrementEnabled}" Padding="8,4" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                                        <TextBlock Text="{Binding Count}" VerticalAlignment="Center" Margin="4,0" MinWidth="20" TextAlignment="Center"/>
-                                        <Button Content="+" Click="IncrementHabit_Click" IsEnabled="{Binding IncrementEnabled}" Padding="8,4" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="4,0,0,0">
+                                        <TextBlock Text="{Binding Count}" VerticalAlignment="Center" Margin="0,0,4,0" MinWidth="20" TextAlignment="Center"/>
+                                        <Button Content="+" Click="IncrementHabit_Click" Padding="8,4" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>
@@ -175,13 +180,32 @@ Width="1000"
             </Border>
         </Grid>
 
-        <!-- Footer / Gold Counter -->
-        <Border Grid.Row="2" Background="#FFF8E1" BorderBrush="#FFD54F" BorderThickness="1" CornerRadius="4" Padding="8,4" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <TextBlock Text="Total Gold:" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding User.Gold, StringFormat='{}{0:0.0} G'}" FontWeight="Bold" Foreground="#F57F17" VerticalAlignment="Center"/>
-            </StackPanel>
-        </Border>
-    </Grid>
+        <!-- Footer / Current Activity and Gold Counter -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+            <Border Background="#E8F5E9" BorderBrush="#C8E6C9" BorderThickness="1" CornerRadius="4" Padding="12" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,12,0"
+                    MaxWidth="{Binding #MainWindowRoot.Bounds.Width}">
+                <Grid ColumnDefinitions="3*,2*" ColumnSpacing="12" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
+                        <TextBlock Text="Current Activity" FontWeight="SemiBold"/>
+                        <TextBox Watermark="Activity title..." Text="{Binding CurrentActivity.Title}" KeyDown="ActivityTitle_KeyDown" HorizontalAlignment="Stretch" MinWidth="280"/>
+                    </StackPanel>
 
-</Window>
+                    <Grid Grid.Column="1" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*" RowSpacing="6" ColumnSpacing="6" VerticalAlignment="Center">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding CurrentActivity.ElapsedDisplay}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Stretch" TextAlignment="Center"/>
+                        <Button x:Name="StartActivityButton" Grid.Row="1" Grid.Column="0" Content="Start" Click="StartActivity_Click" IsEnabled="{Binding CurrentActivity.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                        <Button Grid.Row="1" Grid.Column="1" Content="Pause" Click="PauseActivity_Click" IsEnabled="{Binding CurrentActivity.IsRunning}"/>
+                        <Button Grid.Row="1" Grid.Column="2" Content="Reset" Click="ResetActivity_Click"/>
+                    </Grid>
+                </Grid>
+            </Border>
+ 
+             <Border Grid.Column="1" Background="#FFF8E1" BorderBrush="#FFD54F" BorderThickness="1" CornerRadius="4" Padding="8,4" HorizontalAlignment="Right">
+                 <StackPanel Orientation="Horizontal" Spacing="4">
+                     <TextBlock Text="Total Gold:" VerticalAlignment="Center"/>
+                     <TextBlock Text="{Binding User.Gold, StringFormat='{}{0:0.0} G'}" FontWeight="Bold" Foreground="#F57F17" VerticalAlignment="Center"/>
+                 </StackPanel>
+             </Border>
+         </Grid>
+     </Grid>
+ 
+ </Window>

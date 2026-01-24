@@ -36,6 +36,14 @@ public partial class TaskFormWindow : Window
         Close();
     }
 
+    private void SetCurrentActivity_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is TaskFormViewModel vm)
+        {
+            vm.SetAsCurrentActivity();
+        }
+    }
+
     private void AddChecklistItem_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is TodoFormViewModel vm)
