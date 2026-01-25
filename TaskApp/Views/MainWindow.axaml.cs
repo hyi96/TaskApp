@@ -158,6 +158,14 @@ public partial class MainWindow : Window
             vm.ResetCurrentActivity();
         }
     }
+
+    public void RemoveActivity_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.RemoveCurrentActivity();
+        }
+    }
  
     public async void IncrementHabit_Click(object? sender, RoutedEventArgs e)
     {

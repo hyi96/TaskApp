@@ -10,6 +10,7 @@ public class CurrentActivityViewModel : ViewModelBase
     private readonly DispatcherTimer _timer;
     private string _title = string.Empty;
     private bool _isRunning;
+    private TimeSpan _sessionStartElapsed = TimeSpan.Zero;
 
     public CurrentActivityViewModel()
     {
@@ -42,6 +43,7 @@ public class CurrentActivityViewModel : ViewModelBase
     {
         if (IsRunning) return;
 
+        _sessionStartElapsed = _stopwatch.Elapsed;
         _stopwatch.Start();
         IsRunning = true;
         if (!_timer.IsEnabled)
@@ -56,37 +58,71 @@ public class CurrentActivityViewModel : ViewModelBase
         if (!IsRunning) return;
 
         _stopwatch.Stop();
-        var elapsed = _stopwatch.Elapsed;
+        var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
         IsRunning = false;
         _timer.Stop();
         UpdateElapsed();
 
-        if (elapsed > TimeSpan.Zero)
+        if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
         {
-            ActivityDurationRecorded?.Invoke(elapsed, Title);
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
         }
     }
 
     public void Reset()
     {
-        var wasRunning = IsRunning;
-        var elapsed = _stopwatch.Elapsed;
+        if (!IsRunning) return;
 
+        _stopwatch.Stop();
+        var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
         _stopwatch.Reset();
         IsRunning = false;
         _timer.Stop();
         UpdateElapsed();
 
-        if (wasRunning && elapsed > TimeSpan.Zero)
+        if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
         {
-            ActivityDurationRecorded?.Invoke(elapsed, Title);
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
         }
+    }
+
+    public void Remove()
+    {
+        if (!IsRunning) return;
+
+        _stopwatch.Stop();
+        var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
+        _stopwatch.Reset();
+        IsRunning = false;
+        _timer.Stop();
+        UpdateElapsed();
+
+        if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
+        {
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+        }
+
+        Title = string.Empty;
     }
 
     public void SetTitleAndReset(string title)
     {
-        Title = title;
-        Reset();
+        if (IsRunning)
+        {
+            _stopwatch.Stop();
+            var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
+
+            if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
+            {
+                ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+            }
+        }
+
+        Title = title ?? string.Empty;
+        _stopwatch.Reset();
+        IsRunning = false;
+        _timer.Stop();
+        UpdateElapsed();
     }
 
     private void UpdateElapsed()

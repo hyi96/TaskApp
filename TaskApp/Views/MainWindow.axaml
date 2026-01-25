@@ -190,11 +190,12 @@
                         <TextBox Watermark="Activity title..." Text="{Binding CurrentActivity.Title}" KeyDown="ActivityTitle_KeyDown" HorizontalAlignment="Stretch" MinWidth="280"/>
                     </StackPanel>
 
-                    <Grid Grid.Column="1" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*" RowSpacing="6" ColumnSpacing="6" VerticalAlignment="Center">
-                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding CurrentActivity.ElapsedDisplay}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Stretch" TextAlignment="Center"/>
+                    <Grid Grid.Column="1" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*,*" RowSpacing="6" ColumnSpacing="6" VerticalAlignment="Center">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="4" Text="{Binding CurrentActivity.ElapsedDisplay}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Stretch" TextAlignment="Center"/>
                         <Button x:Name="StartActivityButton" Grid.Row="1" Grid.Column="0" Content="Start" Click="StartActivity_Click" IsEnabled="{Binding CurrentActivity.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                         <Button Grid.Row="1" Grid.Column="1" Content="Pause" Click="PauseActivity_Click" IsEnabled="{Binding CurrentActivity.IsRunning}"/>
                         <Button Grid.Row="1" Grid.Column="2" Content="Reset" Click="ResetActivity_Click"/>
+                        <Button Grid.Row="1" Grid.Column="3" Content="Remove" Click="RemoveActivity_Click"/>
                     </Grid>
                 </Grid>
             </Border>

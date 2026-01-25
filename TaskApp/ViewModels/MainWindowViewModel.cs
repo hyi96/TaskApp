@@ -294,6 +294,11 @@ public class MainWindowViewModel : ViewModelBase
     {
         CurrentActivity.Reset();
     }
+
+    public void RemoveCurrentActivity()
+    {
+        CurrentActivity.Remove();
+    }
  
     public Task<List<LogEntry>> LoadRecentLogsAsync(int count = 50)
     {
