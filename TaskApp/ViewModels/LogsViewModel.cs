@@ -47,7 +47,7 @@ public class LogEntryViewModel
     {
         var message = entry.Type switch
         {
-            LogType.HabitIncremented => $"Habit incremented: {entry.TitleSnapshot}",
+            LogType.HabitIncremented => $"Habit incremented by {FormatCountDelta(entry.CountDelta)}: {entry.TitleSnapshot}",
             LogType.DailyCompleted => $"Daily completed: {entry.TitleSnapshot}",
             LogType.TodoCompleted => $"Todo completed: {entry.TitleSnapshot}",
             LogType.RewardClaimed => $"Reward claimed: {entry.TitleSnapshot}",
@@ -61,6 +61,11 @@ public class LogEntryViewModel
         }
 
         return message;
+    }
+
+    private static string FormatCountDelta(double? delta)
+    {
+        return delta.HasValue ? delta.Value.ToString("0.##", CultureInfo.InvariantCulture) : "1";
     }
 
     private static string FormatDuration(System.TimeSpan? duration)

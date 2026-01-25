@@ -307,7 +307,7 @@ public class MainWindowViewModel : ViewModelBase
  
     public Task LogHabitIncrementAsync(HabitTask habit, double goldDelta)
     {
-        return LogAsync(LogType.HabitIncremented, task: habit, goldDelta: goldDelta);
+        return LogAsync(LogType.HabitIncremented, task: habit, goldDelta: goldDelta, countDelta: habit.IncrementAmount);
     }
  
     public Task LogDailyCompletedAsync(DailyTask daily, double goldDelta)
@@ -330,7 +330,7 @@ public class MainWindowViewModel : ViewModelBase
         return LogAsync(LogType.ActivityDuration, duration: duration, title: title);
     }
  
-    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, TimeSpan? duration = null, string? title = null)
+    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null)
     {
         var entry = new LogEntry
         {
@@ -340,6 +340,7 @@ public class MainWindowViewModel : ViewModelBase
             TaskId = task?.Id,
             RewardId = reward?.Id,
             GoldDelta = goldDelta,
+            CountDelta = countDelta,
             Duration = duration,
             TitleSnapshot = title ?? task?.Title ?? reward?.Title ?? string.Empty
         };

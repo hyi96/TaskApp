@@ -134,6 +134,19 @@ public class StorageService
 
     private string GetLogsDbPath() => Path.Combine(_dataDirectory, LogsDbFileName);
 
+    private static readonly Dictionary<string, string> LogEntriesSchema = new()
+    {
+        { "Id", "TEXT PRIMARY KEY" },
+        { "Timestamp", "TEXT NOT NULL" },
+        { "Type", "INTEGER NOT NULL" },
+        { "TaskId", "TEXT NULL" },
+        { "RewardId", "TEXT NULL" },
+        { "GoldDelta", "REAL NOT NULL" },
+        { "CountDelta", "REAL NULL" },
+        { "DurationTicks", "INTEGER NULL" },
+        { "TitleSnapshot", "TEXT NOT NULL" }
+    };
+
     private async Task EnsureLogsTableAsync()
     {
         var dbPath = GetLogsDbPath();
@@ -141,17 +154,46 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"CREATE TABLE IF NOT EXISTS LogEntries (
-                                    Id TEXT PRIMARY KEY,
-                                    Timestamp TEXT NOT NULL,
-                                    Type INTEGER NOT NULL,
-                                    TaskId TEXT NULL,
-                                    RewardId TEXT NULL,
-                                    GoldDelta REAL NOT NULL,
-                                    DurationTicks INTEGER NULL,
-                                    TitleSnapshot TEXT NOT NULL
+        var columns = string.Join(",\n                                    ", 
+            LogEntriesSchema.Select(kvp => $"{kvp.Key} {kvp.Value}"));
+        command.CommandText = $@"CREATE TABLE IF NOT EXISTS LogEntries (
+                                    {columns}
                                 );";
         await command.ExecuteNonQueryAsync();
+
+        // Ensure all schema columns exist (migration for existing databases)
+        await EnsureColumnsExistAsync(connection);
+    }
+
+    private async Task EnsureColumnsExistAsync(SqliteConnection connection)
+    {
+        try
+        {
+            var checkCommand = connection.CreateCommand();
+            checkCommand.CommandText = "PRAGMA table_info(LogEntries);";
+            var existingColumns = new HashSet<string>();
+            
+            await using var reader = await checkCommand.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                existingColumns.Add(reader.GetString(1));
+            }
+
+            foreach (var columnName in LogEntriesSchema.Keys)
+            {
+                if (!existingColumns.Contains(columnName))
+                {
+                    var columnDefinition = LogEntriesSchema[columnName];
+                    var alterCommand = connection.CreateCommand();
+                    alterCommand.CommandText = $"ALTER TABLE LogEntries ADD COLUMN {columnName} {columnDefinition};";
+                    await alterCommand.ExecuteNonQueryAsync();
+                }
+            }
+        }
+        catch
+        {
+            // If PRAGMA fails or columns already exist, continue
+        }
     }
 
     public async Task AddLogEntryAsync(LogEntry entry)
@@ -163,14 +205,15 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, DurationTicks, TitleSnapshot)
-                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $durationTicks, $titleSnapshot);";
+        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, CountDelta, DurationTicks, TitleSnapshot)
+                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $countDelta, $durationTicks, $titleSnapshot);";
         command.Parameters.AddWithValue("$id", entry.Id.ToString());
         command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
         command.Parameters.AddWithValue("$type", (int)entry.Type);
         command.Parameters.AddWithValue("$taskId", (object?)entry.TaskId?.ToString() ?? DBNull.Value);
         command.Parameters.AddWithValue("$rewardId", (object?)entry.RewardId?.ToString() ?? DBNull.Value);
         command.Parameters.AddWithValue("$goldDelta", entry.GoldDelta);
+        command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
         command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
         command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
 
@@ -186,7 +229,7 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, DurationTicks, TitleSnapshot
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, CountDelta, DurationTicks, TitleSnapshot
                                 FROM LogEntries
                                 ORDER BY Timestamp DESC
                                 LIMIT $limit;";
@@ -204,8 +247,9 @@ public class StorageService
                 TaskId = reader.IsDBNull(3) ? null : Guid.Parse(reader.GetString(3)),
                 RewardId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)),
                 GoldDelta = reader.IsDBNull(5) ? 0 : Convert.ToDouble(reader.GetValue(5)),
-                Duration = reader.IsDBNull(6) ? null : TimeSpan.FromTicks(reader.GetInt64(6)),
-                TitleSnapshot = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
+                CountDelta = reader.IsDBNull(6) ? null : Convert.ToDouble(reader.GetValue(6)),
+                Duration = reader.IsDBNull(7) ? null : TimeSpan.FromTicks(reader.GetInt64(7)),
+                TitleSnapshot = reader.IsDBNull(8) ? string.Empty : reader.GetString(8)
             };
 
             entries.Add(entry);
