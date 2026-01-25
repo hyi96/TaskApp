@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -44,7 +45,7 @@ public class LogEntryViewModel
 
     private static string BuildMessage(LogEntry entry)
     {
-        return entry.Type switch
+        var message = entry.Type switch
         {
             LogType.HabitIncremented => $"Habit incremented: {entry.TitleSnapshot}",
             LogType.DailyCompleted => $"Daily completed: {entry.TitleSnapshot}",
@@ -53,11 +54,25 @@ public class LogEntryViewModel
             LogType.ActivityDuration => $"Spent {FormatDuration(entry.Duration)} on activity: {entry.TitleSnapshot}",
             _ => entry.TitleSnapshot
         };
+
+        if (Math.Abs(entry.GoldDelta) > double.Epsilon)
+        {
+            message += $" ({FormatGoldDelta(entry.GoldDelta)})";
+        }
+
+        return message;
     }
 
     private static string FormatDuration(System.TimeSpan? duration)
     {
         var span = duration ?? System.TimeSpan.Zero;
         return span.ToString(span.TotalHours >= 1 ? "hh\\:mm\\:ss" : "mm\\:ss");
+    }
+
+    private static string FormatGoldDelta(double delta)
+    {
+        var sign = delta >= 0 ? "+" : "-";
+        var magnitude = Math.Abs(delta).ToString("0.##", CultureInfo.InvariantCulture);
+        return $"{sign}{magnitude} G";
     }
 }

@@ -147,7 +147,7 @@ public class StorageService
                                     Type INTEGER NOT NULL,
                                     TaskId TEXT NULL,
                                     RewardId TEXT NULL,
-                                    GoldDelta INTEGER NOT NULL,
+                                    GoldDelta REAL NOT NULL,
                                     DurationTicks INTEGER NULL,
                                     TitleSnapshot TEXT NOT NULL
                                 );";
@@ -203,7 +203,7 @@ public class StorageService
                 Type = (LogType)reader.GetInt32(2),
                 TaskId = reader.IsDBNull(3) ? null : Guid.Parse(reader.GetString(3)),
                 RewardId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)),
-                GoldDelta = reader.GetInt32(5),
+                GoldDelta = reader.IsDBNull(5) ? 0 : Convert.ToDouble(reader.GetValue(5)),
                 Duration = reader.IsDBNull(6) ? null : TimeSpan.FromTicks(reader.GetInt64(6)),
                 TitleSnapshot = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
             };

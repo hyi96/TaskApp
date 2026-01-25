@@ -334,7 +334,7 @@ public class MainWindowViewModel : ViewModelBase
             Type = type,
             TaskId = task?.Id,
             RewardId = reward?.Id,
-            GoldDelta = (int)Math.Round(goldDelta),
+            GoldDelta = goldDelta,
             Duration = duration,
             TitleSnapshot = title ?? task?.Title ?? reward?.Title ?? string.Empty
         };
