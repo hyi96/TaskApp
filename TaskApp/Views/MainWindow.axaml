@@ -37,7 +37,7 @@
             </StackPanel>
 
             <Button Grid.Column="2"
-                    Content="Insights"
+                    Content="Graphs"
                     Click="OpenGraphWindow_Click"
                     VerticalAlignment="Center"/>
 
@@ -202,7 +202,7 @@
  
              <Border Grid.Column="1" Background="#FFF8E1" BorderBrush="#FFD54F" BorderThickness="1" CornerRadius="4" Padding="8,4" HorizontalAlignment="Right">
                  <StackPanel Orientation="Horizontal" Spacing="4">
-                     <TextBlock Text="Total Gold:" VerticalAlignment="Center"/>
+                     <TextBlock Text="Balance:" VerticalAlignment="Center"/>
                      <TextBlock Text="{Binding User.Gold, StringFormat='{}{0:0.0} G'}" FontWeight="Bold" Foreground="#F57F17" VerticalAlignment="Center"/>
                  </StackPanel>
              </Border>
