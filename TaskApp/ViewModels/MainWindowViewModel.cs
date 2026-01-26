@@ -21,6 +21,9 @@ public class MainWindowViewModel : ViewModelBase
     private string _newTodoTitle = string.Empty;
     private string _newRewardTitle = string.Empty;
     private string _searchQuery = string.Empty;
+    private string _dailiesFilter = "all";
+    private string _todosFilter = "active";
+    private string _rewardsFilter = "all";
 
     public string Title => "TaskApp";
 
@@ -71,6 +74,42 @@ public class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _searchQuery, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string DailiesFilter
+    {
+        get => _dailiesFilter;
+        set
+        {
+            if (SetProperty(ref _dailiesFilter, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string TodosFilter
+    {
+        get => _todosFilter;
+        set
+        {
+            if (SetProperty(ref _todosFilter, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string RewardsFilter
+    {
+        get => _rewardsFilter;
+        set
+        {
+            if (SetProperty(ref _rewardsFilter, value))
             {
                 RefreshFilter();
             }
@@ -209,15 +248,15 @@ public class MainWindowViewModel : ViewModelBase
         RefreshFilter();
     }
 
-    private void RefreshFilter()
+    public void RefreshFilter()
     {
         var selectedTags = AvailableTags.Where(t => t.IsSelected).Select(t => t.Name).ToHashSet();
         var searchQuery = SearchQuery?.ToLowerInvariant() ?? string.Empty;
         
         FilterCollection(_allHabits, Habits, selectedTags, searchQuery);
-        FilterCollection(_allDailies, Dailies, selectedTags, searchQuery);
-        FilterCollection(_allTodos, Todos, selectedTags, searchQuery);
-        FilterCollection(_allRewards, Rewards, selectedTags, searchQuery);
+        FilterDailies(_allDailies, Dailies, selectedTags, searchQuery, DailiesFilter);
+        FilterTodos(_allTodos, Todos, selectedTags, searchQuery, TodosFilter);
+        FilterRewards(_allRewards, Rewards, selectedTags, searchQuery, RewardsFilter);
     }
 
     private void FilterCollection<T>(List<T> source, ObservableCollection<T> target, HashSet<string> selectedTags, string searchQuery) where T : TaskBase
@@ -235,16 +274,72 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void FilterCollection(List<Reward> source, ObservableCollection<Reward> target, HashSet<string> selectedTags, string searchQuery)
+    private void FilterDailies(List<DailyTask> source, ObservableCollection<DailyTask> target, HashSet<string> selectedTags, string searchQuery, string filter)
     {
         target.Clear();
         foreach (var item in source)
         {
-            var isTagMatched = (!item.IsClaimed || item.IsRepeatable) && 
-                               (selectedTags.Count == 0 || item.Tags.Any(t => selectedTags.Contains(t)));
+            var isTagMatched = selectedTags.Count == 0 || item.Tags.Any(t => selectedTags.Contains(t));
             var isTitleMatched = string.IsNullOrEmpty(searchQuery) || item.Title.ToLowerInvariant().Contains(searchQuery);
- 
-            if (isTagMatched && isTitleMatched)
+            
+            var isFilterMatched = filter switch
+            {
+                "due" => !item.IsCompleteForCurrentPeriod,
+                "not due" => item.IsCompleteForCurrentPeriod,
+                "all" => true,
+                _ => true
+            };
+            
+            if (isTagMatched && isTitleMatched && isFilterMatched)
+            {
+                target.Add(item);
+            }
+        }
+    }
+
+    private void FilterTodos(List<TodoTask> source, ObservableCollection<TodoTask> target, HashSet<string> selectedTags, string searchQuery, string filter)
+    {
+        target.Clear();
+        foreach (var item in source)
+        {
+            var isTagMatched = selectedTags.Count == 0 || item.Tags.Any(t => selectedTags.Contains(t));
+            var isTitleMatched = string.IsNullOrEmpty(searchQuery) || item.Title.ToLowerInvariant().Contains(searchQuery);
+            
+            var isCompleted = item.LastCompletedDate.HasValue;
+            var hasScheduledDate = item.DueDate.HasValue;
+            
+            var isFilterMatched = filter switch
+            {
+                "active" => !isCompleted,
+                "scheduled" => !isCompleted && hasScheduledDate,
+                "completed" => isCompleted,
+                _ => true
+            };
+            
+            if (isTagMatched && isTitleMatched && isFilterMatched)
+            {
+                target.Add(item);
+            }
+        }
+    }
+
+    private void FilterRewards(List<Reward> source, ObservableCollection<Reward> target, HashSet<string> selectedTags, string searchQuery, string filter)
+    {
+        target.Clear();
+        foreach (var item in source)
+        {
+            var isTagMatched = selectedTags.Count == 0 || item.Tags.Any(t => selectedTags.Contains(t));
+            var isTitleMatched = string.IsNullOrEmpty(searchQuery) || item.Title.ToLowerInvariant().Contains(searchQuery);
+            
+            var isFilterMatched = filter switch
+            {
+                "one-time" => !item.IsRepeatable,
+                "repeatable" => item.IsRepeatable,
+                "all" => true,
+                _ => true
+            };
+            
+            if (isTagMatched && isTitleMatched && isFilterMatched)
             {
                 target.Add(item);
             }

@@ -18,6 +18,9 @@
      <Window.Resources>
          <conv:BooleanNegationConverter x:Key="InverseBooleanConverter" />
          <conv:BooleanToTextDecorationConverter x:Key="BoolToTextDecorationConverter" />
+         <conv:FilterTabForegroundConverter x:Key="FilterTabForegroundConverter" />
+         <conv:FilterTabFontWeightConverter x:Key="FilterTabFontWeightConverter" />
+         <conv:FilterTabTextDecorationConverter x:Key="FilterTabTextDecorationConverter" />
      </Window.Resources>
     <Grid RowDefinitions="Auto,*,Auto" Margin="16">
         <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,0,0,12">
@@ -55,9 +58,21 @@
                     Padding="12"
                     Margin="0,0,6,0">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Habits"
-                               FontSize="18"
-                               FontWeight="SemiBold"/>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Habits"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Foreground="Black"
+                                    FontWeight="SemiBold">
+                                <TextBlock Text="all"
+                                           TextDecorations="Underline"/>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
                     <TextBox Watermark="Add Habit"
                              HorizontalAlignment="Stretch"
                              Text="{Binding NewHabitTitle}"
@@ -89,9 +104,43 @@
                     Padding="12"
                     Margin="6,0,6,0">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Dailies"
-                               FontSize="18"
-                               FontWeight="SemiBold"/>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Dailies"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Click="DailiesFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="all"
+                                    Foreground="{Binding DailiesFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter=all}"
+                                    FontWeight="{Binding DailiesFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=all}">
+                                <TextBlock Text="all"
+                                           TextDecorations="{Binding DailiesFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=all}"/>
+                            </Button>
+                            <Button Click="DailiesFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="due"
+                                    Foreground="{Binding DailiesFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter=due}"
+                                    FontWeight="{Binding DailiesFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=due}">
+                                <TextBlock Text="due"
+                                           TextDecorations="{Binding DailiesFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=due}"/>
+                            </Button>
+                            <Button Click="DailiesFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="not due"
+                                    Foreground="{Binding DailiesFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter='not due'}"
+                                    FontWeight="{Binding DailiesFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter='not due'}">
+                                <TextBlock Text="not due"
+                                           TextDecorations="{Binding DailiesFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter='not due'}"/>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
                     <TextBox Watermark="Add Daily"
                              HorizontalAlignment="Stretch"
                              Text="{Binding NewDailyTitle}"
@@ -124,9 +173,43 @@
                     Padding="12"
                     Margin="6,0,6,0">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="To-dos"
-                               FontSize="18"
-                               FontWeight="SemiBold"/>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="To-dos"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Click="TodosFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="active"
+                                    Foreground="{Binding TodosFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter=active}"
+                                    FontWeight="{Binding TodosFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=active}">
+                                <TextBlock Text="active"
+                                           TextDecorations="{Binding TodosFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=active}"/>
+                            </Button>
+                            <Button Click="TodosFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="scheduled"
+                                    Foreground="{Binding TodosFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter=scheduled}"
+                                    FontWeight="{Binding TodosFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=scheduled}">
+                                <TextBlock Text="scheduled"
+                                           TextDecorations="{Binding TodosFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=scheduled}"/>
+                            </Button>
+                            <Button Click="TodosFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="completed"
+                                    Foreground="{Binding TodosFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter=completed}"
+                                    FontWeight="{Binding TodosFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=completed}">
+                                <TextBlock Text="completed"
+                                           TextDecorations="{Binding TodosFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=completed}"/>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
                     <TextBox Watermark="Add To-do"
                              HorizontalAlignment="Stretch"
                              Text="{Binding NewTodoTitle}"
@@ -155,9 +238,40 @@
                     Padding="12"
                     Margin="6,0,0,0">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Rewards"
-                               FontSize="18"
-                               FontWeight="SemiBold"/>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Rewards"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Click="RewardsFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="all"
+                                    Foreground="{Binding RewardsFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter=all}"
+                                    FontWeight="{Binding RewardsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=all}">
+                                <TextBlock Text="all"/>
+                            </Button>
+                            <Button Click="RewardsFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="one-time"
+                                    Foreground="{Binding RewardsFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter='one-time'}"
+                                    FontWeight="{Binding RewardsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter='one-time'}">
+                                <TextBlock Text="one-time"/>
+                            </Button>
+                            <Button Click="RewardsFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="repeatable"
+                                    Foreground="{Binding RewardsFilter, Converter={StaticResource FilterTabForegroundConverter}, ConverterParameter=repeatable}"
+                                    FontWeight="{Binding RewardsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=repeatable}">
+                                <TextBlock Text="repeatable"/>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
                     <TextBox Watermark="Add Reward"
                              HorizontalAlignment="Stretch"
                              Text="{Binding NewRewardTitle}"

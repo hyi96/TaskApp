@@ -197,12 +197,9 @@ public partial class MainWindow : Window
             }
 
             mainVm.AddGold(rewardAmount);
-              
-            // Remove TodoTask from the list when completed
-            if (task is TodoTask todo)
-            {
-                mainVm.DeleteTodo(todo);
-            }
+            
+            // Refresh filters to update the display immediately
+            mainVm.RefreshFilter();
               
             _ = mainVm.SaveDataAsync();
 
@@ -226,6 +223,33 @@ public partial class MainWindow : Window
         if (sender is Control control && control.DataContext is Reward reward && DataContext is MainWindowViewModel mainVm)
         {
             mainVm.ClaimReward(reward);
+        }
+    }
+
+    public void DailiesFilterTab_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && DataContext is MainWindowViewModel mainVm)
+        {
+            var filterValue = button.Tag?.ToString() ?? "all";
+            mainVm.DailiesFilter = filterValue;
+        }
+    }
+
+    public void TodosFilterTab_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && DataContext is MainWindowViewModel mainVm)
+        {
+            var filterValue = button.Tag?.ToString() ?? "active";
+            mainVm.TodosFilter = filterValue;
+        }
+    }
+
+    public void RewardsFilterTab_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && DataContext is MainWindowViewModel mainVm)
+        {
+            var filterValue = button.Tag?.ToString() ?? "all";
+            mainVm.RewardsFilter = filterValue;
         }
     }
 }
