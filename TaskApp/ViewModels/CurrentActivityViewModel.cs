@@ -39,6 +39,18 @@ public class CurrentActivityViewModel : ViewModelBase
 
     public event Action<TimeSpan, string>? ActivityDurationRecorded;
 
+    public TimeSpan GetSessionStartElapsed() => _sessionStartElapsed;
+
+    public void StopWithoutLogging()
+    {
+        if (!IsRunning) return;
+
+        _stopwatch.Stop();
+        IsRunning = false;
+        _timer.Stop();
+        UpdateElapsed();
+    }
+
     public void Start()
     {
         if (IsRunning) return;
@@ -123,6 +135,21 @@ public class CurrentActivityViewModel : ViewModelBase
         IsRunning = false;
         _timer.Stop();
         UpdateElapsed();
+    }
+
+    public void LogAndStopIfRunning()
+    {
+        if (!IsRunning) return;
+
+        _stopwatch.Stop();
+        var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
+        IsRunning = false;
+        _timer.Stop();
+
+        if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
+        {
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+        }
     }
 
     private void UpdateElapsed()

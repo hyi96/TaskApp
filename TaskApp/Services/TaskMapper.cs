@@ -84,8 +84,6 @@ public static class TaskMapper
                     .ToList();
                 dailyTask.SetStreakBonusRules(rules);
             }
-
-            dailyTask.RefreshForCurrentPeriod();
         }
 
         return task;

@@ -1,6 +1,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using TaskApp.Services;
 using TaskApp.ViewModels;
 using TaskApp.Views;
@@ -9,6 +13,9 @@ namespace TaskApp
 {
     public partial class App : Application
     {
+        private DayDetectionService? _dayDetectionService;
+        private MainWindowViewModel? _viewModel;
+
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
@@ -19,16 +26,17 @@ namespace TaskApp
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 var storageService = new StorageService();
-                var viewModel = new MainWindowViewModel(storageService);
+                _viewModel = new MainWindowViewModel(storageService);
 
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = viewModel
+                    DataContext = _viewModel
                 };
 
                 desktop.Startup += async (s, e) =>
                 {
-                    await viewModel.LoadDataAsync();
+                    await _viewModel.LoadDataAsync();
+                    InitializeDayDetection();
                 };
 
                 var isClosing = false;
@@ -40,7 +48,9 @@ namespace TaskApp
                         e.Cancel = true;
                         try
                         {
-                            await viewModel.SaveDataAsync();
+                            _dayDetectionService?.Stop();
+                            await _viewModel.LogCurrentActivityIfRunningAsync();
+                            await _viewModel.SaveDataAsync();
                         }
                         finally
                         {
@@ -53,6 +63,66 @@ namespace TaskApp
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        private void InitializeDayDetection()
+        {
+            if (_viewModel == null) return;
+
+            _dayDetectionService = new DayDetectionService();
+            _dayDetectionService.NewDayDetected += async (uncompletedDailies) =>
+            {
+                await HandleNewDay(uncompletedDailies);
+            };
+            _dayDetectionService.Start();
+        }
+
+        private async Task HandleNewDay(List<Models.Tasks.DailyTask> uncompletedDailies)
+        {
+            if (_viewModel == null) return;
+
+            // Get unchecked dailies from yesterday BEFORE refreshing
+            var uncheckedDailies = _viewModel.GetUncompletedDailiesFromYesterday();
+
+            if (uncheckedDailies.Count > 0)
+            {
+                // Show the new day window
+                await ShowNewDayWindow(uncheckedDailies);
+            }
+
+            // Now refresh all daily tasks for the new day
+            _viewModel.RefreshDailyTasksForNewDay();
+
+            // Save the changes
+            await _viewModel.SaveDataAsync();
+        }
+
+        private async Task ShowNewDayWindow(List<Models.Tasks.DailyTask> uncheckedDailies)
+        {
+            if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+                return;
+
+            var newDayViewModel = new NewDayViewModel();
+            newDayViewModel.SetUncompletedDailies(uncheckedDailies);
+
+            var window = new NewDayWindow
+            {
+                DataContext = newDayViewModel
+            };
+
+            await window.ShowDialog(desktop.MainWindow);
+
+            // Complete the checked dailies
+            foreach (var item in newDayViewModel.UncompletedDailies.Where(x => x.IsChecked))
+            {
+                item.Daily?.IncrementStreak();
+            }
+
+            // Save changes
+            if (_viewModel != null)
+            {
+                await _viewModel.SaveDataAsync();
+            }
         }
     }
 }

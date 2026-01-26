@@ -199,6 +199,7 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
         
+        RefreshDailyTasksForNewDay();
         RefreshFilter();
 
         var rewards = await _storageService.LoadRewardsAsync();
@@ -319,6 +320,19 @@ public class MainWindowViewModel : ViewModelBase
     {
         CurrentActivity.Remove();
     }
+
+    public async Task LogCurrentActivityIfRunningAsync()
+    {
+        if (CurrentActivity.IsRunning)
+        {
+            var sessionElapsed = CurrentActivity.Elapsed - CurrentActivity.GetSessionStartElapsed();
+            if (!string.IsNullOrWhiteSpace(CurrentActivity.Title) && sessionElapsed > TimeSpan.Zero)
+            {
+                await LogActivityDurationAsync(sessionElapsed, CurrentActivity.Title);
+            }
+            CurrentActivity.StopWithoutLogging();
+        }
+    }
  
     public Task<List<LogEntry>> LoadRecentLogsAsync(int count = 50)
     {
@@ -412,6 +426,22 @@ public class MainWindowViewModel : ViewModelBase
         }
         
         _ = SaveDataAsync();
+    }
+
+    public void RefreshDailyTasksForNewDay()
+    {
+        foreach (var daily in _allDailies)
+        {
+            daily.RefreshForCurrentPeriod();
+        }
+    }
+
+    public List<DailyTask> GetUncompletedDailiesFromYesterday()
+    {
+        var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
+        return _allDailies
+            .Where(d => !d.IsCompleteForPeriod(yesterday))
+            .ToList();
     }
 }
 

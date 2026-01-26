@@ -251,7 +251,7 @@ public class DailyTask : TaskBase
         }
     }
 
-    private bool IsCompleteForPeriod(DateTimeOffset localTime)
+    public bool IsCompleteForPeriod(DateTimeOffset localTime)
     {
         return LastCompletionPeriod is DateOnly period && period == GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
     }
