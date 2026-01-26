@@ -1,44 +1,12 @@
 using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using TaskApp.Models;
 
 namespace TaskApp.Models.Rewards;
 
-public class Reward : INotifyPropertyChanged
+public class Reward : DomainEntity
 {
-    private string _title = string.Empty;
-    private string? _notes;
-    private double _goldCost;
     private bool _isClaimed;
     private int _claimCount;
-
-    public Guid Id { get; init; } = Guid.NewGuid();
-
-    public string Title
-    {
-        get => _title;
-        internal set
-        {
-            if (_title != value)
-            {
-                _title = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    public string? Notes
-    {
-        get => _notes;
-        internal set
-        {
-            if (_notes != value)
-            {
-                _notes = value;
-                OnPropertyChanged();
-            }
-        }
-    }
 
     public bool IsClaimed
     {
@@ -72,25 +40,19 @@ public class Reward : INotifyPropertyChanged
 
     public double GoldCost
     {
-        get => _goldCost;
+        get => _goldValue;
         internal set
         {
-            if (Math.Abs(_goldCost - value) > 0.001)
+            var newValue = value < 0 ? 0 : value;
+            if (Math.Abs(_goldValue - newValue) > 0.001)
             {
-                _goldCost = value;
+                _goldValue = newValue;
                 OnPropertyChanged();
             }
         }
     }
 
     public System.Collections.Generic.List<string> Tags { get; internal set; } = new();
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 
     public Reward(string title, string? notes = null, bool isRepeatable = false, double goldCost = 0)
     {

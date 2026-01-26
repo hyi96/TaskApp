@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml;
 using TaskApp.ViewModels;
 
 namespace TaskApp.Views;
@@ -9,6 +10,11 @@ public partial class NewDayWindow : Window
     public NewDayWindow()
     {
         InitializeComponent();
+    }
+
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
     }
 
     private void CheckAll_Click(object? sender, RoutedEventArgs e)

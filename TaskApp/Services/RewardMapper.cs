@@ -1,3 +1,4 @@
+using System;
 using TaskApp.Data;
 using TaskApp.Models.Rewards;
 
@@ -9,7 +10,8 @@ public static class RewardMapper
     {
         var reward = new Reward(data.Title, data.Notes, data.IsRepeatable, data.GoldCost)
         {
-            Id = data.Id
+            Id = data.Id,
+            CreatedAt = data.CreatedAt == default ? DateTimeOffset.UtcNow : data.CreatedAt
         };
 
         // Properties with internal setters
@@ -29,6 +31,7 @@ public static class RewardMapper
         return new RewardData
         {
             Id = model.Id,
+            CreatedAt = model.CreatedAt,
             Title = model.Title,
             Notes = model.Notes,
             IsClaimed = model.IsClaimed,

@@ -1,6 +1,5 @@
 using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using TaskApp.Models;
 
 namespace TaskApp.Models.Tasks;
 
@@ -11,40 +10,11 @@ public enum TaskType
     Habit
 }
 
-public abstract class TaskBase : INotifyPropertyChanged
+public abstract class TaskBase : DomainEntity
 {
-    private string _title = string.Empty;
-    private string? _notes;
-    private double _goldReward = 0.1;
-
-    public Guid Id { get; init; } = Guid.NewGuid();
-
-    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
-
-    public string Title
+    protected TaskBase()
     {
-        get => _title;
-        internal set
-        {
-            if (_title != value)
-            {
-                _title = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    public string? Notes
-    {
-        get => _notes;
-        internal set
-        {
-            if (_notes != value)
-            {
-                _notes = value;
-                OnPropertyChanged();
-            }
-        }
+        _goldValue = 0.1;
     }
 
     public System.Collections.Generic.List<string> Tags { get; internal set; } = new();
@@ -53,11 +23,15 @@ public abstract class TaskBase : INotifyPropertyChanged
 
     public double GoldReward
     {
-        get => _goldReward;
+        get => _goldValue;
         internal set
         {
-            _goldReward = value;
-            OnPropertyChanged();
+            var newValue = value < 0 ? 0 : value;
+            if (Math.Abs(_goldValue - newValue) > 0.001)
+            {
+                _goldValue = newValue;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -65,13 +39,6 @@ public abstract class TaskBase : INotifyPropertyChanged
 
     public virtual bool IsRewardGoalMet => LastCompletedDate.HasValue;
     
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
     public virtual void Complete(DateTimeOffset? completedAt = null)
     {
         LastCompletedDate = completedAt ?? DateTimeOffset.UtcNow;

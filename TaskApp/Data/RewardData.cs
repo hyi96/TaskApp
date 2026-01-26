@@ -6,6 +6,7 @@ namespace TaskApp.Data;
 public class RewardData
 {
     public Guid Id { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public bool IsClaimed { get; set; }
