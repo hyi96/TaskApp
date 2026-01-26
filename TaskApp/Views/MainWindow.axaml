@@ -31,7 +31,7 @@
                         Orientation="Horizontal"
                         HorizontalAlignment="Center"
                         Spacing="8">
-                <TextBox Width="300" Watermark="Search..."/>
+                <TextBox Width="300" Watermark="Search tasks..." Text="{Binding SearchQuery}"/>
                 <Button Content="Tags"
                         Click="OpenTagsWindow_Click"/>
             </StackPanel>
