@@ -17,8 +17,6 @@ public abstract class TaskBase : DomainEntity
         _goldValue = 0.1;
     }
 
-    public System.Collections.Generic.List<string> Tags { get; internal set; } = new();
-
     public DateTimeOffset? LastCompletedDate { get; internal set; }
 
     public double GoldReward
@@ -66,7 +64,7 @@ public abstract class TaskBase : DomainEntity
         Notes = notes;
     }
 
-    public void UpdateTags(System.Collections.Generic.IEnumerable<string> tags)
+    public void UpdateTags(System.Collections.Generic.IEnumerable<TaskApp.Models.Tags.Tag> tags)
     {
         Tags.Clear();
         if (tags != null)
@@ -75,3 +73,4 @@ public abstract class TaskBase : DomainEntity
         }
     }
 }
+

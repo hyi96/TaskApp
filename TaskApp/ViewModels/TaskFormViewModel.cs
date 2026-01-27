@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using TaskApp.Models.Tags;
 using TaskApp.Models.Tasks;
 
 namespace TaskApp.ViewModels;
@@ -53,7 +54,8 @@ public abstract class TaskFormViewModel : ViewModelBase
 
     protected void SaveTags(TaskBase task)
     {
-        task.Tags = TaskTags.Where(t => t.IsSelected).Select(t => t.Name).ToList();
+        task.Tags.Clear();
+        task.Tags.AddRange(TaskTags.Where(t => t.IsSelected).Select(t => t.Tag));
     }
 
     public void SaveTask()
@@ -72,13 +74,14 @@ public abstract class TaskFormViewModel : ViewModelBase
         RequestSetAsCurrentActivity?.Invoke(Title, GetTaskId(), GetRewardId());
     }
 
-    protected TaskFormViewModel(IEnumerable<SelectableTag> availableTags, IEnumerable<string>? currentTags = null) 
+    protected TaskFormViewModel(IEnumerable<SelectableTag> availableTags, IEnumerable<Tag>? currentTags = null) 
     {
-        var currentTagSet = currentTags != null ? new HashSet<string>(currentTags) : new HashSet<string>();
+        var currentTagIds = currentTags != null ? new HashSet<Guid>(currentTags.Select(t => t.Id)) : new HashSet<Guid>();
         
         foreach (var tag in availableTags)
         {
-            TaskTags.Add(new SelectableTag(tag.Name, currentTagSet.Contains(tag.Name)));
+            TaskTags.Add(new SelectableTag(tag.Tag, currentTagIds.Contains(tag.Tag.Id)));
         }
     }
 }
+

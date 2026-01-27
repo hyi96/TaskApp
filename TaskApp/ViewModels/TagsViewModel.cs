@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Linq;
+using TaskApp.Models.Tags;
 
 namespace TaskApp.ViewModels;
 
@@ -30,7 +31,7 @@ public class TagsViewModel : ViewModelBase
         var val = NewTagValue.Trim();
         if (_availableTags.All(t => t.Name != val))
         {
-            _availableTags.Add(new SelectableTag(val));
+            _availableTags.Add(new SelectableTag(new Tag(val)));
         }
         NewTagValue = string.Empty;
     }
@@ -41,11 +42,29 @@ public class TagsViewModel : ViewModelBase
         {
             _availableTags.Remove(tag);
             
-            // Remove the tag from all tasks
+            // Remove the tag from all tasks and rewards
             if (_mainViewModel != null)
             {
-                _mainViewModel.RemoveTagFromAllTasks(tag.Name);
+                _mainViewModel.RemoveTagFromAllItems(tag.Tag.Id);
             }
         }
+    }
+
+    public void UpdateTagName(SelectableTag tag, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+
+        var trimmedName = newName.Trim();
+        
+        // Check if name already exists (excluding the current tag)
+        if (_availableTags.Any(t => t.Tag.Id != tag.Tag.Id && t.Name == trimmedName))
+        {
+            return;
+        }
+
+        tag.Tag.Name = trimmedName;
     }
 }

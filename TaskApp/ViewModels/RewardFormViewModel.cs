@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TaskApp.Models.Rewards;
 
 namespace TaskApp.ViewModels;
@@ -40,12 +41,12 @@ public class RewardFormViewModel : TaskFormViewModel
             _reward.SetRepeatable(IsRepeatable);
             
             // Save tags
-            _reward.Tags = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(
-                System.Linq.Enumerable.Where(TaskTags, t => t.IsSelected), 
-                t => t.Name));
+            _reward.Tags.Clear();
+            _reward.Tags.AddRange(TaskTags.Where(t => t.IsSelected).Select(t => t.Tag));
         }
     }
 
     public override Guid? GetTaskId() => null;
     public override Guid? GetRewardId() => _reward?.Id;
 }
+

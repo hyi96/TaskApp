@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using TaskApp.Data;
 using TaskApp.Models.Rewards;
+using TaskApp.Models.Tags;
 
 namespace TaskApp.Services;
 
@@ -20,7 +22,7 @@ public static class RewardMapper
         reward.ClaimedAt = data.ClaimedAt;
         if (data.Tags != null)
         {
-            reward.Tags.AddRange(data.Tags);
+            reward.Tags.AddRange(data.Tags.Select(t => new Tag(t.Name, t.Id)));
         }
 
         return reward;
@@ -39,7 +41,7 @@ public static class RewardMapper
             ClaimCount = model.ClaimCount,
             ClaimedAt = model.ClaimedAt,
             GoldCost = model.GoldCost,
-            Tags = model.Tags
+            Tags = model.Tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList()
         };
     }
 }

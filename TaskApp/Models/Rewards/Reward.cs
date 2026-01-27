@@ -1,5 +1,6 @@
 using System;
 using TaskApp.Models;
+using TaskApp.Models.Tags;
 
 namespace TaskApp.Models.Rewards;
 
@@ -52,8 +53,6 @@ public class Reward : DomainEntity
         }
     }
 
-    public System.Collections.Generic.List<string> Tags { get; internal set; } = new();
-
     public Reward(string title, string? notes = null, bool isRepeatable = false, double goldCost = 0)
     {
         UpdateTitle(title);
@@ -82,7 +81,7 @@ public class Reward : DomainEntity
         GoldCost = amount < 0 ? 0 : amount;
     }
 
-    public void UpdateTags(System.Collections.Generic.IEnumerable<string> tags)
+    public void UpdateTags(System.Collections.Generic.IEnumerable<Tag> tags)
     {
         Tags.Clear();
         if (tags != null)

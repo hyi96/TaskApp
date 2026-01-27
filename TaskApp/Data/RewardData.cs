@@ -14,5 +14,5 @@ public class RewardData
     public int ClaimCount { get; set; }
     public DateTimeOffset? ClaimedAt { get; set; }
     public double GoldCost { get; set; }
-    public System.Collections.Generic.List<string> Tags { get; set; } = new();
+    public System.Collections.Generic.List<TagData> Tags { get; set; } = new();
 }

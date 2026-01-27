@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using TaskApp.Data;
+using TaskApp.Models.Tags;
 using TaskApp.Models.Tasks;
 
 namespace TaskApp.Services;
@@ -70,7 +71,7 @@ public static class TaskMapper
         task.Notes = data.Notes;
         if (data.Tags != null)
         {
-            task.Tags = data.Tags;
+            task.Tags = data.Tags.Select(t => new Tag(t.Name, t.Id)).ToList();
         }
         task.LastCompletedDate = data.LastCompletedDate;
         task.GoldReward = data.GoldReward;
@@ -145,7 +146,7 @@ public static class TaskMapper
         data.CreatedAt = model.CreatedAt;
         data.Title = model.Title;
         data.Notes = model.Notes;
-        data.Tags = model.Tags;
+        data.Tags = model.Tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList();
         data.LastCompletedDate = model.LastCompletedDate;
         data.GoldReward = model.GoldReward;
 

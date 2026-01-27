@@ -13,7 +13,7 @@ public abstract class TaskData
     public DateTimeOffset CreatedAt { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Notes { get; set; }
-    public System.Collections.Generic.List<string> Tags { get; set; } = new();
+    public System.Collections.Generic.List<TagData> Tags { get; set; } = new();
     public DateTimeOffset? LastCompletedDate { get; set; }
     public double GoldReward { get; set; }
     

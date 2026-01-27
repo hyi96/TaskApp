@@ -1,17 +1,32 @@
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using TaskApp.Models.Tags;
 
 namespace TaskApp.ViewModels;
 
 public class SelectableTag : ViewModelBase
 {
     private bool _isSelected;
-    private string _name;
+    private Tag _tag;
+
+    public Tag Tag
+    {
+        get => _tag;
+        private set => SetProperty(ref _tag, value);
+    }
 
     public string Name
     {
-        get => _name;
-        set => SetProperty(ref _name, value);
+        get => _tag.Name;
+        set
+        {
+            if (_tag.Name != value)
+            {
+                _tag.Name = value;
+                OnPropertyChanged();
+            }
+        }
     }
     
     public bool IsSelected
@@ -28,9 +43,9 @@ public class SelectableTag : ViewModelBase
     
     public event System.Action? SelectionChanged;
 
-    public SelectableTag(string name, bool isSelected = false)
+    public SelectableTag(Tag tag, bool isSelected = false)
     {
-        _name = name;
+        _tag = tag;
         _isSelected = isSelected;
     }
 
@@ -39,3 +54,4 @@ public class SelectableTag : ViewModelBase
         SelectionChanged?.Invoke();
     }
 }
+

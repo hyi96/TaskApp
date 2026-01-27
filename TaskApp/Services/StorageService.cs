@@ -9,6 +9,7 @@ using TaskApp.Data;
 using TaskApp.Models;
 using TaskApp.Models.Logs;
 using TaskApp.Models.Rewards;
+using TaskApp.Models.Tags;
 using TaskApp.Models.Tasks;
 
 namespace TaskApp.Services;
@@ -35,25 +36,41 @@ public class StorageService
 
     public string DataDirectory => _dataDirectory;
 
-    public async Task SaveTagsAsync(IEnumerable<string> tags)
+    public async Task SaveTagsAsync(IEnumerable<Tag> tags)
     {
         var filePath = Path.Combine(_dataDirectory, TagsFileName);
-        var json = JsonSerializer.Serialize(tags, new JsonSerializerOptions { WriteIndented = true });
+        var tagsData = tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList();
+        var json = JsonSerializer.Serialize(tagsData, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(filePath, json);
     }
 
-    public async Task<List<string>> LoadTagsAsync()
+    public async Task<List<Tag>> LoadTagsAsync()
     {
         var filePath = Path.Combine(_dataDirectory, TagsFileName);
         if (!File.Exists(filePath))
         {
             // Default tags
-            return new List<string> { "Health", "Work", "Urgent", "Personal" };
+            return new List<Tag>
+            {
+                new("Health"),
+                new("Work"),
+                new("Urgent"),
+                new("Personal")
+            };
         }
 
         var json = await File.ReadAllTextAsync(filePath);
-        var dataList = JsonSerializer.Deserialize<List<string>>(json);
-        return dataList ?? new List<string>();
+        try
+        {
+            var dataList = JsonSerializer.Deserialize<List<TagData>>(json);
+            return dataList?.Select(t => new Tag(t.Name, t.Id)).ToList() ?? new List<Tag>();
+        }
+        catch (JsonException)
+        {
+            // Fallback for legacy string format
+            var stringList = JsonSerializer.Deserialize<List<string>>(json);
+            return stringList?.Select(s => new Tag(s)).ToList() ?? new List<Tag>();
+        }
     }
 
     public async Task SaveTasksAsync(IEnumerable<TaskBase> tasks)
