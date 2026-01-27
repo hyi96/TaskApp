@@ -125,6 +125,9 @@ public class DailyFormViewModel : TaskFormViewModel
             SaveTags(_dailyTask);
         }
     }
+
+    public override Guid? GetTaskId() => _dailyTask?.Id;
+    public override Guid? GetRewardId() => null;
 }
 
 public class StreakBonusRuleViewModel : ViewModelBase

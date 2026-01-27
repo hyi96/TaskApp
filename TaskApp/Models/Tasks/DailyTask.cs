@@ -306,6 +306,17 @@ public class DailyTask : TaskBase
         };
     }
 
+    public DateOnly GetCurrentPeriodStart()
+    {
+        return GetPeriodStart(DateTimeOffset.UtcNow.ToLocalTime(), Cadence, RepeatEvery, CreatedAt);
+    }
+
+    public DateOnly GetPreviousPeriodStart()
+    {
+        var currentPeriod = GetCurrentPeriodStart();
+        return GetPreviousPeriodStart(currentPeriod, Cadence, RepeatEvery);
+    }
+
     private static int GetDaysSinceWeekStart(DayOfWeek dayOfWeek)
     {
         // Use Monday as start of week

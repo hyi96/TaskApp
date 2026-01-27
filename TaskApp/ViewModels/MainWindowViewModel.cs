@@ -126,9 +126,9 @@ public class MainWindowViewModel : ViewModelBase
     {
         _storageService = storageService;
  
-        CurrentActivity.ActivityDurationRecorded += async (duration, title) =>
+        CurrentActivity.ActivityDurationRecorded += async (duration, title, taskId, rewardId) =>
         {
-            await LogActivityDurationAsync(duration, title);
+            await LogActivityDurationAsync(duration, title, taskId, rewardId);
         };
     }
 
@@ -391,9 +391,9 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    public void SetCurrentActivity(string title)
+    public void SetCurrentActivity(string title, Guid? taskId = null, Guid? rewardId = null)
     {
-        CurrentActivity.SetTitleAndReset(title ?? string.Empty);
+        CurrentActivity.SetTitleAndReset(title ?? string.Empty, taskId, rewardId);
     }
 
     public void StartCurrentActivity()
@@ -423,7 +423,7 @@ public class MainWindowViewModel : ViewModelBase
             var sessionElapsed = CurrentActivity.Elapsed - CurrentActivity.GetSessionStartElapsed();
             if (!string.IsNullOrWhiteSpace(CurrentActivity.Title) && sessionElapsed > TimeSpan.Zero)
             {
-                await LogActivityDurationAsync(sessionElapsed, CurrentActivity.Title);
+                await LogActivityDurationAsync(sessionElapsed, CurrentActivity.Title, CurrentActivity.TaskId, CurrentActivity.RewardId);
             }
             CurrentActivity.StopWithoutLogging();
         }
@@ -454,20 +454,20 @@ public class MainWindowViewModel : ViewModelBase
         return LogAsync(LogType.RewardClaimed, reward: reward, goldDelta: -Math.Abs(goldDelta));
     }
  
-    public Task LogActivityDurationAsync(TimeSpan duration, string title)
+    public Task LogActivityDurationAsync(TimeSpan duration, string title, Guid? taskId = null, Guid? rewardId = null)
     {
-        return LogAsync(LogType.ActivityDuration, duration: duration, title: title);
+        return LogAsync(LogType.ActivityDuration, duration: duration, title: title, taskId: taskId, rewardId: rewardId);
     }
  
-    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null)
+    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null)
     {
         var entry = new LogEntry
         {
             Id = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow,
             Type = type,
-            TaskId = task?.Id,
-            RewardId = reward?.Id,
+            TaskId = taskId ?? task?.Id,
+            RewardId = rewardId ?? reward?.Id,
             GoldDelta = goldDelta,
             CountDelta = countDelta,
             Duration = duration,
@@ -533,9 +533,16 @@ public class MainWindowViewModel : ViewModelBase
 
     public List<DailyTask> GetUncompletedDailiesFromYesterday()
     {
-        var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
         return _allDailies
-            .Where(d => !d.IsCompleteForPeriod(yesterday))
+            .Where(d => 
+            {
+                var currentPeriodStart = d.GetCurrentPeriodStart();
+                var previousPeriodStart = d.GetPreviousPeriodStart();
+                
+                // Task is unchecked if it wasn't completed in the previous period
+                return d.LastCompletionPeriod != currentPeriodStart && 
+                       (d.LastCompletionPeriod == null || d.LastCompletionPeriod < currentPeriodStart);
+            })
             .ToList();
     }
 }

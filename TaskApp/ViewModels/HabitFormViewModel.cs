@@ -61,4 +61,7 @@ public class HabitFormViewModel : TaskFormViewModel
             SaveTags(_habitTask);
         }
     }
+
+    public override Guid? GetTaskId() => _habitTask?.Id;
+    public override Guid? GetRewardId() => null;
 }

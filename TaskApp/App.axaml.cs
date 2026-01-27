@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,7 +73,11 @@ namespace TaskApp
             _dayDetectionService = new DayDetectionService();
             _dayDetectionService.NewDayDetected += async (uncompletedDailies) =>
             {
-                await HandleNewDay(uncompletedDailies);
+                // Marshal to UI thread
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await HandleNewDay(uncompletedDailies);
+                });
             };
             _dayDetectionService.Start();
         }

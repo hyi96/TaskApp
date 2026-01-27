@@ -11,6 +11,8 @@ public class CurrentActivityViewModel : ViewModelBase
     private string _title = string.Empty;
     private bool _isRunning;
     private TimeSpan _sessionStartElapsed = TimeSpan.Zero;
+    private Guid? _taskId;
+    private Guid? _rewardId;
 
     public CurrentActivityViewModel()
     {
@@ -37,7 +39,10 @@ public class CurrentActivityViewModel : ViewModelBase
         private set => SetProperty(ref _isRunning, value);
     }
 
-    public event Action<TimeSpan, string>? ActivityDurationRecorded;
+    public Guid? TaskId => _taskId;
+    public Guid? RewardId => _rewardId;
+
+    public event Action<TimeSpan, string, Guid?, Guid?>? ActivityDurationRecorded;
 
     public TimeSpan GetSessionStartElapsed() => _sessionStartElapsed;
 
@@ -77,47 +82,59 @@ public class CurrentActivityViewModel : ViewModelBase
 
         if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
         {
-            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
         }
     }
 
     public void Reset()
     {
-        if (!IsRunning) return;
+        var wasRunning = IsRunning;
+        var sessionElapsed = TimeSpan.Zero;
+        
+        if (wasRunning)
+        {
+            _stopwatch.Stop();
+            sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
+        }
 
-        _stopwatch.Stop();
-        var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
         _stopwatch.Reset();
         IsRunning = false;
         _timer.Stop();
         UpdateElapsed();
 
-        if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
+        if (wasRunning && !string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
         {
-            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
         }
     }
 
     public void Remove()
     {
-        if (!IsRunning) return;
+        var wasRunning = IsRunning;
+        var sessionElapsed = TimeSpan.Zero;
+        
+        if (wasRunning)
+        {
+            _stopwatch.Stop();
+            sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
+        }
 
-        _stopwatch.Stop();
-        var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
         _stopwatch.Reset();
         IsRunning = false;
         _timer.Stop();
         UpdateElapsed();
 
-        if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
+        if (wasRunning && !string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
         {
-            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
         }
 
         Title = string.Empty;
+        _taskId = null;
+        _rewardId = null;
     }
 
-    public void SetTitleAndReset(string title)
+    public void SetTitleAndReset(string title, Guid? taskId = null, Guid? rewardId = null)
     {
         if (IsRunning)
         {
@@ -126,11 +143,13 @@ public class CurrentActivityViewModel : ViewModelBase
 
             if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
             {
-                ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+                ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
             }
         }
 
         Title = title ?? string.Empty;
+        _taskId = taskId;
+        _rewardId = rewardId;
         _stopwatch.Reset();
         IsRunning = false;
         _timer.Stop();
@@ -148,7 +167,7 @@ public class CurrentActivityViewModel : ViewModelBase
 
         if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
         {
-            ActivityDurationRecorded?.Invoke(sessionElapsed, Title);
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
         }
     }
 

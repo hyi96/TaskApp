@@ -81,7 +81,7 @@ public partial class MainWindow : Window
 
             if (vm != null)
             {
-                vm.RequestSetAsCurrentActivity += title => mainVm.SetCurrentActivity(title);
+                vm.RequestSetAsCurrentActivity += (title, taskId, rewardId) => mainVm.SetCurrentActivity(title, taskId, rewardId);
 
                 var taskWindow = new TaskFormWindow
                 {

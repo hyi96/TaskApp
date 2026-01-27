@@ -77,4 +77,7 @@ public class TodoFormViewModel : TaskFormViewModel
             }
         }
     }
+
+    public override Guid? GetTaskId() => _todoTask?.Id;
+    public override Guid? GetRewardId() => null;
 }

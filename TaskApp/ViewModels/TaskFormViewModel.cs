@@ -45,9 +45,11 @@ public abstract class TaskFormViewModel : ViewModelBase
 
     public event Action? RequestClose;
     public event Action? RequestDelete;
-    public event Action<string>? RequestSetAsCurrentActivity;
+    public event Action<string, Guid?, Guid?>? RequestSetAsCurrentActivity;
 
     public abstract void Save();
+    public abstract Guid? GetTaskId();
+    public abstract Guid? GetRewardId();
 
     protected void SaveTags(TaskBase task)
     {
@@ -67,7 +69,7 @@ public abstract class TaskFormViewModel : ViewModelBase
 
     public void SetAsCurrentActivity()
     {
-        RequestSetAsCurrentActivity?.Invoke(Title);
+        RequestSetAsCurrentActivity?.Invoke(Title, GetTaskId(), GetRewardId());
     }
 
     protected TaskFormViewModel(IEnumerable<SelectableTag> availableTags, IEnumerable<string>? currentTags = null) 

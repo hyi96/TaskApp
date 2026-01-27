@@ -45,4 +45,7 @@ public class RewardFormViewModel : TaskFormViewModel
                 t => t.Name));
         }
     }
+
+    public override Guid? GetTaskId() => null;
+    public override Guid? GetRewardId() => _reward?.Id;
 }
