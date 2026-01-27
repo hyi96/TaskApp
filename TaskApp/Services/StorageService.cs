@@ -159,6 +159,7 @@ public class StorageService
         { "TaskId", "TEXT NULL" },
         { "RewardId", "TEXT NULL" },
         { "GoldDelta", "REAL NOT NULL" },
+        { "UserGold", "REAL NOT NULL DEFAULT 0" },
         { "CountDelta", "REAL NULL" },
         { "DurationTicks", "INTEGER NULL" },
         { "TitleSnapshot", "TEXT NOT NULL" }
@@ -222,14 +223,15 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, CountDelta, DurationTicks, TitleSnapshot)
-                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $countDelta, $durationTicks, $titleSnapshot);";
+        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot)
+                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot);";
         command.Parameters.AddWithValue("$id", entry.Id.ToString());
         command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
         command.Parameters.AddWithValue("$type", (int)entry.Type);
         command.Parameters.AddWithValue("$taskId", (object?)entry.TaskId?.ToString() ?? DBNull.Value);
         command.Parameters.AddWithValue("$rewardId", (object?)entry.RewardId?.ToString() ?? DBNull.Value);
         command.Parameters.AddWithValue("$goldDelta", entry.GoldDelta);
+        command.Parameters.AddWithValue("$userGold", entry.UserGold);
         command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
         command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
         command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
@@ -246,7 +248,7 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, CountDelta, DurationTicks, TitleSnapshot
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
                                 FROM LogEntries
                                 ORDER BY Timestamp DESC
                                 LIMIT $limit;";
@@ -264,9 +266,10 @@ public class StorageService
                 TaskId = reader.IsDBNull(3) ? null : Guid.Parse(reader.GetString(3)),
                 RewardId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)),
                 GoldDelta = reader.IsDBNull(5) ? 0 : Convert.ToDouble(reader.GetValue(5)),
-                CountDelta = reader.IsDBNull(6) ? null : Convert.ToDouble(reader.GetValue(6)),
-                Duration = reader.IsDBNull(7) ? null : TimeSpan.FromTicks(reader.GetInt64(7)),
-                TitleSnapshot = reader.IsDBNull(8) ? string.Empty : reader.GetString(8)
+                UserGold = reader.IsDBNull(6) ? 0 : Convert.ToDouble(reader.GetValue(6)),
+                CountDelta = reader.IsDBNull(7) ? null : Convert.ToDouble(reader.GetValue(7)),
+                Duration = reader.IsDBNull(8) ? null : TimeSpan.FromTicks(reader.GetInt64(8)),
+                TitleSnapshot = reader.IsDBNull(9) ? string.Empty : reader.GetString(9)
             };
 
             entries.Add(entry);

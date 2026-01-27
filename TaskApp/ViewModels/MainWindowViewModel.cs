@@ -470,6 +470,7 @@ public class MainWindowViewModel : ViewModelBase
             TaskId = taskId ?? task?.Id,
             RewardId = rewardId ?? reward?.Id,
             GoldDelta = goldDelta,
+            UserGold = User.Gold, // Capture user's gold after GoldDelta has been applied
             CountDelta = countDelta,
             Duration = duration,
             TitleSnapshot = title ?? task?.Title ?? reward?.Title ?? string.Empty
