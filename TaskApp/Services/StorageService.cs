@@ -254,6 +254,27 @@ public class StorageService
                                 LIMIT $limit;";
         command.Parameters.AddWithValue("$limit", count);
 
+        return await ReadLogEntriesAsync(command);
+    }
+
+    public async Task<List<LogEntry>> LoadAllLogEntriesAsync()
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
+                                FROM LogEntries
+                                ORDER BY Timestamp ASC;";
+
+        return await ReadLogEntriesAsync(command);
+    }
+
+    private static async Task<List<LogEntry>> ReadLogEntriesAsync(SqliteCommand command)
+    {
         var entries = new List<LogEntry>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

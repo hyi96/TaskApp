@@ -17,10 +17,18 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
-    public void OpenGraphWindow_Click(object? sender, RoutedEventArgs e)
+    public async void OpenGraphWindow_Click(object? sender, RoutedEventArgs e)
     {
-        var graphWindow = new GraphWindow();
-        graphWindow.Show();
+        if (DataContext is MainWindowViewModel mainVm)
+        {
+            var vm = new GraphViewModel(mainVm.StorageService);
+            var graphWindow = new GraphWindow
+            {
+                DataContext = vm
+            };
+            graphWindow.Show();
+            await vm.LoadAsync();
+        }
     }
 
     public void OpenTagsWindow_Click(object? sender, RoutedEventArgs e)

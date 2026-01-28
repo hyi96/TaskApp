@@ -2,38 +2,86 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
+        xmlns:vm="using:TaskApp.ViewModels"
+        xmlns:sp="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
         x:Class="TaskApp.Views.GraphWindow"
+        x:DataType="vm:GraphViewModel"
         Title="Graphs"
-        Width="600" Height="450">
+        Width="900" Height="600">
     <Border Background="#F5F5F5" Padding="12" Margin="16" CornerRadius="6">
-        <Grid RowDefinitions="Auto,Auto,*">
+        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
             <TextBlock Grid.Row="0"
                        Text="Graphical Insights"
                        FontSize="18"
                        FontWeight="SemiBold"
-                       Margin="0,0,0,12"/>
+                       Margin="0,0,0,4"/>
 
             <StackPanel Grid.Row="1"
                         Orientation="Horizontal"
                         Spacing="8"
-                        Margin="0,0,0,12">
-                <Button Content="Day"/>
-                <Button Content="Week"/>
-                <Button Content="Month"/>
-                <Button Content="Year"/>
+                        Margin="0,0,0,4">
+                <Button Content="Hour" Click="Hour_Click"/>
+                <Button Content="Day" Click="Day_Click"/>
+                <Button Content="Week" Click="Week_Click"/>
+                <Button Content="Month" Click="Month_Click"/>
+                <Button Content="Year" Click="Year_Click"/>
             </StackPanel>
 
-            <Border Grid.Row="2"
-                    Background="#E0E0E0"
+            <StackPanel Grid.Row="2" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ComboBox Width="160"
+                              ItemsSource="{Binding TargetTypes}"
+                              SelectedItem="{Binding SelectedTargetType}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <ComboBox Width="220"
+                              ItemsSource="{Binding TargetValues}"
+                              SelectedItem="{Binding SelectedTargetValue}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <ComboBox Width="260"
+                              ItemsSource="{Binding TargetInstances}"
+                              SelectedItem="{Binding SelectedTargetInstance}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBox Width="350"
+                             Watermark="Search target instance..."
+                             Text="{Binding SearchQuery}"/>
+                    <ListBox Width="350"
+                             MaxHeight="140"
+                             ItemsSource="{Binding SearchResults}"
+                             SelectedItem="{Binding SelectedSearchResult}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </StackPanel>
+
+            <Border Grid.Row="3"
+                    Background="White"
                     CornerRadius="4"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch">
-
-                <TextBlock Text="Graph placeholder"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Opacity="0.5"/>
+                <sp:AvaPlot Name="GraphPlot"/>
             </Border>
         </Grid>
     </Border>
