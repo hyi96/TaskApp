@@ -256,7 +256,7 @@ public class DailyTask : TaskBase
         return LastCompletionPeriod is DateOnly period && period == GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
     }
 
-    private static DateOnly GetPeriodStart(DateTimeOffset localTime, RepeatCadence cadence, int repeatEvery, DateTimeOffset createdAt)
+    public DateOnly GetPeriodStart(DateTimeOffset localTime, RepeatCadence cadence, int repeatEvery, DateTimeOffset createdAt)
     {
         var date = DateOnly.FromDateTime(localTime.DateTime);
         var anchor = DateOnly.FromDateTime(createdAt.ToLocalTime().DateTime);

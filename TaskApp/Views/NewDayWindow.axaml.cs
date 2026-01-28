@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
 using TaskApp.ViewModels;
 
 namespace TaskApp.Views;
@@ -10,11 +9,6 @@ public partial class NewDayWindow : Window
     public NewDayWindow()
     {
         InitializeComponent();
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 
     private void CheckAll_Click(object? sender, RoutedEventArgs e)
@@ -33,8 +27,10 @@ public partial class NewDayWindow : Window
         }
     }
 
-    private void Done_Click(object? sender, RoutedEventArgs e)
+    private void StartNewDay_Click(object? sender, RoutedEventArgs e)
     {
+        // Close the window, which will trigger the save logic in App.axaml.cs
         Close();
     }
 }
+

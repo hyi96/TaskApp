@@ -3,51 +3,28 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:TaskApp.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
         x:Class="TaskApp.Views.NewDayWindow"
         x:DataType="vm:NewDayViewModel"
         Title="New Day!"
         Width="400" Height="500"
-        WindowStartupLocation="CenterOwner"
-        SizeToContent="Height">
+        WindowStartupLocation="CenterOwner">
     <Border Background="#F5F5F5" Padding="16">
-        <Grid RowDefinitions="Auto,*,Auto">
+        <Grid RowDefinitions="Auto,Auto,*">
             
             <StackPanel Grid.Row="0" Margin="0,0,0,16">
                 <TextBlock Text="New Day!"
                            FontSize="20"
                            FontWeight="Bold"
                            Margin="0,0,0,8"/>
-                <TextBlock Text="You have unchecked dailies from yesterday. Don't break your streak!"
+                <TextBlock Text="You have unchecked dailies from the previous period. Check them off to maintain your streaks!"
                            FontSize="14"
                            TextWrapping="Wrap"
                            Foreground="#666666"/>
             </StackPanel>
 
-            <!-- List of Uncompleted Dailies -->
-            <ScrollViewer Grid.Row="1" Margin="0,0,0,16">
-                <ItemsControl ItemsSource="{Binding UncompletedDailies}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:DailyChecklistItem">
-                            <Border Margin="0,8" Padding="8" Background="White" CornerRadius="4">
-                                <Grid ColumnDefinitions="Auto,*">
-                                    <CheckBox Grid.Column="0" 
-                                              IsChecked="{Binding IsChecked}" 
-                                              VerticalAlignment="Center" 
-                                              Margin="0,0,12,0"/>
-                                    <TextBlock Grid.Column="1" 
-                                               Text="{Binding Title}" 
-                                               VerticalAlignment="Center"
-                                               FontSize="14"/>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-
-            <!-- Buttons -->
-            <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+            <!-- Quick Action Buttons -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,0,0,16">
                 <Button Grid.Column="0" 
                         Content="Check All"
                         Click="CheckAll_Click"
@@ -58,12 +35,43 @@
                         Click="UncheckAll_Click"
                         Background="#999999"
                         Foreground="White"/>
-                <Button Grid.Column="2" 
-                        Content="Done"
-                        Click="Done_Click"
-                        Background="#4CAF50"
-                        Foreground="White"/>
             </Grid>
+
+            <!-- Scrollable List of Uncompleted Dailies -->
+            <ScrollViewer Grid.Row="2">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding UncompletedDailies}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DailyChecklistItem">
+                                <Border Margin="0,8" Padding="8" Background="White" CornerRadius="4">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <CheckBox Grid.Column="0" 
+                                                  IsChecked="{Binding IsChecked}" 
+                                                  VerticalAlignment="Center" 
+                                                  Margin="0,0,12,0"/>
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Title}" 
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="14"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Start New Day Button at Bottom -->
+                    <Button Content="Start New Day!"
+                            Click="StartNewDay_Click"
+                            Background="#4CAF50"
+                            Foreground="White"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Padding="16,12"
+                            Margin="0,24,0,8"
+                            HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Border>
 </Window>

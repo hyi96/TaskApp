@@ -528,15 +528,26 @@ public class MainWindowViewModel : ViewModelBase
 
     public List<DailyTask> GetUncompletedDailiesFromYesterday()
     {
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var yesterday = now.AddDays(-1);
+        
         return _allDailies
             .Where(d => 
             {
                 var currentPeriodStart = d.GetCurrentPeriodStart();
-                var previousPeriodStart = d.GetPreviousPeriodStart();
+                var yesterdayPeriodStart = d.GetPeriodStart(yesterday, d.Cadence, d.RepeatEvery, d.CreatedAt);
                 
-                // Task is unchecked if it wasn't completed in the previous period
-                return d.LastCompletionPeriod != currentPeriodStart && 
-                       (d.LastCompletionPeriod == null || d.LastCompletionPeriod < currentPeriodStart);
+                // Only check tasks that are in a NEW period (period changed from yesterday to today)
+                if (currentPeriodStart == yesterdayPeriodStart)
+                {
+                    return false; // Same period, don't show
+                }
+                
+                // Now check if the task was completed in the previous period (yesterday's period)
+                var dateInPreviousPeriod = new DateTimeOffset(yesterdayPeriodStart.ToDateTime(new TimeOnly(12, 0)), now.Offset);
+                
+                // Task should appear if it was NOT completed in the previous period
+                return !d.IsCompleteForPeriod(dateInPreviousPeriod);
             })
             .ToList();
     }
