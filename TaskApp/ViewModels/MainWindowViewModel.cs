@@ -252,36 +252,40 @@ public class MainWindowViewModel : ViewModelBase
     public void RefreshFilter()
     {
         var selectedTagIds = AvailableTags.Where(t => t.IsSelected).Select(t => t.Tag.Id).ToHashSet();
-        var searchQuery = SearchQuery?.ToLowerInvariant() ?? string.Empty;
-        
-        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery);
-        FilterDailies(_allDailies, Dailies, selectedTagIds, searchQuery, DailiesFilter);
-        FilterTodos(_allTodos, Todos, selectedTagIds, searchQuery, TodosFilter);
-        FilterRewards(_allRewards, Rewards, selectedTagIds, searchQuery, RewardsFilter);
+        var searchQuery = SearchQuery ?? string.Empty;
+        var hasSearchQuery = !string.IsNullOrWhiteSpace(searchQuery);
+
+        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery, hasSearchQuery);
+        FilterDailies(_allDailies, Dailies, selectedTagIds, searchQuery, hasSearchQuery, DailiesFilter);
+        FilterTodos(_allTodos, Todos, selectedTagIds, searchQuery, hasSearchQuery, TodosFilter);
+        FilterRewards(_allRewards, Rewards, selectedTagIds, searchQuery, hasSearchQuery, RewardsFilter);
     }
 
-    private void FilterCollection<T>(List<T> source, ObservableCollection<T> target, HashSet<Guid> selectedTagIds, string searchQuery) where T : TaskBase
+    private void FilterCollection<T>(List<T> source, ObservableCollection<T> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery) where T : TaskBase
     {
-        target.Clear();
+        var filtered = new List<T>(source.Count);
         foreach (var item in source)
         {
             var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
-            var isTitleMatched = string.IsNullOrEmpty(searchQuery) || item.Title.ToLowerInvariant().Contains(searchQuery);
+
+            var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
             
             if (isTagMatched && isTitleMatched)
             {
-                target.Add(item);
+                filtered.Add(item);
             }
         }
+
+        UpdateCollection(target, filtered);
     }
 
-    private void FilterDailies(List<DailyTask> source, ObservableCollection<DailyTask> target, HashSet<Guid> selectedTagIds, string searchQuery, string filter)
+    private void FilterDailies(List<DailyTask> source, ObservableCollection<DailyTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter)
     {
-        target.Clear();
+        var filtered = new List<DailyTask>(source.Count);
         foreach (var item in source)
         {
             var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
-            var isTitleMatched = string.IsNullOrEmpty(searchQuery) || item.Title.ToLowerInvariant().Contains(searchQuery);
+            var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
             
             var isFilterMatched = filter switch
             {
@@ -293,18 +297,20 @@ public class MainWindowViewModel : ViewModelBase
             
             if (isTagMatched && isTitleMatched && isFilterMatched)
             {
-                target.Add(item);
+                filtered.Add(item);
             }
         }
+
+        UpdateCollection(target, filtered);
     }
 
-    private void FilterTodos(List<TodoTask> source, ObservableCollection<TodoTask> target, HashSet<Guid> selectedTagIds, string searchQuery, string filter)
+    private void FilterTodos(List<TodoTask> source, ObservableCollection<TodoTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter)
     {
-        target.Clear();
+        var filtered = new List<TodoTask>(source.Count);
         foreach (var item in source)
         {
             var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
-            var isTitleMatched = string.IsNullOrEmpty(searchQuery) || item.Title.ToLowerInvariant().Contains(searchQuery);
+            var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
             
             var isCompleted = item.LastCompletedDate.HasValue;
             var hasScheduledDate = item.DueDate.HasValue;
@@ -319,18 +325,20 @@ public class MainWindowViewModel : ViewModelBase
             
             if (isTagMatched && isTitleMatched && isFilterMatched)
             {
-                target.Add(item);
+                filtered.Add(item);
             }
         }
+
+        UpdateCollection(target, filtered);
     }
 
-    private void FilterRewards(List<Reward> source, ObservableCollection<Reward> target, HashSet<Guid> selectedTagIds, string searchQuery, string filter)
+    private void FilterRewards(List<Reward> source, ObservableCollection<Reward> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter)
     {
-        target.Clear();
+        var filtered = new List<Reward>(source.Count);
         foreach (var item in source)
         {
             var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
-            var isTitleMatched = string.IsNullOrEmpty(searchQuery) || item.Title.ToLowerInvariant().Contains(searchQuery);
+            var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
             
             var isFilterMatched = filter switch
             {
@@ -342,8 +350,37 @@ public class MainWindowViewModel : ViewModelBase
             
             if (isTagMatched && isTitleMatched && isFilterMatched)
             {
-                target.Add(item);
+                filtered.Add(item);
             }
+        }
+
+        UpdateCollection(target, filtered);
+    }
+
+    private static void UpdateCollection<T>(ObservableCollection<T> target, List<T> filtered)
+    {
+        for (var i = 0; i < filtered.Count; i++)
+        {
+            var item = filtered[i];
+            if (i < target.Count && ReferenceEquals(target[i], item))
+            {
+                continue;
+            }
+
+            var existingIndex = target.IndexOf(item);
+            if (existingIndex >= 0)
+            {
+                target.Move(existingIndex, i);
+            }
+            else
+            {
+                target.Insert(i, item);
+            }
+        }
+
+        while (target.Count > filtered.Count)
+        {
+            target.RemoveAt(target.Count - 1);
         }
     }
 
