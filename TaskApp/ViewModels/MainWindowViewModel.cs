@@ -14,6 +14,21 @@ namespace TaskApp.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
+    private const string SortNameAsc = "Name (A-Z)";
+    private const string SortNameDesc = "Name (Z-A)";
+    private const string SortCreatedNew = "Created time (new to old)";
+    private const string SortCreatedOld = "Created time (old to new)";
+    private const string SortGoldHigh = "Gold value (high to low)";
+    private const string SortGoldLow = "Gold value (low to high)";
+    private const string SortHabitCountHigh = "Count (high to low)";
+    private const string SortHabitCountLow = "Count (low to high)";
+    private const string SortDailyCurrentStreakHigh = "Current streak (high to low)";
+    private const string SortDailyCurrentStreakLow = "Current streak (low to high)";
+    private const string SortDailyBestStreakHigh = "Best streak (high to low)";
+    private const string SortDailyBestStreakLow = "Best streak (low to high)";
+    private const string SortTodoDueDateEarly = "Due date (earliest to latest)";
+    private const string SortTodoDueDateLate = "Due date (latest to earliest)";
+
     private readonly StorageService _storageService;
 
     private UserProfile _user = new();
@@ -25,6 +40,10 @@ public class MainWindowViewModel : ViewModelBase
     private string _dailiesFilter = "all";
     private string _todosFilter = "active";
     private string _rewardsFilter = "all";
+    private string _habitsSortMode = SortNameAsc;
+    private string _dailiesSortMode = SortNameAsc;
+    private string _todosSortMode = SortNameAsc;
+    private string _rewardsSortMode = SortNameAsc;
 
     public string Title => "TaskApp";
 
@@ -32,6 +51,54 @@ public class MainWindowViewModel : ViewModelBase
     public ObservableCollection<DailyTask> Dailies { get; } = new();
     public ObservableCollection<TodoTask> Todos { get; } = new();
     public ObservableCollection<Reward> Rewards { get; } = new();
+
+    public IReadOnlyList<string> HabitsSortOptions { get; } = new[]
+    {
+        SortNameAsc,
+        SortNameDesc,
+        SortCreatedNew,
+        SortCreatedOld,
+        SortGoldHigh,
+        SortGoldLow,
+        SortHabitCountHigh,
+        SortHabitCountLow
+    };
+
+    public IReadOnlyList<string> DailiesSortOptions { get; } = new[]
+    {
+        SortNameAsc,
+        SortNameDesc,
+        SortCreatedNew,
+        SortCreatedOld,
+        SortGoldHigh,
+        SortGoldLow,
+        SortDailyCurrentStreakHigh,
+        SortDailyCurrentStreakLow,
+        SortDailyBestStreakHigh,
+        SortDailyBestStreakLow
+    };
+
+    public IReadOnlyList<string> TodosSortOptions { get; } = new[]
+    {
+        SortNameAsc,
+        SortNameDesc,
+        SortCreatedNew,
+        SortCreatedOld,
+        SortGoldHigh,
+        SortGoldLow,
+        SortTodoDueDateEarly,
+        SortTodoDueDateLate
+    };
+
+    public IReadOnlyList<string> RewardsSortOptions { get; } = new[]
+    {
+        SortNameAsc,
+        SortNameDesc,
+        SortCreatedNew,
+        SortCreatedOld,
+        SortGoldHigh,
+        SortGoldLow
+    };
     
     public ObservableCollection<SelectableTag> AvailableTags { get; } = new();
  
@@ -75,6 +142,54 @@ public class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _searchQuery, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string HabitsSortMode
+    {
+        get => _habitsSortMode;
+        set
+        {
+            if (SetProperty(ref _habitsSortMode, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string DailiesSortMode
+    {
+        get => _dailiesSortMode;
+        set
+        {
+            if (SetProperty(ref _dailiesSortMode, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string TodosSortMode
+    {
+        get => _todosSortMode;
+        set
+        {
+            if (SetProperty(ref _todosSortMode, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string RewardsSortMode
+    {
+        get => _rewardsSortMode;
+        set
+        {
+            if (SetProperty(ref _rewardsSortMode, value))
             {
                 RefreshFilter();
             }
@@ -255,13 +370,13 @@ public class MainWindowViewModel : ViewModelBase
         var searchQuery = SearchQuery ?? string.Empty;
         var hasSearchQuery = !string.IsNullOrWhiteSpace(searchQuery);
 
-        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery, hasSearchQuery);
-        FilterDailies(_allDailies, Dailies, selectedTagIds, searchQuery, hasSearchQuery, DailiesFilter);
-        FilterTodos(_allTodos, Todos, selectedTagIds, searchQuery, hasSearchQuery, TodosFilter);
-        FilterRewards(_allRewards, Rewards, selectedTagIds, searchQuery, hasSearchQuery, RewardsFilter);
+        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery, hasSearchQuery, HabitsSortMode);
+        FilterDailies(_allDailies, Dailies, selectedTagIds, searchQuery, hasSearchQuery, DailiesFilter, DailiesSortMode);
+        FilterTodos(_allTodos, Todos, selectedTagIds, searchQuery, hasSearchQuery, TodosFilter, TodosSortMode);
+        FilterRewards(_allRewards, Rewards, selectedTagIds, searchQuery, hasSearchQuery, RewardsFilter, RewardsSortMode);
     }
 
-    private void FilterCollection<T>(List<T> source, ObservableCollection<T> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery) where T : TaskBase
+    private void FilterCollection<T>(List<T> source, ObservableCollection<T> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string sortMode) where T : TaskBase
     {
         var filtered = new List<T>(source.Count);
         foreach (var item in source)
@@ -276,10 +391,15 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
 
+        if (filtered is List<HabitTask> habits)
+        {
+            SortHabits(habits, sortMode);
+        }
+
         UpdateCollection(target, filtered);
     }
 
-    private void FilterDailies(List<DailyTask> source, ObservableCollection<DailyTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter)
+    private void FilterDailies(List<DailyTask> source, ObservableCollection<DailyTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter, string sortMode)
     {
         var filtered = new List<DailyTask>(source.Count);
         foreach (var item in source)
@@ -301,10 +421,12 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
 
+        SortDailies(filtered, sortMode);
+
         UpdateCollection(target, filtered);
     }
 
-    private void FilterTodos(List<TodoTask> source, ObservableCollection<TodoTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter)
+    private void FilterTodos(List<TodoTask> source, ObservableCollection<TodoTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter, string sortMode)
     {
         var filtered = new List<TodoTask>(source.Count);
         foreach (var item in source)
@@ -329,10 +451,12 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
 
+        SortTodos(filtered, sortMode);
+
         UpdateCollection(target, filtered);
     }
 
-    private void FilterRewards(List<Reward> source, ObservableCollection<Reward> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter)
+    private void FilterRewards(List<Reward> source, ObservableCollection<Reward> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter, string sortMode)
     {
         var filtered = new List<Reward>(source.Count);
         foreach (var item in source)
@@ -354,7 +478,108 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
 
+        SortRewards(filtered, sortMode);
+
         UpdateCollection(target, filtered);
+    }
+
+    private static void SortHabits(List<HabitTask> habits, string sortMode)
+    {
+        habits.Sort((a, b) => sortMode switch
+        {
+            SortNameAsc => CompareTitles(a, b),
+            SortNameDesc => CompareTitles(b, a),
+            SortCreatedNew => CompareWithTitle(b.CreatedAt.CompareTo(a.CreatedAt), a, b),
+            SortCreatedOld => CompareWithTitle(a.CreatedAt.CompareTo(b.CreatedAt), a, b),
+            SortGoldHigh => CompareWithTitle(b.GoldReward.CompareTo(a.GoldReward), a, b),
+            SortGoldLow => CompareWithTitle(a.GoldReward.CompareTo(b.GoldReward), a, b),
+            SortHabitCountHigh => CompareWithTitle(b.Count.CompareTo(a.Count), a, b),
+            SortHabitCountLow => CompareWithTitle(a.Count.CompareTo(b.Count), a, b),
+            _ => CompareTitles(a, b)
+        });
+    }
+
+    private static void SortDailies(List<DailyTask> dailies, string sortMode)
+    {
+        dailies.Sort((a, b) => sortMode switch
+        {
+            SortNameAsc => CompareTitles(a, b),
+            SortNameDesc => CompareTitles(b, a),
+            SortCreatedNew => CompareWithTitle(b.CreatedAt.CompareTo(a.CreatedAt), a, b),
+            SortCreatedOld => CompareWithTitle(a.CreatedAt.CompareTo(b.CreatedAt), a, b),
+            SortGoldHigh => CompareWithTitle(b.GoldReward.CompareTo(a.GoldReward), a, b),
+            SortGoldLow => CompareWithTitle(a.GoldReward.CompareTo(b.GoldReward), a, b),
+            SortDailyCurrentStreakHigh => CompareWithTitle(b.CurrentStreak.CompareTo(a.CurrentStreak), a, b),
+            SortDailyCurrentStreakLow => CompareWithTitle(a.CurrentStreak.CompareTo(b.CurrentStreak), a, b),
+            SortDailyBestStreakHigh => CompareWithTitle(b.BestStreak.CompareTo(a.BestStreak), a, b),
+            SortDailyBestStreakLow => CompareWithTitle(a.BestStreak.CompareTo(b.BestStreak), a, b),
+            _ => CompareTitles(a, b)
+        });
+    }
+
+    private static void SortTodos(List<TodoTask> todos, string sortMode)
+    {
+        todos.Sort((a, b) => sortMode switch
+        {
+            SortNameAsc => CompareTitles(a, b),
+            SortNameDesc => CompareTitles(b, a),
+            SortCreatedNew => CompareWithTitle(b.CreatedAt.CompareTo(a.CreatedAt), a, b),
+            SortCreatedOld => CompareWithTitle(a.CreatedAt.CompareTo(b.CreatedAt), a, b),
+            SortGoldHigh => CompareWithTitle(b.GoldReward.CompareTo(a.GoldReward), a, b),
+            SortGoldLow => CompareWithTitle(a.GoldReward.CompareTo(b.GoldReward), a, b),
+            SortTodoDueDateEarly => CompareTodoDueDates(a, b, true),
+            SortTodoDueDateLate => CompareTodoDueDates(a, b, false),
+            _ => CompareTitles(a, b)
+        });
+    }
+
+    private static void SortRewards(List<Reward> rewards, string sortMode)
+    {
+        rewards.Sort((a, b) => sortMode switch
+        {
+            SortNameAsc => CompareTitles(a, b),
+            SortNameDesc => CompareTitles(b, a),
+            SortCreatedNew => CompareWithTitle(b.CreatedAt.CompareTo(a.CreatedAt), a, b),
+            SortCreatedOld => CompareWithTitle(a.CreatedAt.CompareTo(b.CreatedAt), a, b),
+            SortGoldHigh => CompareWithTitle(b.GoldCost.CompareTo(a.GoldCost), a, b),
+            SortGoldLow => CompareWithTitle(a.GoldCost.CompareTo(b.GoldCost), a, b),
+            _ => CompareTitles(a, b)
+        });
+    }
+
+    private static int CompareTitles(DomainEntity left, DomainEntity right)
+    {
+        return StringComparer.OrdinalIgnoreCase.Compare(left.Title, right.Title);
+    }
+
+    private static int CompareWithTitle(int primary, DomainEntity left, DomainEntity right)
+    {
+        if (primary != 0)
+        {
+            return primary;
+        }
+
+        return CompareTitles(left, right);
+    }
+
+    private static int CompareTodoDueDates(TodoTask left, TodoTask right, bool ascending)
+    {
+        var leftHasDate = left.DueDate.HasValue;
+        var rightHasDate = right.DueDate.HasValue;
+
+        if (leftHasDate && rightHasDate)
+        {
+            var comparison = left.DueDate.Value.CompareTo(right.DueDate.Value);
+            var ordered = ascending ? comparison : -comparison;
+            return CompareWithTitle(ordered, left, right);
+        }
+
+        if (leftHasDate != rightHasDate)
+        {
+            return leftHasDate ? -1 : 1;
+        }
+
+        return CompareTitles(left, right);
     }
 
     private static void UpdateCollection<T>(ObservableCollection<T> target, List<T> filtered)
