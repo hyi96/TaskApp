@@ -272,6 +272,11 @@ public class DailyTask : TaskBase
         };
     }
 
+    public DateOnly GetPeriodStartFor(DateTimeOffset localTime)
+    {
+        return GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
+    }
+
     private static DateOnly GetWeeklyPeriodStart(DateOnly currentDate, DateOnly anchor, int interval)
     {
         var currentStart = currentDate.AddDays(-GetDaysSinceWeekStart(currentDate.DayOfWeek));
@@ -308,13 +313,46 @@ public class DailyTask : TaskBase
 
     public DateOnly GetCurrentPeriodStart()
     {
-        return GetPeriodStart(DateTimeOffset.UtcNow.ToLocalTime(), Cadence, RepeatEvery, CreatedAt);
+        return GetPeriodStartFor(DateTimeOffset.UtcNow.ToLocalTime());
     }
 
     public DateOnly GetPreviousPeriodStart()
     {
         var currentPeriod = GetCurrentPeriodStart();
         return GetPreviousPeriodStart(currentPeriod, Cadence, RepeatEvery);
+    }
+
+    public void CompleteForPeriod(DateOnly periodStart)
+    {
+        if (LastCompletionPeriod is DateOnly lastPeriod && lastPeriod == periodStart)
+        {
+            return;
+        }
+
+        if (LastCompletionPeriod is DateOnly existingPeriod)
+        {
+            var expectedPrev = GetPreviousPeriodStart(periodStart, Cadence, RepeatEvery);
+            CurrentStreak = existingPeriod == expectedPrev ? CurrentStreak + 1 : 1;
+        }
+        else
+        {
+            CurrentStreak = 1;
+        }
+
+        if (CurrentStreak > BestStreak)
+        {
+            BestStreak = CurrentStreak;
+        }
+
+        LastCompletionPeriod = periodStart;
+        var completedAt = new DateTimeOffset(periodStart.ToDateTime(new TimeOnly(12, 0)), DateTimeOffset.UtcNow.ToLocalTime().Offset);
+        base.Complete(completedAt);
+        OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+    }
+
+    public void NotifyPeriodChanged()
+    {
+        OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
     }
 
     private static int GetDaysSinceWeekStart(DayOfWeek dayOfWeek)

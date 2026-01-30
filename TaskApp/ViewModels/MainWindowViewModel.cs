@@ -558,7 +558,10 @@ public class MainWindowViewModel : ViewModelBase
         foreach (var daily in _allDailies)
         {
             daily.RefreshForCurrentPeriod();
+            daily.NotifyPeriodChanged();
         }
+
+        RefreshFilter();
     }
 
 
@@ -572,7 +575,7 @@ public class MainWindowViewModel : ViewModelBase
             .Where(d => 
             {
                 var currentPeriodStart = d.GetCurrentPeriodStart();
-                var yesterdayPeriodStart = d.GetPeriodStart(yesterday, d.Cadence, d.RepeatEvery, d.CreatedAt);
+                var yesterdayPeriodStart = d.GetPeriodStartFor(yesterday);
                 
                 // Only check tasks that are in a NEW period (period changed from yesterday to today)
                 if (currentPeriodStart == yesterdayPeriodStart)

@@ -118,9 +118,16 @@ namespace TaskApp
             await window.ShowDialog(desktop.MainWindow);
 
             // Complete the checked dailies
+            var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
             foreach (var item in newDayViewModel.UncompletedDailies.Where(x => x.IsChecked))
             {
-                item.Daily?.IncrementStreak();
+                if (item.Daily == null)
+                {
+                    continue;
+                }
+
+                var previousPeriodStart = item.Daily.GetPeriodStartFor(yesterday);
+                item.Daily.CompleteForPeriod(previousPeriodStart);
             }
 
             // Save changes
