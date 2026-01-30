@@ -1,10 +1,42 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="TaskApp.App"
-             RequestedThemeVariant="Light">
+             RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://TaskApp/Styles/AppStyles.axaml"/>
     </Application.Styles>
+    
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="ColumnBackgroundBrush" Color="#F5F5F5"/>
+                    <SolidColorBrush x:Key="ActivityBackgroundBrush" Color="#F5F5F5"/>
+                    <SolidColorBrush x:Key="ActivityBorderBrush" Color="#E0E0E0"/>
+                    <SolidColorBrush x:Key="GoldBackgroundBrush" Color="#F5F5F5"/>
+                    <SolidColorBrush x:Key="GoldBorderBrush" Color="#E0E0E0"/>
+                    <SolidColorBrush x:Key="GoldTextBrush" Color="#F57F17"/>
+                    <SolidColorBrush x:Key="AppTextBrush" Color="#212121"/>
+                    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#666666"/>
+                    <SolidColorBrush x:Key="LogBorderBrush" Color="#E0E0E0"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E"/>
+                    <SolidColorBrush x:Key="ColumnBackgroundBrush" Color="#2D2D2D"/>
+                    <SolidColorBrush x:Key="ActivityBackgroundBrush" Color="#2D2D2D"/>
+                    <SolidColorBrush x:Key="ActivityBorderBrush" Color="#3D3D3D"/>
+                    <SolidColorBrush x:Key="GoldBackgroundBrush" Color="#2D2D2D"/>
+                    <SolidColorBrush x:Key="GoldBorderBrush" Color="#3D3D3D"/>
+                    <SolidColorBrush x:Key="GoldTextBrush" Color="#FFD54F"/>
+                    <SolidColorBrush x:Key="AppTextBrush" Color="#E0E0E0"/>
+                    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#A0A0A0"/>
+                    <SolidColorBrush x:Key="LogBorderBrush" Color="#3D3D3D"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>

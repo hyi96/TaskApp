@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:TaskApp.ViewModels"
+        mc:Ignorable="d"
+        x:Class="TaskApp.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        d:DesignWidth="400"
+        d:DesignHeight="300"
+        Width="400"
+        Height="300"
+        Title="Settings"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppBackgroundBrush}">
+    <Border Padding="16">
+        <Grid RowDefinitions="Auto,*">
+            <TextBlock Text="Settings"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Margin="0,0,0,24"
+                       Foreground="{DynamicResource AppTextBrush}"/>
+            
+            <StackPanel Grid.Row="1" Spacing="16">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Theme" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
+                    <ComboBox ItemsSource="{Binding ThemeOptions}"
+                              SelectedValue="{Binding SelectedTheme}"
+                              SelectedValueBinding="{Binding Value}"
+                              DisplayMemberBinding="{Binding DisplayName}"
+                              MinWidth="200"
+                              HorizontalAlignment="Left"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
@@ -20,10 +21,21 @@ namespace TaskApp
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
+            
+            // Subscribe to theme changes
+            SettingsService.Instance.ThemeChanged += OnThemeChanged;
         }
 
-        public override void OnFrameworkInitializationCompleted()
+        public override async void OnFrameworkInitializationCompleted()
         {
+            // Load settings in background - don't block startup
+            _ = Task.Run(async () =>
+            {
+                await SettingsService.Instance.LoadAsync();
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => 
+                    ApplyTheme(SettingsService.Instance.ThemeMode));
+            });
+            
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 var storageService = new StorageService();
@@ -64,6 +76,22 @@ namespace TaskApp
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+        
+        private void OnThemeChanged(ThemeMode mode)
+        {
+            Dispatcher.UIThread.Post(() => ApplyTheme(mode));
+        }
+        
+        private void ApplyTheme(ThemeMode mode)
+        {
+            RequestedThemeVariant = mode switch
+            {
+                ThemeMode.Light => ThemeVariant.Light,
+                ThemeMode.Dark => ThemeVariant.Dark,
+                ThemeMode.System => ThemeVariant.Default,
+                _ => ThemeVariant.Default
+            };
         }
 
         private void InitializeDayDetection()

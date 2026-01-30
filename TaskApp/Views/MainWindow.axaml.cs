@@ -260,4 +260,14 @@ public partial class MainWindow : Window
             mainVm.RewardsFilter = filterValue;
         }
     }
+
+    public void OpenSettingsWindow_Click(object? sender, RoutedEventArgs e)
+    {
+        var vm = new SettingsViewModel();
+        var settingsWindow = new SettingsWindow
+        {
+            DataContext = vm
+        };
+        settingsWindow.ShowDialog(this);
+    }
 }

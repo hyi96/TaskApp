@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using System;
@@ -30,8 +31,18 @@ public class FilterTabForegroundConverter : IValueConverter
         {
             if (filterValue == tabValue)
             {
+                // Use theme-aware primary text color for active tab
+                if (Application.Current?.TryGetResource("AppTextBrush", Application.Current.ActualThemeVariant, out var brush) == true && brush is IBrush textBrush)
+                {
+                    return textBrush;
+                }
                 return new SolidColorBrush(Colors.Black);
             }
+        }
+        // Use theme-aware secondary text color for inactive tabs
+        if (Application.Current?.TryGetResource("SecondaryTextBrush", Application.Current.ActualThemeVariant, out var secondaryBrush) == true && secondaryBrush is IBrush secondary)
+        {
+            return secondary;
         }
         return new SolidColorBrush(Color.Parse("#999999"));
     }
