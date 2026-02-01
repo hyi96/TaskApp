@@ -19,6 +19,7 @@ Background="{DynamicResource AppBackgroundBrush}">
 <Window.Resources>
     <conv:BooleanNegationConverter x:Key="InverseBooleanConverter" />
     <conv:BooleanToTextDecorationConverter x:Key="BoolToTextDecorationConverter" />
+    <conv:BooleanToOpacityConverter x:Key="BoolToOpacityConverter" />
     <conv:FilterTabForegroundConverter x:Key="FilterTabForegroundConverter" />
     <conv:FilterTabFontWeightConverter x:Key="FilterTabFontWeightConverter" />
     <conv:FilterTabTextDecorationConverter x:Key="FilterTabTextDecorationConverter" />
@@ -186,7 +187,8 @@ Background="{DynamicResource AppBackgroundBrush}">
                                         <Button Grid.Column="0" 
                                                 Click="EditTask_Click" 
                                                 HorizontalAlignment="Stretch"
-                                                Margin="0,2">
+                                                Margin="0,2"
+                                                Opacity="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource BoolToOpacityConverter}}">
                                             <Button.Content>
                                                 <TextBlock Text="{Binding Title}"
                                                            TextDecorations="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource BoolToTextDecorationConverter}}"/>
@@ -268,7 +270,8 @@ Background="{DynamicResource AppBackgroundBrush}">
                                         <Button Grid.Column="0" 
                                                 Click="EditTask_Click" 
                                                 HorizontalAlignment="Stretch"
-                                                Margin="0,2">
+                                                Margin="0,2"
+                                                Opacity="{Binding IsRewardGoalMet, Converter={StaticResource BoolToOpacityConverter}}">
                                             <Button.Content>
                                                 <TextBlock Text="{Binding Title}"
                                                            TextDecorations="{Binding IsRewardGoalMet, Converter={StaticResource BoolToTextDecorationConverter}}"/>
