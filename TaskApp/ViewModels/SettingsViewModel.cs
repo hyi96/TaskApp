@@ -71,8 +71,6 @@ public class SettingsViewModel : ViewModelBase
     public ICommand ExportUserCommand { get; }
     public ICommand ImportUserCommand { get; }
 
-    public event Action? UserSwitched;
-
     public SettingsViewModel(UserService userService, Window parentWindow)
     {
         _userService = userService;
@@ -90,10 +88,13 @@ public class SettingsViewModel : ViewModelBase
 
     private async Task SwitchUserAsync()
     {
-        if (SelectedUser == null || SelectedUser.Id == _userService.CurrentUser?.Id) return;
+        if (SelectedUser == null || SelectedUser.Id == _userService.CurrentUser?.Id) 
+            return;
+        
+        // Close the settings window first to avoid UI conflicts with popups
+        _parentWindow.Close();
+        
         await _userService.SwitchUserAsync(SelectedUser.Id);
-        OnPropertyChanged(nameof(CurrentUserName));
-        UserSwitched?.Invoke();
     }
 
     private async Task CreateUserAsync()

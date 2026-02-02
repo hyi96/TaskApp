@@ -265,11 +265,9 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel mainVm)
         {
-            var vm = new SettingsViewModel(mainVm.UserService, this);
-            var settingsWindow = new SettingsWindow
-            {
-                DataContext = vm
-            };
+            var settingsWindow = new SettingsWindow();
+            var vm = new SettingsViewModel(mainVm.UserService, settingsWindow);
+            settingsWindow.DataContext = vm;
             settingsWindow.ShowDialog(this);
         }
     }

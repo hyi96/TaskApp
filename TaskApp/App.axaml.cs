@@ -31,43 +31,29 @@ namespace TaskApp
 
         public override void OnFrameworkInitializationCompleted()
         {
-            Console.WriteLine("OnFrameworkInitializationCompleted started");
-            
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 try
                 {
-                    Console.WriteLine("Initializing UserService...");
                     _userService = new UserService();
-                    // Use synchronous file I/O to avoid deadlocks
                     _userService.LoadSync();
-                    Console.WriteLine($"UserService loaded. Current user: {_userService.CurrentUser?.Name}");
 
-                    Console.WriteLine("Creating StorageService...");
                     _storageService = new StorageService(_userService);
-                    Console.WriteLine($"StorageService created. Data dir: {_storageService.DataDirectory}");
-
-                    Console.WriteLine("Creating MainWindowViewModel...");
                     _viewModel = new MainWindowViewModel(_storageService, _userService);
 
-                    // Subscribe to user changes to reload data
                     _userService.CurrentUserChanged += OnCurrentUserChanged;
 
-                    Console.WriteLine("Creating MainWindow...");
                     desktop.MainWindow = new MainWindow
                     {
                         DataContext = _viewModel
                     };
-                    Console.WriteLine("MainWindow created and assigned");
 
                     desktop.Startup += async (s, e) =>
                     {
-                        Console.WriteLine("Startup event - loading data and settings...");
                         await SettingsService.Instance.LoadAsync();
                         ApplyTheme(SettingsService.Instance.ThemeMode);
                         await _viewModel.LoadDataAsync();
                         InitializeDayDetection();
-                        Console.WriteLine("Startup complete");
                     };
 
                     var isClosing = false;
@@ -75,7 +61,6 @@ namespace TaskApp
                     {
                         if (!isClosing)
                         {
-                            // Cancel the close to perform async save
                             e.Cancel = true;
                             try
                             {
@@ -86,7 +71,6 @@ namespace TaskApp
                             finally
                             {
                                 isClosing = true;
-                                // Re-initiate close
                                 desktop.MainWindow.Close();
                             }
                         }
@@ -94,9 +78,6 @@ namespace TaskApp
                 }
                 catch (Exception ex)
                 {
-                    // Show error and create a minimal window so the app doesn't just disappear
-                    Console.WriteLine($"Startup error: {ex}");
-                    
                     var errorWindow = new Window
                     {
                         Title = "TaskApp - Startup Error",
@@ -113,9 +94,7 @@ namespace TaskApp
                 }
             }
 
-            Console.WriteLine("Calling base.OnFrameworkInitializationCompleted");
             base.OnFrameworkInitializationCompleted();
-            Console.WriteLine("OnFrameworkInitializationCompleted finished");
         }
 
         private async void OnCurrentUserChanged()
@@ -124,13 +103,8 @@ namespace TaskApp
 
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                // Refresh the storage service data directory
                 _storageService.RefreshDataDirectory();
-
-                // Reload all data for the new user
                 await _viewModel.LoadDataAsync();
-
-                // Update the displayed user name
                 _viewModel.RefreshCurrentUserName();
             });
         }

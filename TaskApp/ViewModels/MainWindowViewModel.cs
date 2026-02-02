@@ -339,6 +339,14 @@ public class MainWindowViewModel : ViewModelBase
         User = await _storageService.LoadUserProfileAsync();
 
         var tags = await _storageService.LoadTagsAsync();
+        
+        // Unsubscribe from old tags before clearing
+        foreach (var selectableTag in AvailableTags)
+        {
+            selectableTag.SelectionChanged -= RefreshFilter;
+        }
+        AvailableTags.CollectionChanged -= AvailableTags_CollectionChanged;
+        
         AvailableTags.Clear();
         foreach (var tag in tags)
         {
