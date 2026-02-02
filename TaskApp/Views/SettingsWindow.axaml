@@ -3,13 +3,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:TaskApp.ViewModels"
+        xmlns:models="using:TaskApp.Models"
         mc:Ignorable="d"
         x:Class="TaskApp.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
-        d:DesignWidth="400"
-        d:DesignHeight="300"
-        Width="400"
-        Height="300"
+        d:DesignWidth="450"
+        d:DesignHeight="550"
+        Width="450"
+        Height="550"
         Title="Settings"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource AppBackgroundBrush}">
@@ -21,17 +22,88 @@
                        Margin="0,0,0,24"
                        Foreground="{DynamicResource AppTextBrush}"/>
             
-            <StackPanel Grid.Row="1" Spacing="16">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Theme" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
-                    <ComboBox ItemsSource="{Binding ThemeOptions}"
-                              SelectedValue="{Binding SelectedTheme}"
-                              SelectedValueBinding="{Binding Value}"
-                              DisplayMemberBinding="{Binding DisplayName}"
-                              MinWidth="200"
-                              HorizontalAlignment="Left"/>
+            <ScrollViewer Grid.Row="1">
+                <StackPanel Spacing="24">
+                    <!-- Theme Section -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Theme" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
+                        <ComboBox ItemsSource="{Binding ThemeOptions}"
+                                  SelectedValue="{Binding SelectedTheme}"
+                                  SelectedValueBinding="{Binding Value}"
+                                  DisplayMemberBinding="{Binding DisplayName}"
+                                  MinWidth="200"
+                                  HorizontalAlignment="Left"/>
+                    </StackPanel>
+
+                    <!-- User Management Section -->
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="User Management" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
+
+                        <!-- Current User -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Current User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            <TextBlock Text="{Binding CurrentUserName}" FontWeight="Bold" Foreground="{DynamicResource AppTextBrush}"/>
+                        </StackPanel>
+
+                        <!-- Switch User -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Switch User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <ComboBox Grid.Column="0"
+                                          ItemsSource="{Binding Users}"
+                                          SelectedItem="{Binding SelectedUser}"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="models:User">
+                                            <TextBlock Text="{Binding Name}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button Grid.Column="1" Content="Switch" Command="{Binding SwitchUserCommand}"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Create User -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Create New User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0"
+                                         Watermark="Enter username..."
+                                         Text="{Binding NewUserName}"
+                                         HorizontalAlignment="Stretch"/>
+                                <Button Grid.Column="1" Content="Create" Command="{Binding CreateUserCommand}"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Delete User -->
+                        <Button Content="Delete Selected User"
+                                Command="{Binding DeleteUserCommand}"
+                                IsEnabled="{Binding CanDeleteUser}"
+                                HorizontalAlignment="Left"/>
+
+                        <!-- Import/Export Section -->
+                        <Border BorderBrush="{DynamicResource SecondaryTextBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="0,12,0,0"
+                                Margin="0,8,0,0">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Import / Export" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource AppTextBrush}"/>
+                                <TextBlock Text="Export selected user's data to a backup file, or import data to create a new user."
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                    <Button Content="Export User..."
+                                            Command="{Binding ExportUserCommand}"
+                                            IsEnabled="{Binding CanExportUser}"/>
+                                    <Button Content="Import User..."
+                                            Command="{Binding ImportUserCommand}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Border>
 </Window>

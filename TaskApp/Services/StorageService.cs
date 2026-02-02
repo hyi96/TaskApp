@@ -16,22 +16,33 @@ namespace TaskApp.Services;
 
 public class StorageService
 {
-    private readonly string _dataDirectory;
+    private readonly UserService _userService;
+    private string _dataDirectory = string.Empty;
     private const string TasksFileName = "tasks.json";
     private const string RewardsFileName = "rewards.json";
     private const string TagsFileName = "tags.json";
     private const string UserProfileFileName = "user.json";
     private const string LogsDbFileName = "logs.db";
 
-    public StorageService()
+    public StorageService(UserService userService)
     {
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        _dataDirectory = Path.Combine(appData, "TaskApp");
-        
+        _userService = userService;
+        UpdateDataDirectory();
+    }
+
+    private void UpdateDataDirectory()
+    {
+        _dataDirectory = _userService.GetCurrentUserDataDirectory();
+
         if (!Directory.Exists(_dataDirectory))
         {
             Directory.CreateDirectory(_dataDirectory);
         }
+    }
+
+    public void RefreshDataDirectory()
+    {
+        UpdateDataDirectory();
     }
 
     public string DataDirectory => _dataDirectory;

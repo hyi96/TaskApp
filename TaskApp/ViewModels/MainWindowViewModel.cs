@@ -30,6 +30,7 @@ public class MainWindowViewModel : ViewModelBase
     private const string SortTodoDueDateLate = "Due date (latest to earliest)";
 
     private readonly StorageService _storageService;
+    private readonly UserService _userService;
 
     private UserProfile _user = new();
     private string _newHabitTitle = string.Empty;
@@ -47,6 +48,13 @@ public class MainWindowViewModel : ViewModelBase
     private bool _isVerbose = false;
 
     public string Title => "TaskApp";
+
+    public string CurrentUserName => _userService.CurrentUser?.Name ?? "Unknown";
+
+    public void RefreshCurrentUserName()
+    {
+        OnPropertyChanged(nameof(CurrentUserName));
+    }
     
     public bool IsVerbose
     {
@@ -112,6 +120,7 @@ public class MainWindowViewModel : ViewModelBase
     public CurrentActivityViewModel CurrentActivity { get; } = new();
  
     public StorageService StorageService => _storageService;
+    public UserService UserService => _userService;
 
     // Internal full lists
     private readonly List<HabitTask> _allHabits = new();
@@ -245,9 +254,10 @@ public class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _user, value);
     }
 
-    public MainWindowViewModel(StorageService storageService)
+    public MainWindowViewModel(StorageService storageService, UserService userService)
     {
         _storageService = storageService;
+        _userService = userService;
  
         CurrentActivity.ActivityDurationRecorded += async (duration, title, taskId, rewardId) =>
         {

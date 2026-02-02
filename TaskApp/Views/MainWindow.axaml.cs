@@ -263,11 +263,14 @@ public partial class MainWindow : Window
 
     public void OpenSettingsWindow_Click(object? sender, RoutedEventArgs e)
     {
-        var vm = new SettingsViewModel();
-        var settingsWindow = new SettingsWindow
+        if (DataContext is MainWindowViewModel mainVm)
         {
-            DataContext = vm
-        };
-        settingsWindow.ShowDialog(this);
+            var vm = new SettingsViewModel(mainVm.UserService, this);
+            var settingsWindow = new SettingsWindow
+            {
+                DataContext = vm
+            };
+            settingsWindow.ShowDialog(this);
+        }
     }
 }

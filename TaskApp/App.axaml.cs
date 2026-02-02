@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
@@ -17,6 +18,8 @@ namespace TaskApp
     {
         private DayDetectionService? _dayDetectionService;
         private MainWindowViewModel? _viewModel;
+        private UserService? _userService;
+        private StorageService? _storageService;
 
         public override void Initialize()
         {
@@ -26,56 +29,110 @@ namespace TaskApp
             SettingsService.Instance.ThemeChanged += OnThemeChanged;
         }
 
-        public override async void OnFrameworkInitializationCompleted()
+        public override void OnFrameworkInitializationCompleted()
         {
-            // Load settings in background - don't block startup
-            _ = Task.Run(async () =>
-            {
-                await SettingsService.Instance.LoadAsync();
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => 
-                    ApplyTheme(SettingsService.Instance.ThemeMode));
-            });
+            Console.WriteLine("OnFrameworkInitializationCompleted started");
             
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                var storageService = new StorageService();
-                _viewModel = new MainWindowViewModel(storageService);
-
-                desktop.MainWindow = new MainWindow
+                try
                 {
-                    DataContext = _viewModel
-                };
+                    Console.WriteLine("Initializing UserService...");
+                    _userService = new UserService();
+                    // Use synchronous file I/O to avoid deadlocks
+                    _userService.LoadSync();
+                    Console.WriteLine($"UserService loaded. Current user: {_userService.CurrentUser?.Name}");
 
-                desktop.Startup += async (s, e) =>
-                {
-                    await _viewModel.LoadDataAsync();
-                    InitializeDayDetection();
-                };
+                    Console.WriteLine("Creating StorageService...");
+                    _storageService = new StorageService(_userService);
+                    Console.WriteLine($"StorageService created. Data dir: {_storageService.DataDirectory}");
 
-                var isClosing = false;
-                desktop.MainWindow.Closing += async (s, e) =>
-                {
-                    if (!isClosing)
+                    Console.WriteLine("Creating MainWindowViewModel...");
+                    _viewModel = new MainWindowViewModel(_storageService, _userService);
+
+                    // Subscribe to user changes to reload data
+                    _userService.CurrentUserChanged += OnCurrentUserChanged;
+
+                    Console.WriteLine("Creating MainWindow...");
+                    desktop.MainWindow = new MainWindow
                     {
-                        // Cancel the close to perform async save
-                        e.Cancel = true;
-                        try
+                        DataContext = _viewModel
+                    };
+                    Console.WriteLine("MainWindow created and assigned");
+
+                    desktop.Startup += async (s, e) =>
+                    {
+                        Console.WriteLine("Startup event - loading data and settings...");
+                        await SettingsService.Instance.LoadAsync();
+                        ApplyTheme(SettingsService.Instance.ThemeMode);
+                        await _viewModel.LoadDataAsync();
+                        InitializeDayDetection();
+                        Console.WriteLine("Startup complete");
+                    };
+
+                    var isClosing = false;
+                    desktop.MainWindow.Closing += async (s, e) =>
+                    {
+                        if (!isClosing)
                         {
-                            _dayDetectionService?.Stop();
-                            await _viewModel.LogCurrentActivityIfRunningAsync();
-                            await _viewModel.SaveDataAsync();
+                            // Cancel the close to perform async save
+                            e.Cancel = true;
+                            try
+                            {
+                                _dayDetectionService?.Stop();
+                                await _viewModel.LogCurrentActivityIfRunningAsync();
+                                await _viewModel.SaveDataAsync();
+                            }
+                            finally
+                            {
+                                isClosing = true;
+                                // Re-initiate close
+                                desktop.MainWindow.Close();
+                            }
                         }
-                        finally
+                    };
+                }
+                catch (Exception ex)
+                {
+                    // Show error and create a minimal window so the app doesn't just disappear
+                    Console.WriteLine($"Startup error: {ex}");
+                    
+                    var errorWindow = new Window
+                    {
+                        Title = "TaskApp - Startup Error",
+                        Width = 500,
+                        Height = 200,
+                        Content = new TextBlock
                         {
-                            isClosing = true;
-                            // Re-initiate close
-                            desktop.MainWindow.Close();
+                            Text = $"Failed to start application:\n\n{ex.Message}\n\n{ex.StackTrace}",
+                            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                            Margin = new Thickness(20)
                         }
-                    }
-                };
+                    };
+                    desktop.MainWindow = errorWindow;
+                }
             }
 
+            Console.WriteLine("Calling base.OnFrameworkInitializationCompleted");
             base.OnFrameworkInitializationCompleted();
+            Console.WriteLine("OnFrameworkInitializationCompleted finished");
+        }
+
+        private async void OnCurrentUserChanged()
+        {
+            if (_viewModel == null || _storageService == null) return;
+
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                // Refresh the storage service data directory
+                _storageService.RefreshDataDirectory();
+
+                // Reload all data for the new user
+                await _viewModel.LoadDataAsync();
+
+                // Update the displayed user name
+                _viewModel.RefreshCurrentUserName();
+            });
         }
         
         private void OnThemeChanged(ThemeMode mode)
