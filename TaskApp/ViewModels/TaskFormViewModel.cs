@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using TaskApp.Models.Tags;
 using TaskApp.Models.Tasks;
@@ -32,6 +34,16 @@ public abstract class TaskFormViewModel : ViewModelBase
     {
         get => _goldValue;
         set => SetProperty(ref _goldValue, value);
+    }
+    
+    public string SelectedTagsDisplay
+    {
+        get
+        {
+            var selected = TaskTags.Where(t => t.IsSelected).Select(t => t.Name).ToList();
+            if (selected.Count == 0) return "(none)";
+            return string.Join(", ", selected);
+        }
     }
 
     public TaskType Type { get; protected set; }
@@ -80,7 +92,17 @@ public abstract class TaskFormViewModel : ViewModelBase
         
         foreach (var tag in availableTags)
         {
-            TaskTags.Add(new SelectableTag(tag.Tag, currentTagIds.Contains(tag.Tag.Id)));
+            var selectableTag = new SelectableTag(tag.Tag, currentTagIds.Contains(tag.Tag.Id));
+            selectableTag.PropertyChanged += OnTagSelectionChanged;
+            TaskTags.Add(selectableTag);
+        }
+    }
+    
+    private void OnTagSelectionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SelectableTag.IsSelected))
+        {
+            OnPropertyChanged(nameof(SelectedTagsDisplay));
         }
     }
 }
