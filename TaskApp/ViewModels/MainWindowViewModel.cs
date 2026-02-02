@@ -44,8 +44,15 @@ public class MainWindowViewModel : ViewModelBase
     private string _dailiesSortMode = SortNameAsc;
     private string _todosSortMode = SortNameAsc;
     private string _rewardsSortMode = SortNameAsc;
+    private bool _isVerbose = false;
 
     public string Title => "TaskApp";
+    
+    public bool IsVerbose
+    {
+        get => _isVerbose;
+        set => SetProperty(ref _isVerbose, value);
+    }
 
     public ObservableCollection<HabitTask> Habits { get; } = new();
     public ObservableCollection<DailyTask> Dailies { get; } = new();
