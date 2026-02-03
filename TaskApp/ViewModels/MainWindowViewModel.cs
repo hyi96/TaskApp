@@ -594,7 +594,7 @@ public class MainWindowViewModel : ViewModelBase
 
         if (leftHasDate && rightHasDate)
         {
-            var comparison = left.DueDate.Value.CompareTo(right.DueDate.Value);
+            var comparison = left.DueDate!.Value.CompareTo(right.DueDate!.Value);
             var ordered = ascending ? comparison : -comparison;
             return CompareWithTitle(ordered, left, right);
         }

@@ -174,7 +174,10 @@ namespace TaskApp
                 DataContext = newDayViewModel
             };
 
-            await window.ShowDialog(desktop.MainWindow);
+            if (desktop.MainWindow != null)
+            {
+                await window.ShowDialog(desktop.MainWindow);
+            }
 
             // Complete the checked dailies
             var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);

@@ -76,7 +76,7 @@ public class FilterTabFontWeightConverter : IValueConverter
 
 public class FilterTabTextDecorationConverter : IValueConverter
 {
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is string filterValue && parameter is string tabValue)
         {
