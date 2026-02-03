@@ -35,12 +35,23 @@ A gamified task management desktop application built with **Avalonia UI** and **
 
 ## Screenshots
 
-> *Please provide screenshots of the following:*
-> 1. **Main Window** – showing all four columns (Habits, Dailies, Todos, Rewards)
-> 2. **Task Form** – the edit dialog for creating/editing a task
-> 3. **Graphs Window** – showing the analytics charts
-> 4. **Settings Window** – theme and user management options
-> 5. **Dark Theme** – main window in dark mode (if different from above)
+### Main Window
+![Main Window](TaskApp/Assets/screenshots/main_window.png)
+
+### Main Window (Verbose Mode)
+![Main Window Verbose](TaskApp/Assets/screenshots/main_window_verbose.png)
+
+### Dark Mode
+![Dark Mode](TaskApp/Assets/screenshots/dark_mode.png)
+
+### Edit Task Form
+![Edit Task Form](TaskApp/Assets/screenshots/edit_task_form.png)
+
+### Graphs & Analytics
+![Graphs](TaskApp/Assets/screenshots/graph.png)
+
+### Settings
+![Settings](TaskApp/Assets/screenshots/settings_window.png)
 
 ## Getting Started
 
