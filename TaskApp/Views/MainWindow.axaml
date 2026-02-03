@@ -204,13 +204,20 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 <TextBlock Text="{Binding Title}"
                                                            TextWrapping="Wrap"
                                                            TextDecorations="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource BoolToTextDecorationConverter}}"/>
-                                                <TextBlock Grid.Row="1" 
-                                                           Text="{Binding CurrentStreak, StringFormat='Streak: {0}'}"
-                                                           FontSize="11"
-                                                           HorizontalAlignment="Right"
-                                                           Foreground="{DynamicResource SecondaryTextBrush}"
-                                                           Margin="0,4,0,0"
-                                                           IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsVerbose}"/>
+                                                <Grid Grid.Row="1" 
+                                                      ColumnDefinitions="*,*"
+                                                      Margin="0,4,0,0"
+                                                      IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsVerbose}">
+                                                    <TextBlock Text="{Binding CurrentPeriodEndDate, StringFormat='Due: {0:MMM d}'}"
+                                                               FontSize="11"
+                                                               HorizontalAlignment="Left"
+                                                               Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding CurrentStreak, StringFormat='Streak: {0}'}"
+                                                               FontSize="11"
+                                                               HorizontalAlignment="Right"
+                                                               Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                                </Grid>
                                             </Grid>
                                         </Button>
                                         <Button Grid.Column="1" Content="&#x2713;" Click="CompleteTask_Click" Margin="4,0,0,0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource InverseBooleanConverter}}"/>

@@ -105,6 +105,29 @@ public class DailyTask : TaskBase
     }
 
     public bool IsCompleteForCurrentPeriod => IsCompleteForPeriod(DateTimeOffset.UtcNow.ToLocalTime());
+    
+    public DateOnly CurrentPeriodEndDate
+    {
+        get
+        {
+            var localTime = DateTimeOffset.UtcNow.ToLocalTime();
+            var periodStart = GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
+            return GetPeriodEndDate(periodStart, Cadence, RepeatEvery);
+        }
+    }
+    
+    private DateOnly GetPeriodEndDate(DateOnly periodStart, RepeatCadence cadence, int repeatEvery)
+    {
+        var interval = repeatEvery < 1 ? 1 : repeatEvery;
+        return cadence switch
+        {
+            RepeatCadence.Daily => periodStart.AddDays(interval - 1),
+            RepeatCadence.Weekly => periodStart.AddDays(interval * 7 - 1),
+            RepeatCadence.Monthly => periodStart.AddMonths(interval).AddDays(-1),
+            RepeatCadence.Yearly => periodStart.AddYears(interval).AddDays(-1),
+            _ => periodStart
+        };
+    }
 
     public IReadOnlyList<StreakBonusRule> StreakBonusRules => _streakBonusRules;
 
