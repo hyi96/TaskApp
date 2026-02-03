@@ -9,7 +9,7 @@ A gamified task management desktop application built with **Avalonia UI** and **
 ## Features
 
 ### 📋 Task Management
-- **Habits** – Repeatable actions with increment/decrement counters and optional reset cadences (daily, weekly, monthly)
+- **Habits** – Repeatable actions with increment counters and optional reset cadences (daily, weekly, monthly)
 - **Dailies** – Recurring tasks with streak tracking and customizable schedules (daily, weekly, monthly, yearly)
 - **Todos** – One-time tasks with optional due dates and checklists
 
