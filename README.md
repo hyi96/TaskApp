@@ -114,6 +114,10 @@ TaskApp/
 - **Verbose Mode**: Toggle "Verbose" checkbox to see detailed information
 - **New Day Detection**: The app automatically detects day changes and resets daily tasks
 
+## Inspirations
+
+This project was inspired by [Habitica](https://habitica.com/), a gamified task management platform that transforms productivity into an RPG adventure.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
