@@ -1,16 +1,17 @@
 <Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="using:TaskApp.ViewModels"
-        xmlns:sys="using:System"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
-        x:Class="TaskApp.Views.TagsWindow"
-        x:DataType="vm:TagsViewModel"
-        Title="Tags Manager"
-        Width="400" Height="500"
-        WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource AppBackgroundBrush}">
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:vm="using:TaskApp.ViewModels"
+xmlns:sys="using:System"
+mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+x:Class="TaskApp.Views.TagsWindow"
+x:DataType="vm:TagsViewModel"
+Icon="/Assets/app-icon.png"
+Title="Tags Manager"
+Width="400" Height="500"
+WindowStartupLocation="CenterOwner"
+Background="{DynamicResource AppBackgroundBrush}">
     <Border Padding="16">
         <Grid RowDefinitions="Auto,*,Auto">
             
