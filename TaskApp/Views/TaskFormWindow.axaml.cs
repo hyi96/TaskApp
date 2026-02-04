@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -11,6 +12,16 @@ public partial class TaskFormWindow : Window
     public TaskFormWindow()
     {
         InitializeComponent();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        // Dispose ViewModel to clean up event subscriptions
+        if (DataContext is TaskFormViewModel vm)
+        {
+            vm.Dispose();
+        }
+        base.OnClosed(e);
     }
 
     private void Save_Click(object? sender, RoutedEventArgs e)

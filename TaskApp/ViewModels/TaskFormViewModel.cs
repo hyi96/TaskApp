@@ -9,11 +9,12 @@ using TaskApp.Models.Tasks;
 
 namespace TaskApp.ViewModels;
 
-public abstract class TaskFormViewModel : ViewModelBase
+public abstract class TaskFormViewModel : ViewModelBase, IDisposable
 {
     private string _title = string.Empty;
     private string _notes = string.Empty;
     private double _goldValue;
+    private bool _disposed;
     
     // Selectable tags for this specific task
     public ObservableCollection<SelectableTag> TaskTags { get; } = new();
@@ -104,6 +105,34 @@ public abstract class TaskFormViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(SelectedTagsDisplay));
         }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        if (disposing)
+        {
+            // Unsubscribe from tag property changes to prevent memory leaks
+            foreach (var tag in TaskTags)
+            {
+                tag.PropertyChanged -= OnTagSelectionChanged;
+            }
+            TaskTags.Clear();
+
+            // Clear event handlers
+            RequestClose = null;
+            RequestDelete = null;
+            RequestSetAsCurrentActivity = null;
+        }
+
+        _disposed = true;
     }
 }
 

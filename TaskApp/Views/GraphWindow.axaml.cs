@@ -31,7 +31,24 @@ public partial class GraphWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        // Unsubscribe from theme changes
         SettingsService.Instance.ThemeChanged -= OnThemeChanged;
+        
+        // Unsubscribe from ViewModel events and dispose
+        if (_viewModel != null)
+        {
+            _viewModel.PlotDataUpdated -= OnPlotDataUpdated;
+            _viewModel.Dispose();
+            _viewModel = null;
+        }
+
+        // Clear plot resources
+        _graphPlot?.Plot.Clear();
+        _graphPlot = null;
+        
+        // Unsubscribe from DataContext changes
+        DataContextChanged -= OnDataContextChanged;
+
         base.OnClosed(e);
     }
 

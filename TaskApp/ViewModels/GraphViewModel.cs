@@ -11,7 +11,7 @@ using TaskApp.Services;
 
 namespace TaskApp.ViewModels;
 
-public class GraphViewModel : ViewModelBase
+public partial class GraphViewModel : ViewModelBase, IDisposable
 {
     private readonly StorageService _storageService;
     private readonly List<LogEntry> _logEntries = new();
@@ -27,6 +27,7 @@ public class GraphViewModel : ViewModelBase
     private string _searchQuery = string.Empty;
     private SearchResultOption? _selectedSearchResult;
     private bool _isLoaded;
+    private bool _disposed;
 
     public GraphViewModel(StorageService storageService)
     {
@@ -685,5 +686,38 @@ public record SearchResultOption(TargetType TargetType, Guid? EntityId, string? 
         }
 
         return entityId.HasValue && EntityId.HasValue && entityId.Value == EntityId.Value;
+    }
+}
+
+public partial class GraphViewModel
+{
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        if (disposing)
+        {
+            // Clear collections to release references
+            _logEntries.Clear();
+            _tasks.Clear();
+            _rewards.Clear();
+            _taskLookup.Clear();
+            _rewardLookup.Clear();
+            TargetTypes.Clear();
+            TargetValues.Clear();
+            TargetInstances.Clear();
+            SearchResults.Clear();
+
+            // Clear event handlers
+            PlotDataUpdated = null;
+        }
+
+        _disposed = true;
     }
 }
