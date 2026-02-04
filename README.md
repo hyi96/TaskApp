@@ -9,7 +9,7 @@ A gamified task management desktop application built with **Avalonia UI** and **
 ## Features
 
 ### 📋 Task Management
-- **Habits** – Repeatable actions with increment counters and optional reset cadences (daily, weekly, monthly)
+- **Habits** – Repeatable actions with increment counters and optional counter reset cadences (daily, weekly, monthly)
 - **Dailies** – Recurring tasks with streak tracking and customizable schedules (daily, weekly, monthly, yearly)
 - **Todos** – One-time tasks with optional due dates and checklists
 
@@ -30,7 +30,7 @@ A gamified task management desktop application built with **Avalonia UI** and **
 - **Sorting & Filtering** – Multiple sort options and filter tabs for each task type
 
 ### 💾 Data Management
-- **JSON Export/Import** – Backup and restore your data
+- **Export/Import** – Backup and restore your data
 - **Per-User Data Storage** – Each user has isolated task and reward data
 
 ## Screenshots
@@ -58,7 +58,7 @@ A gamified task management desktop application built with **Avalonia UI** and **
 ### Prerequisites
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
-### Build & Run
+### Build From Source & Run
 
 ```bash
 # Clone the repository
@@ -70,13 +70,6 @@ dotnet build
 
 # Run the application
 dotnet run --project TaskApp
-```
-
-### Publish (Optional)
-
-```bash
-# Create a self-contained executable
-dotnet publish -c Release -r win-x64 --self-contained
 ```
 
 ## Project Structure
