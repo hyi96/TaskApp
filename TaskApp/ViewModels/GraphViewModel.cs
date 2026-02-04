@@ -472,64 +472,83 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
 
     private static IEnumerable<TimeBucket> CreateBuckets(TimeResolution resolution)
     {
-        var now = DateTime.UtcNow;
-        var currentHour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc);
-        var currentDay = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
+        // Use local time for intuitive bucket boundaries, then convert to UTC for matching
+        var localNow = DateTime.Now;
+        var currentHourLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, localNow.Hour, 0, 0, DateTimeKind.Local);
+        var currentDayLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, 0, 0, 0, DateTimeKind.Local);
+        
         return resolution switch
         {
-            TimeResolution.Hour => CreateBuckets(currentHour, TimeSpan.FromHours(1), 72, bucket => bucket.ToString("MM/dd HH:mm", CultureInfo.InvariantCulture)),
-            TimeResolution.Day => CreateBuckets(currentDay, TimeSpan.FromDays(1), 14, bucket => bucket.ToString("MM/dd", CultureInfo.InvariantCulture)),
-            TimeResolution.Week => CreateWeekBuckets(now, 8),
-            TimeResolution.Month => CreateMonthBuckets(now, 12),
-            TimeResolution.Year => CreateYearBuckets(now, 4),
+            TimeResolution.Hour => CreateHourBuckets(currentHourLocal, 72),
+            TimeResolution.Day => CreateDayBuckets(currentDayLocal, 14),
+            TimeResolution.Week => CreateWeekBuckets(localNow, 8),
+            TimeResolution.Month => CreateMonthBuckets(localNow, 12),
+            TimeResolution.Year => CreateYearBuckets(localNow, 4),
             _ => Array.Empty<TimeBucket>()
         };
     }
 
-    private static IEnumerable<TimeBucket> CreateBuckets(DateTime anchor, TimeSpan step, int count, Func<DateTime, string> labelFormatter)
+    private static IEnumerable<TimeBucket> CreateHourBuckets(DateTime currentHourLocal, int count)
     {
-        var start = anchor.AddTicks(-step.Ticks * (count - 1));
+        var startLocal = currentHourLocal.AddHours(-(count - 1));
         for (var i = 0; i < count; i++)
         {
-            var bucketStart = start.AddTicks(step.Ticks * i);
-            yield return new TimeBucket(bucketStart, bucketStart.Add(step), labelFormatter(bucketStart));
+            var bucketStartLocal = startLocal.AddHours(i);
+            var bucketEndLocal = bucketStartLocal.AddHours(1);
+            var label = bucketStartLocal.ToString("MM/dd HH:mm", CultureInfo.InvariantCulture);
+            yield return new TimeBucket(bucketStartLocal.ToUniversalTime(), bucketEndLocal.ToUniversalTime(), label);
         }
     }
 
-    private static IEnumerable<TimeBucket> CreateWeekBuckets(DateTime now, int count)
+    private static IEnumerable<TimeBucket> CreateDayBuckets(DateTime currentDayLocal, int count)
     {
-        var currentDate = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
-        var currentWeekStart = StartOfWeek(currentDate, DayOfWeek.Monday);
-        var start = currentWeekStart.AddDays(-7 * (count - 1));
+        var startLocal = currentDayLocal.AddDays(-(count - 1));
         for (var i = 0; i < count; i++)
         {
-            var bucketStart = start.AddDays(7 * i);
-            var label = $"{bucketStart:MM/dd}";
-            yield return new TimeBucket(bucketStart, bucketStart.AddDays(7), label);
+            var bucketStartLocal = startLocal.AddDays(i);
+            var bucketEndLocal = bucketStartLocal.AddDays(1);
+            var label = bucketStartLocal.ToString("MM/dd", CultureInfo.InvariantCulture);
+            yield return new TimeBucket(bucketStartLocal.ToUniversalTime(), bucketEndLocal.ToUniversalTime(), label);
         }
     }
 
-    private static IEnumerable<TimeBucket> CreateMonthBuckets(DateTime now, int count)
+    private static IEnumerable<TimeBucket> CreateWeekBuckets(DateTime localNow, int count)
     {
-        var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var start = currentMonthStart.AddMonths(-(count - 1));
+        var currentDateLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, 0, 0, 0, DateTimeKind.Local);
+        var currentWeekStartLocal = StartOfWeek(currentDateLocal, DayOfWeek.Monday);
+        var startLocal = currentWeekStartLocal.AddDays(-7 * (count - 1));
         for (var i = 0; i < count; i++)
         {
-            var bucketStart = start.AddMonths(i);
-            var label = bucketStart.ToString("yyyy-MM", CultureInfo.InvariantCulture);
-            yield return new TimeBucket(bucketStart, bucketStart.AddMonths(1), label);
+            var bucketStartLocal = startLocal.AddDays(7 * i);
+            var bucketEndLocal = bucketStartLocal.AddDays(7);
+            var label = bucketStartLocal.ToString("MM/dd", CultureInfo.InvariantCulture);
+            yield return new TimeBucket(bucketStartLocal.ToUniversalTime(), bucketEndLocal.ToUniversalTime(), label);
         }
     }
 
-    private static IEnumerable<TimeBucket> CreateYearBuckets(DateTime now, int count)
+    private static IEnumerable<TimeBucket> CreateMonthBuckets(DateTime localNow, int count)
     {
-        var currentYearStart = new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var start = currentYearStart.AddYears(-(count - 1));
+        var currentMonthStartLocal = new DateTime(localNow.Year, localNow.Month, 1, 0, 0, 0, DateTimeKind.Local);
+        var startLocal = currentMonthStartLocal.AddMonths(-(count - 1));
         for (var i = 0; i < count; i++)
         {
-            var bucketStart = start.AddYears(i);
-            var label = bucketStart.Year.ToString(CultureInfo.InvariantCulture);
-            yield return new TimeBucket(bucketStart, bucketStart.AddYears(1), label);
+            var bucketStartLocal = startLocal.AddMonths(i);
+            var bucketEndLocal = bucketStartLocal.AddMonths(1);
+            var label = bucketStartLocal.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+            yield return new TimeBucket(bucketStartLocal.ToUniversalTime(), bucketEndLocal.ToUniversalTime(), label);
+        }
+    }
+
+    private static IEnumerable<TimeBucket> CreateYearBuckets(DateTime localNow, int count)
+    {
+        var currentYearStartLocal = new DateTime(localNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Local);
+        var startLocal = currentYearStartLocal.AddYears(-(count - 1));
+        for (var i = 0; i < count; i++)
+        {
+            var bucketStartLocal = startLocal.AddYears(i);
+            var bucketEndLocal = bucketStartLocal.AddYears(1);
+            var label = bucketStartLocal.Year.ToString(CultureInfo.InvariantCulture);
+            yield return new TimeBucket(bucketStartLocal.ToUniversalTime(), bucketEndLocal.ToUniversalTime(), label);
         }
     }
 
@@ -537,8 +556,8 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     {
         var diff = (7 + (date.DayOfWeek - startOfWeek)) % 7;
         var start = date.AddDays(-diff);
-        return date.Kind == DateTimeKind.Utc
-            ? DateTime.SpecifyKind(start, DateTimeKind.Utc)
+        return date.Kind == DateTimeKind.Local
+            ? DateTime.SpecifyKind(start, DateTimeKind.Local)
             : start;
     }
 

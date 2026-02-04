@@ -43,13 +43,23 @@ public partial class GraphWindow : Window
         }
 
         // Clear plot resources
-        _graphPlot?.Plot.Clear();
-        _graphPlot = null;
+        if (_graphPlot != null)
+        {
+            _graphPlot.Plot.Clear();
+            _graphPlot.Refresh(); // Force redraw to release rendered resources
+            _graphPlot = null;
+        }
         
         // Unsubscribe from DataContext changes
         DataContextChanged -= OnDataContextChanged;
+        
+        // Clear DataContext reference
+        DataContext = null;
 
         base.OnClosed(e);
+        
+        // Suggest GC collection (helps release Skia resources faster)
+        GC.Collect(2, GCCollectionMode.Optimized, false);
     }
 
     private void OnThemeChanged(ThemeMode mode)
