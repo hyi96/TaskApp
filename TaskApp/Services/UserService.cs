@@ -53,9 +53,6 @@ public class UserService
             var defaultUser = new User { Name = "Default" };
             _users.Add(defaultUser);
             SaveUsersSync();
-
-            // Migrate existing data to default user folder
-            MigrateExistingDataSync(defaultUser.Id);
         }
 
         // Load current user selection
@@ -74,6 +71,9 @@ public class UserService
         }
 
         _currentUser = _users.FirstOrDefault(u => u.Id == currentUserId) ?? _users.First();
+
+        // Always try to migrate legacy data for the current user if needed
+        MigrateExistingDataIfNeeded(_currentUser.Id);
     }
 
     public async Task LoadAsync()
@@ -100,9 +100,6 @@ public class UserService
             var defaultUser = new User { Name = "Default" };
             _users.Add(defaultUser);
             await SaveUsersAsync();
-
-            // Migrate existing data to default user folder
-            await MigrateExistingDataAsync(defaultUser.Id);
         }
 
         // Load current user selection
@@ -121,62 +118,58 @@ public class UserService
         }
 
         _currentUser = _users.FirstOrDefault(u => u.Id == currentUserId) ?? _users.First();
+
+        // Always try to migrate legacy data for the current user if needed
+        MigrateExistingDataIfNeeded(_currentUser.Id);
     }
 
-    private void MigrateExistingDataSync(Guid userId)
+    /// <summary>
+    /// Migrates legacy data from the root AppData folder to the user-specific folder
+    /// if the user folder is missing files but legacy files exist.
+    /// </summary>
+    private void MigrateExistingDataIfNeeded(Guid userId)
     {
         var userDataDir = GetUserDataDirectory(userId);
         Directory.CreateDirectory(userDataDir);
 
-        // List of files to migrate
         var filesToMigrate = new[] { "tasks.json", "rewards.json", "tags.json", "user.json", "logs.db" };
 
         foreach (var fileName in filesToMigrate)
         {
-            var sourcePath = Path.Combine(AppDataFolder, fileName);
-            var destPath = Path.Combine(userDataDir, fileName);
+            var legacyPath = Path.Combine(AppDataFolder, fileName);
+            var userPath = Path.Combine(userDataDir, fileName);
 
-            if (File.Exists(sourcePath) && !File.Exists(destPath))
+            // If legacy file exists and user file doesn't exist
+            if (File.Exists(legacyPath) && !File.Exists(userPath))
             {
                 try
                 {
-                    File.Copy(sourcePath, destPath);
+                    File.Copy(legacyPath, userPath);
                 }
                 catch
                 {
-                    // Ignore migration errors for individual files
+                    // Ignore migration errors
                 }
             }
-        }
-    }
-
-    private async Task MigrateExistingDataAsync(Guid userId)
-    {
-        var userDataDir = GetUserDataDirectory(userId);
-        Directory.CreateDirectory(userDataDir);
-
-        // List of files to migrate
-        var filesToMigrate = new[] { "tasks.json", "rewards.json", "tags.json", "user.json", "logs.db" };
-
-        foreach (var fileName in filesToMigrate)
-        {
-            var sourcePath = Path.Combine(AppDataFolder, fileName);
-            var destPath = Path.Combine(userDataDir, fileName);
-
-            if (File.Exists(sourcePath) && !File.Exists(destPath))
+            // Also copy if user file is empty but legacy has content
+            else if (File.Exists(legacyPath) && File.Exists(userPath) && fileName.EndsWith(".json"))
             {
                 try
                 {
-                    File.Copy(sourcePath, destPath);
+                    var userFileInfo = new FileInfo(userPath);
+                    var legacyFileInfo = new FileInfo(legacyPath);
+
+                    if (userFileInfo.Length < 10 && legacyFileInfo.Length > 10)
+                    {
+                        File.Copy(legacyPath, userPath, overwrite: true);
+                    }
                 }
                 catch
                 {
-                    // Ignore migration errors for individual files
+                    // Ignore migration errors
                 }
             }
         }
-
-        await Task.CompletedTask;
     }
 
     public async Task<User> CreateUserAsync(string name)
