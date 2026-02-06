@@ -53,6 +53,7 @@ public partial class TaskFormWindow : Window
         {
             vm.SetAsCurrentActivity();
         }
+        Close();
     }
 
     private void AddChecklistItem_Click(object? sender, RoutedEventArgs e)
