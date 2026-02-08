@@ -103,6 +103,9 @@ namespace TaskApp
 
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
+                _viewModel.RemoveCurrentActivity();
+                await _viewModel.SaveDataAsync();
+
                 _storageService.RefreshDataDirectory();
                 await _viewModel.LoadDataAsync();
                 _viewModel.RefreshCurrentUserName();
