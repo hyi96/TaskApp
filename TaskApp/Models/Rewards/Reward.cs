@@ -1,5 +1,5 @@
 using System;
-using TaskApp.Models;
+using System.Collections.Generic;
 using TaskApp.Models.Tags;
 
 namespace TaskApp.Models.Rewards;
@@ -81,7 +81,7 @@ public class Reward : DomainEntity
         GoldCost = amount < 0 ? 0 : amount;
     }
 
-    public void UpdateTags(System.Collections.Generic.IEnumerable<Tag> tags)
+    public void UpdateTags(IEnumerable<Tag> tags)
     {
         Tags.Clear();
         if (tags != null)
@@ -92,17 +92,7 @@ public class Reward : DomainEntity
 
     public bool CanClaim(double availableGold)
     {
-        if (availableGold < GoldCost)
-        {
-            return false;
-        }
-
-        if (!IsRepeatable && IsClaimed)
-        {
-            return false;
-        }
-
-        return true;
+        return availableGold >= GoldCost && (IsRepeatable || !IsClaimed);
     }
 
     public bool TryClaim(double availableGold, DateTimeOffset? claimedAt = null)

@@ -78,68 +78,30 @@ public partial class GraphWindow : Window
         var plot = _graphPlot.Plot;
         var isDark = IsDarkTheme();
 
-        if (isDark)
+        var bgColor = isDark ? new ScottPlot.Color(30, 30, 30) : new ScottPlot.Color(255, 255, 255);
+        var dataBgColor = isDark ? new ScottPlot.Color(45, 45, 45) : new ScottPlot.Color(250, 250, 250);
+        var fgColor = isDark ? new ScottPlot.Color(220, 220, 220) : new ScottPlot.Color(30, 30, 30);
+        var gridColor = isDark ? new ScottPlot.Color(60, 60, 60) : new ScottPlot.Color(200, 200, 200);
+
+        plot.FigureBackground.Color = bgColor;
+        plot.DataBackground.Color = dataBgColor;
+
+        var axes = new ScottPlot.IAxis[] { plot.Axes.Bottom, plot.Axes.Left };
+        foreach (var axis in axes)
         {
-            // Dark theme colors
-            var bgColor = new ScottPlot.Color(30, 30, 30);       // Dark background
-            var fgColor = new ScottPlot.Color(220, 220, 220);    // Light text
-            var gridColor = new ScottPlot.Color(60, 60, 60);     // Subtle grid
-            
-            plot.FigureBackground.Color = bgColor;
-            plot.DataBackground.Color = new ScottPlot.Color(45, 45, 45);
-            
-            plot.Axes.Bottom.Label.ForeColor = fgColor;
-            plot.Axes.Bottom.TickLabelStyle.ForeColor = fgColor;
-            plot.Axes.Bottom.MajorTickStyle.Color = gridColor;
-            plot.Axes.Bottom.MinorTickStyle.Color = gridColor;
-            plot.Axes.Bottom.FrameLineStyle.Color = gridColor;
-            
-            plot.Axes.Left.Label.ForeColor = fgColor;
-            plot.Axes.Left.TickLabelStyle.ForeColor = fgColor;
-            plot.Axes.Left.MajorTickStyle.Color = gridColor;
-            plot.Axes.Left.MinorTickStyle.Color = gridColor;
-            plot.Axes.Left.FrameLineStyle.Color = gridColor;
-            
-            plot.Axes.Top.FrameLineStyle.Color = gridColor;
-            plot.Axes.Right.FrameLineStyle.Color = gridColor;
-            
-            plot.Grid.MajorLineColor = gridColor;
+            axis.Label.ForeColor = fgColor;
+            axis.TickLabelStyle.ForeColor = fgColor;
+            axis.MajorTickStyle.Color = gridColor;
+            axis.MinorTickStyle.Color = gridColor;
+            axis.FrameLineStyle.Color = gridColor;
         }
-        else
-        {
-            // Light theme colors
-            var bgColor = new ScottPlot.Color(255, 255, 255);    // White background
-            var fgColor = new ScottPlot.Color(30, 30, 30);       // Dark text
-            var gridColor = new ScottPlot.Color(200, 200, 200);  // Light grid
-            
-            plot.FigureBackground.Color = bgColor;
-            plot.DataBackground.Color = new ScottPlot.Color(250, 250, 250);
-            
-            plot.Axes.Bottom.Label.ForeColor = fgColor;
-            plot.Axes.Bottom.TickLabelStyle.ForeColor = fgColor;
-            plot.Axes.Bottom.MajorTickStyle.Color = gridColor;
-            plot.Axes.Bottom.MinorTickStyle.Color = gridColor;
-            plot.Axes.Bottom.FrameLineStyle.Color = gridColor;
-            
-            plot.Axes.Left.Label.ForeColor = fgColor;
-            plot.Axes.Left.TickLabelStyle.ForeColor = fgColor;
-            plot.Axes.Left.MajorTickStyle.Color = gridColor;
-            plot.Axes.Left.MinorTickStyle.Color = gridColor;
-            plot.Axes.Left.FrameLineStyle.Color = gridColor;
-            
-            plot.Axes.Top.FrameLineStyle.Color = gridColor;
-            plot.Axes.Right.FrameLineStyle.Color = gridColor;
-            
-            plot.Grid.MajorLineColor = gridColor;
-        }
+
+        plot.Axes.Top.FrameLineStyle.Color = gridColor;
+        plot.Axes.Right.FrameLineStyle.Color = gridColor;
+        plot.Grid.MajorLineColor = gridColor;
     }
 
-    private bool IsDarkTheme()
-    {
-        // Check the actual theme variant
-        var themeVariant = Application.Current?.ActualThemeVariant;
-        return themeVariant == ThemeVariant.Dark;
-    }
+    private bool IsDarkTheme() => Application.Current?.ActualThemeVariant == ThemeVariant.Dark;
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {

@@ -88,87 +88,53 @@ public class CurrentActivityViewModel : ViewModelBase
 
     public void Reset()
     {
-        var wasRunning = IsRunning;
-        var sessionElapsed = TimeSpan.Zero;
-        
-        if (wasRunning)
-        {
-            _stopwatch.Stop();
-            sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
-        }
-
-        _stopwatch.Reset();
-        IsRunning = false;
-        _timer.Stop();
-        UpdateElapsed();
-
-        if (wasRunning && !string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
-        {
-            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
-        }
+        StopAndLogSession();
     }
 
     public void Remove()
     {
-        var wasRunning = IsRunning;
-        var sessionElapsed = TimeSpan.Zero;
-        
-        if (wasRunning)
-        {
-            _stopwatch.Stop();
-            sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
-        }
-
-        _stopwatch.Reset();
-        IsRunning = false;
-        _timer.Stop();
-        UpdateElapsed();
-
-        if (wasRunning && !string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
-        {
-            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
-        }
+        StopAndLogSession();
 
         Title = string.Empty;
         _taskId = null;
         _rewardId = null;
     }
 
-    public void SetTitleAndReset(string title, Guid? taskId = null, Guid? rewardId = null)
+    private void StopAndLogSession()
     {
-        if (IsRunning)
+        var wasRunning = IsRunning;
+        var sessionElapsed = TimeSpan.Zero;
+
+        if (wasRunning)
         {
             _stopwatch.Stop();
-            var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
-
-            if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
-            {
-                ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
-            }
+            sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
         }
 
-        Title = title ?? string.Empty;
-        _taskId = taskId;
-        _rewardId = rewardId;
         _stopwatch.Reset();
         IsRunning = false;
         _timer.Stop();
         UpdateElapsed();
+
+        if (wasRunning && !string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
+        {
+            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
+        }
+    }
+
+    public void SetTitleAndReset(string title, Guid? taskId = null, Guid? rewardId = null)
+    {
+        StopAndLogSession();
+
+        Title = title ?? string.Empty;
+        _taskId = taskId;
+        _rewardId = rewardId;
     }
 
     public void LogAndStopIfRunning()
     {
         if (!IsRunning) return;
-
-        _stopwatch.Stop();
-        var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
-        IsRunning = false;
-        _timer.Stop();
-
-        if (!string.IsNullOrWhiteSpace(Title) && sessionElapsed > TimeSpan.Zero)
-        {
-            ActivityDurationRecorded?.Invoke(sessionElapsed, Title, _taskId, _rewardId);
-        }
+        Pause();
     }
 
     private void UpdateElapsed()

@@ -11,15 +11,9 @@ public class BooleanToTextDecorationConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is bool b && b)
+        if (value is bool b)
         {
-            return TextDecorations.Strikethrough;
-        }
-
-        if (value is bool)
-        {
-            // Return a new empty TextDecorationCollection instead of TextDecorationCollection.Empty
-            return new TextDecorationCollection();
+            return b ? TextDecorations.Strikethrough : new TextDecorationCollection();
         }
 
         return BindingOperations.DoNothing;
@@ -35,11 +29,7 @@ public class BooleanToOpacityConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is bool b && b)
-        {
-            return 0.5; // Dimmed for completed items
-        }
-        return 1.0; // Full opacity for active items
+        return value is bool b && b ? 0.5 : 1.0;
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -52,11 +42,7 @@ public class BooleanToVisibilityConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is bool b)
-        {
-            return b;
-        }
-        return false;
+        return value is bool b && b;
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -69,13 +55,6 @@ public class NotNullAndBooleanMultiConverter : IMultiValueConverter
 {
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (values.Count < 2) return false;
-        
-        // First value: the nullable object (e.g., DueDate)
-        // Second value: the boolean (e.g., IsVerbose)
-        var hasValue = values[0] != null;
-        var boolValue = values[1] is bool b && b;
-        
-        return hasValue && boolValue;
+        return values.Count >= 2 && values[0] != null && values[1] is bool b && b;
     }
 }

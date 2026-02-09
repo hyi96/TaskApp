@@ -17,6 +17,7 @@ public class UserService
 
     private static readonly string UsersFile = Path.Combine(AppDataFolder, "users.json");
     private static readonly string CurrentUserFile = Path.Combine(AppDataFolder, "current_user.json");
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
 
     private List<User> _users = new();
     private User? _currentUser;
@@ -257,7 +258,7 @@ public class UserService
         var metadataEntry = archive.CreateEntry("metadata.json");
         await using (var stream = metadataEntry.Open())
         {
-            await JsonSerializer.SerializeAsync(stream, exportMetadata, new JsonSerializerOptions { WriteIndented = true });
+            await JsonSerializer.SerializeAsync(stream, exportMetadata, IndentedJsonOptions);
         }
 
         // Add all user data files
@@ -346,14 +347,14 @@ public class UserService
     private void SaveUsersSync()
     {
         Directory.CreateDirectory(AppDataFolder);
-        var json = JsonSerializer.Serialize(_users, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(_users, IndentedJsonOptions);
         File.WriteAllText(UsersFile, json);
     }
 
     private async Task SaveUsersAsync()
     {
         Directory.CreateDirectory(AppDataFolder);
-        var json = JsonSerializer.Serialize(_users, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(_users, IndentedJsonOptions);
         await File.WriteAllTextAsync(UsersFile, json);
     }
 }

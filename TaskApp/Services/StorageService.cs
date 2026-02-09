@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -23,6 +24,8 @@ public class StorageService
     private const string TagsFileName = "tags.json";
     private const string UserProfileFileName = "user.json";
     private const string LogsDbFileName = "logs.db";
+
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
 
     public StorageService(UserService userService)
     {
@@ -51,7 +54,7 @@ public class StorageService
     {
         var filePath = Path.Combine(_dataDirectory, TagsFileName);
         var tagsData = tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList();
-        var json = JsonSerializer.Serialize(tagsData, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(tagsData, IndentedJsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -89,7 +92,7 @@ public class StorageService
         var dataList = tasks.Select(TaskMapper.ToData).ToList();
         var filePath = Path.Combine(_dataDirectory, TasksFileName);
 
-        var json = JsonSerializer.Serialize(dataList, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(dataList, IndentedJsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -113,7 +116,7 @@ public class StorageService
     {
         var dataList = rewards.Select(RewardMapper.ToData).ToList();
         var filePath = Path.Combine(_dataDirectory, RewardsFileName);
-        var json = JsonSerializer.Serialize(dataList, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(dataList, IndentedJsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -136,7 +139,7 @@ public class StorageService
     public async Task SaveUserProfileAsync(UserProfile user)
     {
         var filePath = Path.Combine(_dataDirectory, UserProfileFileName);
-        var json = JsonSerializer.Serialize(user, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(user, IndentedJsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -293,7 +296,7 @@ public class StorageService
             var entry = new LogEntry
             {
                 Id = Guid.Parse(reader.GetString(0)),
-                Timestamp = DateTime.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind),
+                Timestamp = DateTime.Parse(reader.GetString(1), null, DateTimeStyles.RoundtripKind),
                 Type = (LogType)reader.GetInt32(2),
                 TaskId = reader.IsDBNull(3) ? null : Guid.Parse(reader.GetString(3)),
                 RewardId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)),

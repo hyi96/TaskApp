@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -7,7 +8,7 @@ namespace TaskApp.Views;
 
 public partial class TagsWindow : Window
 {
-    private readonly System.Collections.Generic.Dictionary<TextBox, string> _originalTagNames = new();
+    private readonly Dictionary<TextBox, string> _originalTagNames = new();
 
     public TagsWindow()
     {
@@ -38,10 +39,7 @@ public partial class TagsWindow : Window
         if (e.Key == Key.Enter)
         {
             // Store original name if not already stored
-            if (!_originalTagNames.ContainsKey(textBox))
-            {
-                _originalTagNames[textBox] = tag.Name;
-            }
+            _originalTagNames.TryAdd(textBox, tag.Name);
 
             var newName = textBox.Text?.Trim() ?? string.Empty;
 
@@ -79,10 +77,7 @@ public partial class TagsWindow : Window
             return;
 
         // Store original name on first focus
-        if (!_originalTagNames.ContainsKey(textBox))
-        {
-            _originalTagNames[textBox] = tag.Name;
-        }
+        _originalTagNames.TryAdd(textBox, tag.Name);
 
         // On lost focus, revert if text is empty, otherwise keep current text without updating
         var currentText = textBox.Text?.Trim() ?? string.Empty;
@@ -96,6 +91,7 @@ public partial class TagsWindow : Window
         }
     }
 }
+
 
 
 

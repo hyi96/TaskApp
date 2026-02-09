@@ -68,9 +68,9 @@ public class LogEntryViewModel
         return delta.HasValue ? delta.Value.ToString("0.##", CultureInfo.InvariantCulture) : "1";
     }
 
-    private static string FormatDuration(System.TimeSpan? duration)
+    private static string FormatDuration(TimeSpan? duration)
     {
-        var span = duration ?? System.TimeSpan.Zero;
+        var span = duration ?? TimeSpan.Zero;
         return span.ToString(span.TotalHours >= 1 ? "hh\\:mm\\:ss" : "mm\\:ss");
     }
 

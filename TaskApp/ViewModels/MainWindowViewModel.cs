@@ -45,7 +45,7 @@ public class MainWindowViewModel : ViewModelBase
     private string _dailiesSortMode = SortNameAsc;
     private string _todosSortMode = SortNameAsc;
     private string _rewardsSortMode = SortNameAsc;
-    private bool _isVerbose = false;
+    private bool _isVerbose;
 
     public string Title => "TaskApp";
 
@@ -579,12 +579,7 @@ public class MainWindowViewModel : ViewModelBase
 
     private static int CompareWithTitle(int primary, DomainEntity left, DomainEntity right)
     {
-        if (primary != 0)
-        {
-            return primary;
-        }
-
-        return CompareTitles(left, right);
+        return primary != 0 ? primary : CompareTitles(left, right);
     }
 
     private static int CompareTodoDueDates(TodoTask left, TodoTask right, bool ascending)
@@ -657,11 +652,7 @@ public class MainWindowViewModel : ViewModelBase
         await _storageService.SaveUserProfileAsync(User);
         await _storageService.SaveTagsAsync(AvailableTags.Select(t => t.Tag).ToList());
 
-        var allTasks = new List<TaskBase>();
-        allTasks.AddRange(_allHabits);
-        allTasks.AddRange(_allDailies);
-        allTasks.AddRange(_allTodos);
-
+        var allTasks = _allHabits.Cast<TaskBase>().Concat(_allDailies).Concat(_allTodos).ToList();
         await _storageService.SaveTasksAsync(allTasks);
         await _storageService.SaveRewardsAsync(_allRewards);
     }
@@ -782,26 +773,26 @@ public class MainWindowViewModel : ViewModelBase
         _ = SaveDataAsync();
     }
 
-     private void AvailableTags_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-     {
-         if (e.NewItems != null)
-         {
-             foreach (SelectableTag tag in e.NewItems)
-             {
-                 tag.SelectionChanged += RefreshFilter;
-             }
-         }
-         
-         if (e.OldItems != null)
-         {
-             foreach (SelectableTag tag in e.OldItems)
-             {
-                 tag.SelectionChanged -= RefreshFilter;
-             }
-         }
-         
-         RefreshFilter();
-     }
+    private void AvailableTags_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+        {
+            foreach (SelectableTag tag in e.NewItems)
+            {
+                tag.SelectionChanged += RefreshFilter;
+            }
+        }
+
+        if (e.OldItems != null)
+        {
+            foreach (SelectableTag tag in e.OldItems)
+            {
+                tag.SelectionChanged -= RefreshFilter;
+            }
+        }
+
+        RefreshFilter();
+    }
 
     public void RefreshDailyTasksForNewDay()
     {
@@ -813,8 +804,6 @@ public class MainWindowViewModel : ViewModelBase
 
         RefreshFilter();
     }
-
-
 
     public List<DailyTask> GetUncompletedDailiesFromYesterday()
     {
@@ -842,5 +831,6 @@ public class MainWindowViewModel : ViewModelBase
             .ToList();
     }
 }
+
 
 

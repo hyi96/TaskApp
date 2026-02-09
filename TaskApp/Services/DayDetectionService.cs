@@ -1,9 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using TaskApp.Models.Tasks;
 
 namespace TaskApp.Services;
 
@@ -13,7 +10,7 @@ public class DayDetectionService
     private DateTime _lastCheckedDate;
     private bool _disposed;
 
-    public event Func<List<DailyTask>, Task>? NewDayDetected;
+    public event Func<Task>? NewDayDetected;
 
     public DayDetectionService()
     {
@@ -52,13 +49,9 @@ public class DayDetectionService
         }
     }
 
-    private async Task OnNewDayDetected()
+    private Task OnNewDayDetected()
     {
-        if (NewDayDetected != null)
-        {
-            // Get unchecked dailies from "yesterday" (the last period)
-            await NewDayDetected(new List<DailyTask>());
-        }
+        return NewDayDetected?.Invoke() ?? Task.CompletedTask;
     }
 
     public void Dispose()

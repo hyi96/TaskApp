@@ -8,12 +8,12 @@ public class TagsViewModel : ViewModelBase
 {
     private readonly ObservableCollection<SelectableTag> _availableTags;
     private readonly MainWindowViewModel? _mainViewModel;
-    private string _newTagValues = string.Empty;
+    private string _newTagValue = string.Empty;
 
     public string NewTagValue
     {
-        get => _newTagValues;
-        set => SetProperty(ref _newTagValues, value);
+        get => _newTagValue;
+        set => SetProperty(ref _newTagValue, value);
     }
 
     public ObservableCollection<SelectableTag> Tags => _availableTags;

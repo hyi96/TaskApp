@@ -10,11 +10,7 @@ public class FilterTabStyleConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is string filterValue && parameter is string tabValue)
-        {
-            return filterValue == tabValue;
-        }
-        return false;
+        return value is string filterValue && parameter is string tabValue && filterValue == tabValue;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -57,14 +53,9 @@ public class FilterTabFontWeightConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is string filterValue && parameter is string tabValue)
-        {
-            if (filterValue == tabValue)
-            {
-                return FontWeight.SemiBold;
-            }
-        }
-        return FontWeight.Normal;
+        return value is string filterValue && parameter is string tabValue && filterValue == tabValue
+            ? FontWeight.SemiBold
+            : FontWeight.Normal;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -73,19 +64,13 @@ public class FilterTabFontWeightConverter : IValueConverter
     }
 }
 
-
 public class FilterTabTextDecorationConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is string filterValue && parameter is string tabValue)
-        {
-            if (filterValue == tabValue)
-            {
-                return TextDecorations.Underline;
-            }
-        }
-        return null;
+        return value is string filterValue && parameter is string tabValue && filterValue == tabValue
+            ? TextDecorations.Underline
+            : null;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

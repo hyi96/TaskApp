@@ -24,6 +24,7 @@ public class SettingsService
         "TaskApp");
     
     private static readonly string SettingsFile = Path.Combine(SettingsFolder, "settings.json");
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
     
     private static SettingsService? _instance;
     public static SettingsService Instance => _instance ??= new SettingsService();
@@ -64,7 +65,7 @@ public class SettingsService
         try
         {
             Directory.CreateDirectory(SettingsFolder);
-            var json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(_settings, IndentedJsonOptions);
             await File.WriteAllTextAsync(SettingsFile, json);
         }
         catch

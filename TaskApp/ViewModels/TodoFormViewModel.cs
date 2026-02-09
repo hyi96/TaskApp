@@ -25,7 +25,7 @@ public class TodoFormViewModel : TaskFormViewModel
 
     public ObservableCollection<ChecklistItem> ChecklistItems { get; } = new();
 
-    public TodoFormViewModel(System.Collections.Generic.IEnumerable<SelectableTag> availableTags, TodoTask? todoTask = null)
+    public TodoFormViewModel(IEnumerable<SelectableTag> availableTags, TodoTask? todoTask = null)
         : base(availableTags, todoTask?.Tags)
     {
         Type = TaskType.Todo;

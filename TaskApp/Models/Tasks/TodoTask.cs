@@ -11,13 +11,6 @@ public class TodoTask : TaskBase
 
     public override TaskType Type => TaskType.Todo;
 
-    public override bool IsRewardGoalMet => LastCompletedDate.HasValue;
-
-    public override void Complete(DateTimeOffset? completedAt = null)
-    {
-        base.Complete(completedAt);
-    }
-
     public void SetDueDate(DateTimeOffset? dueDate)
     {
         DueDate = dueDate;

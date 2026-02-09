@@ -1,12 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using System.Diagnostics;
-using System.Threading.Tasks;
 using TaskApp.Models.Rewards;
 using TaskApp.Models.Tasks;
 using TaskApp.ViewModels;
-using TaskApp.Views;
 
 namespace TaskApp.Views;
 

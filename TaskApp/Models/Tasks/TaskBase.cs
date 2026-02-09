@@ -1,5 +1,6 @@
 using System;
-using TaskApp.Models;
+using System.Collections.Generic;
+using TaskApp.Models.Tags;
 
 namespace TaskApp.Models.Tasks;
 
@@ -64,7 +65,7 @@ public abstract class TaskBase : DomainEntity
         Notes = notes;
     }
 
-    public void UpdateTags(System.Collections.Generic.IEnumerable<TaskApp.Models.Tags.Tag> tags)
+    public void UpdateTags(IEnumerable<Tag> tags)
     {
         Tags.Clear();
         if (tags != null)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using TaskApp.Models.Tasks;
@@ -7,7 +8,7 @@ namespace TaskApp.ViewModels;
 
 public class NewDayViewModel : ViewModelBase
 {
-    private bool _isLoading = false;
+    private bool _isLoading;
 
     public ObservableCollection<DailyChecklistItem> UncompletedDailies { get; } = new();
 
@@ -17,7 +18,7 @@ public class NewDayViewModel : ViewModelBase
         set => SetProperty(ref _isLoading, value);
     }
 
-    public void SetUncompletedDailies(System.Collections.Generic.List<DailyTask> dailies)
+    public void SetUncompletedDailies(List<DailyTask> dailies)
     {
         UncompletedDailies.Clear();
         foreach (var daily in dailies.OrderBy(d => d.Title))

@@ -133,18 +133,17 @@ namespace TaskApp
             if (_viewModel == null) return;
 
             _dayDetectionService = new DayDetectionService();
-            _dayDetectionService.NewDayDetected += async (uncompletedDailies) =>
+            _dayDetectionService.NewDayDetected += async () =>
             {
-                // Marshal to UI thread
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    await HandleNewDay(uncompletedDailies);
+                    await HandleNewDay();
                 });
             };
             _dayDetectionService.Start();
         }
 
-        private async Task HandleNewDay(List<Models.Tasks.DailyTask> uncompletedDailies)
+        private async Task HandleNewDay()
         {
             if (_viewModel == null) return;
 
@@ -164,7 +163,7 @@ namespace TaskApp
             await _viewModel.SaveDataAsync();
         }
 
-        private async Task ShowNewDayWindow(List<Models.Tasks.DailyTask> uncheckedDailies)
+        private async Task ShowNewDayWindow(List<TaskApp.Models.Tasks.DailyTask> uncheckedDailies)
         {
             if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
                 return;
