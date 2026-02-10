@@ -15,6 +15,10 @@ public class DailyFormViewModel : TaskFormViewModel
     private int _bestStreak;
     private int _newBonusStreakGoal = 1;
     private double _newBonusPercent;
+    private bool _isAutocompleteEnabled;
+    private int _autocompleteHours;
+    private int _autocompleteMinutes;
+    private int _autocompleteSeconds;
 
     public RepeatCadence Cadence
     {
@@ -52,6 +56,30 @@ public class DailyFormViewModel : TaskFormViewModel
         set => SetProperty(ref _newBonusPercent, value < 0 ? 0 : value);
     }
 
+    public bool IsAutocompleteEnabled
+    {
+        get => _isAutocompleteEnabled;
+        set => SetProperty(ref _isAutocompleteEnabled, value);
+    }
+
+    public int AutocompleteHours
+    {
+        get => _autocompleteHours;
+        set => SetProperty(ref _autocompleteHours, value < 0 ? 0 : value);
+    }
+
+    public int AutocompleteMinutes
+    {
+        get => _autocompleteMinutes;
+        set => SetProperty(ref _autocompleteMinutes, value < 0 ? 0 : value);
+    }
+
+    public int AutocompleteSeconds
+    {
+        get => _autocompleteSeconds;
+        set => SetProperty(ref _autocompleteSeconds, value < 0 ? 0 : value);
+    }
+
     public ObservableCollection<StreakBonusRuleViewModel> StreakBonusRules { get; } = new();
 
     public List<RepeatCadence> CadenceOptions { get; } = Enum.GetValues<RepeatCadence>().ToList();
@@ -71,6 +99,15 @@ public class DailyFormViewModel : TaskFormViewModel
             RepeatEvery = _dailyTask.RepeatEvery;
             CurrentStreak = _dailyTask.CurrentStreak;
             BestStreak = _dailyTask.BestStreak;
+            LastCompletedDisplay = _dailyTask.LastCompletedDate?.ToLocalTime().ToString("g") ?? "Never";
+
+            if (_dailyTask.AutocompleteTimeThreshold is TimeSpan threshold)
+            {
+                IsAutocompleteEnabled = true;
+                AutocompleteHours = (int)threshold.TotalHours;
+                AutocompleteMinutes = threshold.Minutes;
+                AutocompleteSeconds = threshold.Seconds;
+            }
 
             foreach (var rule in _dailyTask.StreakBonusRules.OrderBy(r => r.StreakGoal))
             {
@@ -117,6 +154,17 @@ public class DailyFormViewModel : TaskFormViewModel
             _dailyTask.SetCadence(Cadence);
             _dailyTask.SetRepeatEvery(RepeatEvery);
             _dailyTask.SetCurrentStreak(CurrentStreak);
+
+            if (IsAutocompleteEnabled)
+            {
+                var threshold = new TimeSpan(AutocompleteHours, AutocompleteMinutes, AutocompleteSeconds);
+                _dailyTask.SetAutocompleteTimeThreshold(threshold > TimeSpan.Zero ? threshold : null);
+            }
+            else
+            {
+                _dailyTask.SetAutocompleteTimeThreshold(null);
+            }
+
             var rules = StreakBonusRules
                 .GroupBy(r => r.StreakGoal)
                 .Select(g => new StreakBonusRule(g.Key, g.First().BonusPercent))

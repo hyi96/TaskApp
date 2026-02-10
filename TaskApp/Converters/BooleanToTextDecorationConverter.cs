@@ -58,3 +58,21 @@ public class NotNullAndBooleanMultiConverter : IMultiValueConverter
         return values.Count >= 2 && values[0] != null && values[1] is bool b && b;
     }
 }
+
+public class TodoOverdueForegroundMultiConverter : IMultiValueConverter
+{
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        // values[0] = DueDate (DateTimeOffset?), values[1] = IsRewardGoalMet (bool)
+        if (values.Count >= 2
+            && values[0] is DateTimeOffset dueDate
+            && values[1] is bool isCompleted
+            && !isCompleted
+            && dueDate < DateTimeOffset.Now)
+        {
+            return Brushes.Red;
+        }
+
+        return BindingOperations.DoNothing;
+    }
+}

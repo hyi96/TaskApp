@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 
 namespace TaskApp.ViewModels;
@@ -13,6 +14,19 @@ public class CurrentActivityViewModel : ViewModelBase
     private TimeSpan _sessionStartElapsed = TimeSpan.Zero;
     private Guid? _taskId;
     private Guid? _rewardId;
+    private bool _autocompleteTriggered;
+
+    /// <summary>
+    /// Delegate that returns the remaining time before autocomplete triggers.
+    /// Parameters: taskId, current session elapsed time.
+    /// Returns null if autocomplete is not applicable, or remaining time (may be zero/negative when threshold crossed).
+    /// </summary>
+    public Func<Guid, TimeSpan, Task<TimeSpan?>>? GetAutocompleteRemainingTime { get; set; }
+
+    /// <summary>
+    /// Raised when autocomplete threshold is crossed. Parameter is the task ID.
+    /// </summary>
+    public event Action<Guid>? AutocompleteTriggered;
 
     public CurrentActivityViewModel()
     {
@@ -20,7 +34,11 @@ public class CurrentActivityViewModel : ViewModelBase
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        _timer.Tick += (_, _) => UpdateElapsed();
+        _timer.Tick += async (_, _) =>
+        {
+            UpdateElapsed();
+            await CheckAutocompleteAsync();
+        };
     }
 
     public string Title
@@ -129,12 +147,28 @@ public class CurrentActivityViewModel : ViewModelBase
         Title = title ?? string.Empty;
         _taskId = taskId;
         _rewardId = rewardId;
+        _autocompleteTriggered = false;
     }
 
     public void LogAndStopIfRunning()
     {
         if (!IsRunning) return;
         Pause();
+    }
+
+    private async Task CheckAutocompleteAsync()
+    {
+        if (_autocompleteTriggered || !IsRunning || _taskId is not Guid taskId || GetAutocompleteRemainingTime == null)
+            return;
+
+        var currentSessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
+        var remaining = await GetAutocompleteRemainingTime(taskId, currentSessionElapsed);
+
+        if (remaining.HasValue && remaining.Value <= TimeSpan.Zero)
+        {
+            _autocompleteTriggered = true;
+            AutocompleteTriggered?.Invoke(taskId);
+        }
     }
 
     private void UpdateElapsed()

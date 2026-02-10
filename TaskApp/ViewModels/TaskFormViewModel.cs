@@ -47,6 +47,13 @@ public abstract class TaskFormViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private string _lastCompletedDisplay = string.Empty;
+    public string LastCompletedDisplay
+    {
+        get => _lastCompletedDisplay;
+        protected set => SetProperty(ref _lastCompletedDisplay, value);
+    }
+
     public TaskType Type { get; protected set; }
 
     public virtual string FormTitle => Type switch

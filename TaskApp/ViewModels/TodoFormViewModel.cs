@@ -37,6 +37,7 @@ public class TodoFormViewModel : TaskFormViewModel
             Notes = _todoTask.Notes ?? string.Empty;
             GoldValue = _todoTask.GoldReward;
             DueDate = _todoTask.DueDate;
+            LastCompletedDisplay = _todoTask.LastCompletedDate?.ToLocalTime().ToString("g") ?? "Never";
 
             foreach (var item in _todoTask.Checklist)
             {

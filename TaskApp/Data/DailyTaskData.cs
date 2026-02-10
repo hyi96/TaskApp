@@ -12,5 +12,6 @@ public class DailyTaskData : TaskData
     public int BestStreak { get; set; }
     public DateOnly? LastCompletionPeriod { get; set; }
     public bool RewardGoalFulfilled { get; set; }
+    public long? AutocompleteTimeThresholdTicks { get; set; }
     public List<StreakBonusRuleData> StreakBonusRules { get; set; } = new();
 }

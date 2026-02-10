@@ -20,6 +20,7 @@ public class DailyTask : TaskBase
     private int _bestStreak;
     private DateOnly? _lastCompletionPeriod;
     private bool _rewardGoalFulfilled;
+    private TimeSpan? _autocompleteTimeThreshold;
     private readonly List<StreakBonusRule> _streakBonusRules = new() { new(7, 10), new(14, 20), new(30, 30) };
 
     public RepeatCadence Cadence
@@ -105,6 +106,24 @@ public class DailyTask : TaskBase
     }
 
     public bool IsCompleteForCurrentPeriod => IsCompleteForPeriod(DateTimeOffset.UtcNow.ToLocalTime());
+
+    public TimeSpan? AutocompleteTimeThreshold
+    {
+        get => _autocompleteTimeThreshold;
+        internal set
+        {
+            if (_autocompleteTimeThreshold != value)
+            {
+                _autocompleteTimeThreshold = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public void SetAutocompleteTimeThreshold(TimeSpan? threshold)
+    {
+        AutocompleteTimeThreshold = threshold;
+    }
     
     public DateOnly CurrentPeriodEndDate
     {

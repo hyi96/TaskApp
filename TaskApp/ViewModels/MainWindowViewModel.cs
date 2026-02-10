@@ -263,6 +263,9 @@ public class MainWindowViewModel : ViewModelBase
         {
             await LogActivityDurationAsync(duration, title, taskId, rewardId);
         };
+
+        CurrentActivity.GetAutocompleteRemainingTime = GetAutocompleteRemainingTimeAsync;
+        CurrentActivity.AutocompleteTriggered += OnAutocompleteTriggered;
     }
 
     public void AddHabit()
@@ -830,7 +833,37 @@ public class MainWindowViewModel : ViewModelBase
             })
             .ToList();
     }
+
+    private async Task<TimeSpan?> GetAutocompleteRemainingTimeAsync(Guid taskId, TimeSpan currentSessionElapsed)
+    {
+        var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
+        if (daily == null || daily.AutocompleteTimeThreshold is not TimeSpan threshold || daily.IsCompleteForCurrentPeriod)
+            return null;
+
+        var periodStart = daily.GetCurrentPeriodStart();
+        var periodStartUtc = periodStart.ToDateTime(TimeOnly.MinValue).ToUniversalTime();
+        var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartUtc);
+        var totalTimeSpent = loggedDuration + currentSessionElapsed;
+        return threshold - totalTimeSpent;
+    }
+
+    private async void OnAutocompleteTriggered(Guid taskId)
+    {
+        var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
+        if (daily == null || daily.IsCompleteForCurrentPeriod)
+            return;
+
+        daily.Complete();
+        var rewardAmount = daily.GetGoldRewardWithBonus();
+        AddGold(rewardAmount);
+        RefreshFilter();
+        _ = SaveDataAsync();
+        await LogDailyCompletedAsync(daily, rewardAmount);
+    }
 }
+
+
+
 
 
 

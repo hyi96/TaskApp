@@ -28,6 +28,7 @@ public class RewardFormViewModel : TaskFormViewModel
             Notes = _reward.Notes ?? string.Empty;
             GoldValue = _reward.GoldCost;
             IsRepeatable = _reward.IsRepeatable;
+            LastCompletedDisplay = _reward.ClaimedAt?.ToLocalTime().ToString("g") ?? "Never";
         }
     }
 

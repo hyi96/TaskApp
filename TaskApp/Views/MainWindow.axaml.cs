@@ -258,6 +258,23 @@ public partial class MainWindow : Window
         }
     }
 
+    public void ContextMenu_SetCurrentActivity_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && DataContext is MainWindowViewModel mainVm)
+        {
+            var item = menuItem.DataContext;
+            switch (item)
+            {
+                case TaskBase task:
+                    mainVm.SetCurrentActivity(task.Title, task.Id);
+                    break;
+                case Reward reward:
+                    mainVm.SetCurrentActivity(reward.Title, rewardId: reward.Id);
+                    break;
+            }
+        }
+    }
+
     public void OpenSettingsWindow_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel mainVm)

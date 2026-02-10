@@ -27,6 +27,7 @@ Background="{DynamicResource AppBackgroundBrush}">
     <conv:FilterTabFontWeightConverter x:Key="FilterTabFontWeightConverter" />
     <conv:FilterTabTextDecorationConverter x:Key="FilterTabTextDecorationConverter" />
     <conv:FilterTabOpacityConverter x:Key="FilterTabOpacityConverter" />
+    <conv:TodoOverdueForegroundMultiConverter x:Key="TodoOverdueForegroundConverter" />
 </Window.Resources>
 <Grid RowDefinitions="Auto,*,Auto" Margin="16">
 <!-- Header Row -->
@@ -116,6 +117,11 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 HorizontalAlignment="Stretch"
                                                 HorizontalContentAlignment="Stretch"
                                                 Padding="8,6">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
                                             <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
                                         </Button>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="4,0,0,0">
@@ -200,6 +206,11 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 HorizontalContentAlignment="Stretch"
                                                 Padding="8,6"
                                                 Opacity="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource BoolToOpacityConverter}}">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
                                             <Grid RowDefinitions="Auto,Auto">
                                                 <TextBlock Text="{Binding Title}"
                                                            TextWrapping="Wrap"
@@ -299,10 +310,22 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 HorizontalContentAlignment="Stretch"
                                                 Padding="8,6"
                                                 Opacity="{Binding IsRewardGoalMet, Converter={StaticResource BoolToOpacityConverter}}">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
                                             <Grid RowDefinitions="Auto,Auto">
                                                 <TextBlock Text="{Binding Title}"
                                                            TextWrapping="Wrap"
-                                                           TextDecorations="{Binding IsRewardGoalMet, Converter={StaticResource BoolToTextDecorationConverter}}"/>
+                                                           TextDecorations="{Binding IsRewardGoalMet, Converter={StaticResource BoolToTextDecorationConverter}}">
+                                                    <TextBlock.Foreground>
+                                                        <MultiBinding Converter="{StaticResource TodoOverdueForegroundConverter}">
+                                                            <Binding Path="DueDate"/>
+                                                            <Binding Path="IsRewardGoalMet"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Foreground>
+                                                </TextBlock>
                                                 <TextBlock Grid.Row="1" 
                                                            Text="{Binding DueDate, StringFormat='Due: {0:MMM d}'}"
                                                            FontSize="11"
@@ -393,6 +416,11 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 HorizontalAlignment="Stretch"
                                                 HorizontalContentAlignment="Stretch"
                                                 Padding="8,6">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
                                             <Grid RowDefinitions="Auto,Auto">
                                                 <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
                                                 <TextBlock Grid.Row="1" 

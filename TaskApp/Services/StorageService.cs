@@ -287,6 +287,30 @@ public class StorageService
         return await ReadLogEntriesAsync(command);
     }
 
+    public async Task<TimeSpan> GetActivityDurationForTaskSinceAsync(Guid taskId, DateTime sinceUtc)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"SELECT COALESCE(SUM(DurationTicks), 0)
+                                FROM LogEntries
+                                WHERE TaskId = $taskId
+                                  AND Type = $type
+                                  AND Timestamp >= $since
+                                  AND DurationTicks IS NOT NULL;";
+        command.Parameters.AddWithValue("$taskId", taskId.ToString());
+        command.Parameters.AddWithValue("$type", (int)LogType.ActivityDuration);
+        command.Parameters.AddWithValue("$since", sinceUtc.ToString("o"));
+
+        var result = await command.ExecuteScalarAsync();
+        var ticks = result is long l ? l : Convert.ToInt64(result);
+        return TimeSpan.FromTicks(ticks);
+    }
+
     private static async Task<List<LogEntry>> ReadLogEntriesAsync(SqliteCommand command)
     {
         var entries = new List<LogEntry>();

@@ -45,6 +45,7 @@ public class HabitFormViewModel : TaskFormViewModel
             IncrementAmount = _habitTask.IncrementAmount;
             Count = _habitTask.Count;
             ResetCadence = _habitTask.ResetCadence;
+            LastCompletedDisplay = _habitTask.LastCompletedDate?.ToLocalTime().ToString("g") ?? "Never";
         }
     }
 

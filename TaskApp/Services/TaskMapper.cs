@@ -47,7 +47,10 @@ public static class TaskMapper
                     CurrentStreak = dailyData.CurrentStreak,
                     BestStreak = dailyData.BestStreak,
                     LastCompletionPeriod = dailyData.LastCompletionPeriod,
-                    RewardGoalFulfilled = dailyData.RewardGoalFulfilled
+                    RewardGoalFulfilled = dailyData.RewardGoalFulfilled,
+                    AutocompleteTimeThreshold = dailyData.AutocompleteTimeThresholdTicks.HasValue
+                        ? TimeSpan.FromTicks(dailyData.AutocompleteTimeThresholdTicks.Value)
+                        : null
                 };
                 break;
             case HabitTaskData habitData:
@@ -120,6 +123,7 @@ public static class TaskMapper
                     BestStreak = daily.BestStreak,
                     LastCompletionPeriod = daily.LastCompletionPeriod,
                     RewardGoalFulfilled = daily.RewardGoalFulfilled,
+                    AutocompleteTimeThresholdTicks = daily.AutocompleteTimeThreshold?.Ticks,
                     StreakBonusRules = daily.StreakBonusRules.Select(r => new StreakBonusRuleData
                     {
                         StreakGoal = r.StreakGoal,

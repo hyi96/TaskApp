@@ -65,6 +65,26 @@ Background="{DynamicResource AppBackgroundBrush}">
                 <Separator Height="1" Background="#E0E0E0"/>
 
                 <StackPanel Spacing="8">
+                    <CheckBox Content="Autocomplete based on time spent" IsChecked="{Binding IsAutocompleteEnabled}"/>
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8" IsVisible="{Binding IsAutocompleteEnabled}">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Hours"/>
+                            <NumericUpDown Value="{Binding AutocompleteHours}" Minimum="0" Increment="1"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Minutes"/>
+                            <NumericUpDown Value="{Binding AutocompleteMinutes}" Minimum="0" Maximum="59" Increment="1"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Seconds"/>
+                            <NumericUpDown Value="{Binding AutocompleteSeconds}" Minimum="0" Maximum="59" Increment="1"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <Separator Height="1" Background="#E0E0E0"/>
+
+                <StackPanel Spacing="8">
                     <TextBlock Text="Streak Bonus Rules" FontWeight="SemiBold"/>
                     <Grid ColumnDefinitions="2*,2*,Auto" RowDefinitions="Auto">
                         <StackPanel Grid.Column="0">
@@ -212,6 +232,11 @@ Background="{DynamicResource AppBackgroundBrush}">
                     <StackPanel Spacing="8">
                         <TextBlock Text="Gold Value" FontWeight="Medium"/>
                         <NumericUpDown Value="{Binding GoldValue}" Minimum="0" Increment="0.1"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Last Completed" FontWeight="Medium"/>
+                        <TextBlock Text="{Binding LastCompletedDisplay}" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </StackPanel>
 
                     <Separator Height="1" Background="#E0E0E0"/>
