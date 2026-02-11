@@ -398,13 +398,20 @@ public class MainWindowViewModel : ViewModelBase
         var searchQuery = SearchQuery ?? string.Empty;
         var hasSearchQuery = !string.IsNullOrWhiteSpace(searchQuery);
 
-        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery, hasSearchQuery, HabitsSortMode);
+        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery, hasSearchQuery, null, items => SortHabits(items, HabitsSortMode));
         FilterDailies(_allDailies, Dailies, selectedTagIds, searchQuery, hasSearchQuery, DailiesFilter, DailiesSortMode);
         FilterTodos(_allTodos, Todos, selectedTagIds, searchQuery, hasSearchQuery, TodosFilter, TodosSortMode);
         FilterRewards(_allRewards, Rewards, selectedTagIds, searchQuery, hasSearchQuery, RewardsFilter, RewardsSortMode);
     }
 
-    private void FilterCollection<T>(List<T> source, ObservableCollection<T> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string sortMode) where T : TaskBase
+    private void FilterCollection<T>(
+        List<T> source,
+        ObservableCollection<T> target,
+        HashSet<Guid> selectedTagIds,
+        string searchQuery,
+        bool hasSearchQuery,
+        Func<T, bool>? extraFilter,
+        Action<List<T>> sortAction) where T : DomainEntity
     {
         var filtered = new List<T>(source.Count);
         foreach (var item in source)
@@ -412,103 +419,78 @@ public class MainWindowViewModel : ViewModelBase
             var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
 
             var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
+
+            var isFilterMatched = extraFilter?.Invoke(item) ?? true;
             
-            if (isTagMatched && isTitleMatched)
+            if (isTagMatched && isTitleMatched && isFilterMatched)
             {
                 filtered.Add(item);
             }
         }
 
-        if (filtered is List<HabitTask> habits)
-        {
-            SortHabits(habits, sortMode);
-        }
+        sortAction(filtered);
 
         UpdateCollection(target, filtered);
     }
 
     private void FilterDailies(List<DailyTask> source, ObservableCollection<DailyTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter, string sortMode)
     {
-        var filtered = new List<DailyTask>(source.Count);
-        foreach (var item in source)
-        {
-            var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
-            var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
-            
-            var isFilterMatched = filter switch
+        FilterCollection(
+            source,
+            target,
+            selectedTagIds,
+            searchQuery,
+            hasSearchQuery,
+            item => filter switch
             {
                 "due" => !item.IsCompleteForCurrentPeriod,
                 "not due" => item.IsCompleteForCurrentPeriod,
                 "all" => true,
                 _ => true
-            };
-            
-            if (isTagMatched && isTitleMatched && isFilterMatched)
-            {
-                filtered.Add(item);
-            }
-        }
-
-        SortDailies(filtered, sortMode);
-
-        UpdateCollection(target, filtered);
+            },
+            items => SortDailies(items, sortMode));
     }
 
     private void FilterTodos(List<TodoTask> source, ObservableCollection<TodoTask> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter, string sortMode)
     {
-        var filtered = new List<TodoTask>(source.Count);
-        foreach (var item in source)
-        {
-            var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
-            var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
-            
-            var isCompleted = item.LastCompletedDate.HasValue;
-            var hasScheduledDate = item.DueDate.HasValue;
-            
-            var isFilterMatched = filter switch
+        FilterCollection(
+            source,
+            target,
+            selectedTagIds,
+            searchQuery,
+            hasSearchQuery,
+            item =>
             {
-                "active" => !isCompleted,
-                "scheduled" => !isCompleted && hasScheduledDate,
-                "completed" => isCompleted,
-                _ => true
-            };
-            
-            if (isTagMatched && isTitleMatched && isFilterMatched)
-            {
-                filtered.Add(item);
-            }
-        }
+                var isCompleted = item.LastCompletedDate.HasValue;
+                var hasScheduledDate = item.DueDate.HasValue;
 
-        SortTodos(filtered, sortMode);
-
-        UpdateCollection(target, filtered);
+                return filter switch
+                {
+                    "active" => !isCompleted,
+                    "scheduled" => !isCompleted && hasScheduledDate,
+                    "completed" => isCompleted,
+                    _ => true
+                };
+            },
+            items => SortTodos(items, sortMode));
     }
 
     private void FilterRewards(List<Reward> source, ObservableCollection<Reward> target, HashSet<Guid> selectedTagIds, string searchQuery, bool hasSearchQuery, string filter, string sortMode)
     {
-        var filtered = new List<Reward>(source.Count);
-        foreach (var item in source)
-        {
-            var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
-            var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
-            
-            var isFilterMatched = filter switch
+        FilterCollection(
+            source,
+            target,
+            selectedTagIds,
+            searchQuery,
+            hasSearchQuery,
+            item => filter switch
             {
                 "one-time" => !item.IsRepeatable,
                 "repeatable" => item.IsRepeatable,
                 "all" => true,
                 _ => true
-            };
-            
-            if (isTagMatched && isTitleMatched && isFilterMatched)
-            {
-                filtered.Add(item);
-            }
-        }
-
-        SortRewards(filtered, sortMode);
-
-        UpdateCollection(target, filtered);
+            },
+            items => SortRewards(items, sortMode));
     }
 
     private static void SortHabits(List<HabitTask> habits, string sortMode)
