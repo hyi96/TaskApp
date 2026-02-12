@@ -20,6 +20,7 @@ public static class RewardMapper
         reward.IsClaimed = data.IsClaimed;
         reward.ClaimCount = data.ClaimCount;
         reward.ClaimedAt = data.ClaimedAt;
+        reward.IsHidden = data.IsHidden;
         if (data.Tags != null)
         {
             reward.Tags.AddRange(data.Tags.Select(t => new Tag(t.Name, t.Id)));
@@ -41,7 +42,8 @@ public static class RewardMapper
             ClaimCount = model.ClaimCount,
             ClaimedAt = model.ClaimedAt,
             GoldCost = model.GoldCost,
-            Tags = model.Tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList()
+            Tags = model.Tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList(),
+            IsHidden = model.IsHidden
         };
     }
 }

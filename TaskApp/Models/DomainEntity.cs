@@ -12,6 +12,7 @@ public abstract class DomainEntity : INotifyPropertyChanged
     protected string? _notes;
     protected double _goldValue;
     protected List<Tag> _tags = new();
+    private bool _isHidden;
 
     public Guid Id { get; init; } = Guid.NewGuid();
 
@@ -54,6 +55,24 @@ public abstract class DomainEntity : INotifyPropertyChanged
                 OnPropertyChanged();
             }
         }
+    }
+
+    public bool IsHidden
+    {
+        get => _isHidden;
+        internal set
+        {
+            if (_isHidden != value)
+            {
+                _isHidden = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public void SetHidden(bool isHidden)
+    {
+        IsHidden = isHidden;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

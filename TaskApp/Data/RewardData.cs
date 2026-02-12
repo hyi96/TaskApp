@@ -15,4 +15,5 @@ public class RewardData
     public DateTimeOffset? ClaimedAt { get; set; }
     public double GoldCost { get; set; }
     public List<TagData> Tags { get; set; } = new();
+    public bool IsHidden { get; set; }
 }

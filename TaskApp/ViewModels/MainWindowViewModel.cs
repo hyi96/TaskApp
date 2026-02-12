@@ -38,6 +38,7 @@ public class MainWindowViewModel : ViewModelBase
     private string _newTodoTitle = string.Empty;
     private string _newRewardTitle = string.Empty;
     private string _searchQuery = string.Empty;
+    private string _habitsFilter = "all";
     private string _dailiesFilter = "all";
     private string _todosFilter = "active";
     private string _rewardsFilter = "all";
@@ -158,6 +159,18 @@ public class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _searchQuery, value))
+            {
+                RefreshFilter();
+            }
+        }
+    }
+
+    public string HabitsFilter
+    {
+        get => _habitsFilter;
+        set
+        {
+            if (SetProperty(ref _habitsFilter, value))
             {
                 RefreshFilter();
             }
@@ -398,7 +411,7 @@ public class MainWindowViewModel : ViewModelBase
         var searchQuery = SearchQuery ?? string.Empty;
         var hasSearchQuery = !string.IsNullOrWhiteSpace(searchQuery);
 
-        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery, hasSearchQuery, null, items => SortHabits(items, HabitsSortMode));
+        FilterCollection(_allHabits, Habits, selectedTagIds, searchQuery, hasSearchQuery, HabitsFilter, null, items => SortHabits(items, HabitsSortMode));
         FilterDailies(_allDailies, Dailies, selectedTagIds, searchQuery, hasSearchQuery, DailiesFilter, DailiesSortMode);
         FilterTodos(_allTodos, Todos, selectedTagIds, searchQuery, hasSearchQuery, TodosFilter, TodosSortMode);
         FilterRewards(_allRewards, Rewards, selectedTagIds, searchQuery, hasSearchQuery, RewardsFilter, RewardsSortMode);
@@ -410,18 +423,23 @@ public class MainWindowViewModel : ViewModelBase
         HashSet<Guid> selectedTagIds,
         string searchQuery,
         bool hasSearchQuery,
+        string columnFilter,
         Func<T, bool>? extraFilter,
         Action<List<T>> sortAction) where T : DomainEntity
     {
+        var showHidden = columnFilter == "hidden";
         var filtered = new List<T>(source.Count);
         foreach (var item in source)
         {
+            if (item.IsHidden != showHidden)
+                continue;
+
             var isTagMatched = selectedTagIds.Count == 0 || item.Tags.Any(t => selectedTagIds.Contains(t.Id));
 
             var isTitleMatched = !hasSearchQuery || item.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
 
             var isFilterMatched = extraFilter?.Invoke(item) ?? true;
-            
+
             if (isTagMatched && isTitleMatched && isFilterMatched)
             {
                 filtered.Add(item);
@@ -441,11 +459,13 @@ public class MainWindowViewModel : ViewModelBase
             selectedTagIds,
             searchQuery,
             hasSearchQuery,
+            filter,
             item => filter switch
             {
                 "due" => !item.IsCompleteForCurrentPeriod,
                 "not due" => item.IsCompleteForCurrentPeriod,
                 "all" => true,
+                "hidden" => true,
                 _ => true
             },
             items => SortDailies(items, sortMode));
@@ -459,6 +479,7 @@ public class MainWindowViewModel : ViewModelBase
             selectedTagIds,
             searchQuery,
             hasSearchQuery,
+            filter,
             item =>
             {
                 var isCompleted = item.LastCompletedDate.HasValue;
@@ -469,6 +490,7 @@ public class MainWindowViewModel : ViewModelBase
                     "active" => !isCompleted,
                     "scheduled" => !isCompleted && hasScheduledDate,
                     "completed" => isCompleted,
+                    "hidden" => true,
                     _ => true
                 };
             },
@@ -483,11 +505,13 @@ public class MainWindowViewModel : ViewModelBase
             selectedTagIds,
             searchQuery,
             hasSearchQuery,
+            filter,
             item => filter switch
             {
                 "one-time" => !item.IsRepeatable,
                 "repeatable" => item.IsRepeatable,
                 "all" => true,
+                "hidden" => true,
                 _ => true
             },
             items => SortRewards(items, sortMode));

@@ -28,6 +28,7 @@ Background="{DynamicResource AppBackgroundBrush}">
     <conv:FilterTabTextDecorationConverter x:Key="FilterTabTextDecorationConverter" />
     <conv:FilterTabOpacityConverter x:Key="FilterTabOpacityConverter" />
     <conv:TodoOverdueForegroundMultiConverter x:Key="TodoOverdueForegroundConverter" />
+    <conv:HiddenToggleLabelConverter x:Key="HiddenToggleLabelConverter" />
 </Window.Resources>
 <Grid RowDefinitions="Auto,*,Auto" Margin="16">
 <!-- Header Row -->
@@ -93,12 +94,25 @@ Background="{DynamicResource AppBackgroundBrush}">
                                       VerticalAlignment="Center"/>
                         </Grid>
                         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                            <Button Background="Transparent"
+                            <Button Click="HabitsFilterTab_Click"
+                                    Background="Transparent"
                                     BorderThickness="0"
                                     Padding="0"
-                                    FontWeight="SemiBold">
+                                    Tag="all"
+                                    Opacity="{Binding HabitsFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter=all}"
+                                    FontWeight="{Binding HabitsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=all}">
                                 <TextBlock Text="all"
-                                           TextDecorations="Underline"/>
+                                           TextDecorations="{Binding HabitsFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=all}"/>
+                            </Button>
+                            <Button Click="HabitsFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="hidden"
+                                    Opacity="{Binding HabitsFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter=hidden}"
+                                    FontWeight="{Binding HabitsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=hidden}">
+                                <TextBlock Text="hidden"
+                                           TextDecorations="{Binding HabitsFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=hidden}"/>
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -118,8 +132,10 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 HorizontalContentAlignment="Stretch"
                                                 Padding="8,6">
                                             <Button.ContextMenu>
-                                                <ContextMenu>
+                                                <ContextMenu DataContext="{Binding}">
                                                     <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                    <MenuItem Header="{Binding IsHidden, Converter={StaticResource HiddenToggleLabelConverter}}"
+                                                              Click="ContextMenu_ToggleHidden_Click"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                             <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
@@ -188,6 +204,16 @@ Background="{DynamicResource AppBackgroundBrush}">
                                 <TextBlock Text="not due"
                                            TextDecorations="{Binding DailiesFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter='not due'}"/>
                             </Button>
+                            <Button Click="DailiesFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="hidden"
+                                    Opacity="{Binding DailiesFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter=hidden}"
+                                    FontWeight="{Binding DailiesFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=hidden}">
+                                <TextBlock Text="hidden"
+                                           TextDecorations="{Binding DailiesFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=hidden}"/>
+                            </Button>
                         </StackPanel>
                     </Grid>
                     <TextBox Grid.Row="1" Watermark="Add Daily"
@@ -207,8 +233,10 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 Padding="8,6"
                                                 Opacity="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource BoolToOpacityConverter}}">
                                             <Button.ContextMenu>
-                                                <ContextMenu>
+                                                <ContextMenu DataContext="{Binding}">
                                                     <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                    <MenuItem Header="{Binding IsHidden, Converter={StaticResource HiddenToggleLabelConverter}}"
+                                                              Click="ContextMenu_ToggleHidden_Click"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                             <Grid RowDefinitions="Auto,Auto">
@@ -292,6 +320,16 @@ Background="{DynamicResource AppBackgroundBrush}">
                                 <TextBlock Text="completed"
                                            TextDecorations="{Binding TodosFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=completed}"/>
                             </Button>
+                            <Button Click="TodosFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="hidden"
+                                    Opacity="{Binding TodosFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter=hidden}"
+                                    FontWeight="{Binding TodosFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=hidden}">
+                                <TextBlock Text="hidden"
+                                           TextDecorations="{Binding TodosFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=hidden}"/>
+                            </Button>
                         </StackPanel>
                     </Grid>
                     <TextBox Grid.Row="1" Watermark="Add To-do"
@@ -311,8 +349,10 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 Padding="8,6"
                                                 Opacity="{Binding IsRewardGoalMet, Converter={StaticResource BoolToOpacityConverter}}">
                                             <Button.ContextMenu>
-                                                <ContextMenu>
+                                                <ContextMenu DataContext="{Binding}">
                                                     <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                    <MenuItem Header="{Binding IsHidden, Converter={StaticResource HiddenToggleLabelConverter}}"
+                                                              Click="ContextMenu_ToggleHidden_Click"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                             <Grid RowDefinitions="Auto,Auto">
@@ -379,7 +419,8 @@ Background="{DynamicResource AppBackgroundBrush}">
                                     Tag="all"
                                     Opacity="{Binding RewardsFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter=all}"
                                     FontWeight="{Binding RewardsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=all}">
-                                <TextBlock Text="all"/>
+                                <TextBlock Text="all"
+                                           TextDecorations="{Binding RewardsFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=all}"/>
                             </Button>
                             <Button Click="RewardsFilterTab_Click"
                                     Background="Transparent"
@@ -388,7 +429,8 @@ Background="{DynamicResource AppBackgroundBrush}">
                                     Tag="one-time"
                                     Opacity="{Binding RewardsFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter='one-time'}"
                                     FontWeight="{Binding RewardsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter='one-time'}">
-                                <TextBlock Text="one-time"/>
+                                <TextBlock Text="one-time"
+                                           TextDecorations="{Binding RewardsFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter='one-time'}"/>
                             </Button>
                             <Button Click="RewardsFilterTab_Click"
                                     Background="Transparent"
@@ -397,7 +439,18 @@ Background="{DynamicResource AppBackgroundBrush}">
                                     Tag="repeatable"
                                     Opacity="{Binding RewardsFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter=repeatable}"
                                     FontWeight="{Binding RewardsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=repeatable}">
-                                <TextBlock Text="repeatable"/>
+                                <TextBlock Text="repeatable"
+                                           TextDecorations="{Binding RewardsFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=repeatable}"/>
+                            </Button>
+                            <Button Click="RewardsFilterTab_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Tag="hidden"
+                                    Opacity="{Binding RewardsFilter, Converter={StaticResource FilterTabOpacityConverter}, ConverterParameter=hidden}"
+                                    FontWeight="{Binding RewardsFilter, Converter={StaticResource FilterTabFontWeightConverter}, ConverterParameter=hidden}">
+                                <TextBlock Text="hidden"
+                                           TextDecorations="{Binding RewardsFilter, Converter={StaticResource FilterTabTextDecorationConverter}, ConverterParameter=hidden}"/>
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -417,8 +470,10 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 HorizontalContentAlignment="Stretch"
                                                 Padding="8,6">
                                             <Button.ContextMenu>
-                                                <ContextMenu>
+                                                <ContextMenu DataContext="{Binding}">
                                                     <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
+                                                    <MenuItem Header="{Binding IsHidden, Converter={StaticResource HiddenToggleLabelConverter}}"
+                                                              Click="ContextMenu_ToggleHidden_Click"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                             <Grid RowDefinitions="Auto,Auto">

@@ -78,6 +78,7 @@ public static class TaskMapper
         }
         task.LastCompletedDate = data.LastCompletedDate;
         task.GoldReward = data.GoldReward;
+        task.IsHidden = data.IsHidden;
 
         if (task is DailyTask dailyTask)
         {
@@ -153,6 +154,7 @@ public static class TaskMapper
         data.Tags = model.Tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList();
         data.LastCompletedDate = model.LastCompletedDate;
         data.GoldReward = model.GoldReward;
+        data.IsHidden = model.IsHidden;
 
         return data;
     }

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using TaskApp.Models;
 using TaskApp.Models.Rewards;
 using TaskApp.Models.Tasks;
 using TaskApp.ViewModels;
@@ -231,6 +232,15 @@ public partial class MainWindow : Window
         }
     }
 
+    public void HabitsFilterTab_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && DataContext is MainWindowViewModel mainVm)
+        {
+            var filterValue = button.Tag?.ToString() ?? "all";
+            mainVm.HabitsFilter = filterValue;
+        }
+    }
+
     public void DailiesFilterTab_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Button button && DataContext is MainWindowViewModel mainVm)
@@ -272,6 +282,16 @@ public partial class MainWindow : Window
                     mainVm.SetCurrentActivity(reward.Title, rewardId: reward.Id);
                     break;
             }
+        }
+    }
+
+    public void ContextMenu_ToggleHidden_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && menuItem.DataContext is DomainEntity entity && DataContext is MainWindowViewModel mainVm)
+        {
+            entity.SetHidden(!entity.IsHidden);
+            mainVm.RefreshFilter();
+            _ = mainVm.SaveDataAsync();
         }
     }
 

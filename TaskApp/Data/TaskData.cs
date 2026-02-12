@@ -16,4 +16,5 @@ public abstract class TaskData
     public List<TagData> Tags { get; set; } = new();
     public DateTimeOffset? LastCompletedDate { get; set; }
     public double GoldReward { get; set; }
+    public bool IsHidden { get; set; }
 }
