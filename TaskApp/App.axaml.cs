@@ -156,8 +156,8 @@ namespace TaskApp
                 await ShowNewDayWindow(uncheckedDailies);
             }
 
-            // Now refresh all daily tasks for the new day
-            _viewModel.RefreshDailyTasksForNewDay();
+            // Now refresh all tasks for the new day
+            _viewModel.RefreshTasksForNewDay();
 
             // Save the changes
             await _viewModel.SaveDataAsync();

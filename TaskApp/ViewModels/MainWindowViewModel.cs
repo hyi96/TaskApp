@@ -395,7 +395,7 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
         
-        RefreshDailyTasksForNewDay();
+        RefreshTasksForNewDay();
         RefreshFilter();
 
         var rewards = await _storageService.LoadRewardsAsync();
@@ -803,12 +803,17 @@ public class MainWindowViewModel : ViewModelBase
         RefreshFilter();
     }
 
-    public void RefreshDailyTasksForNewDay()
+    public void RefreshTasksForNewDay()
     {
         foreach (var daily in _allDailies)
         {
             daily.RefreshForCurrentPeriod();
             daily.NotifyPeriodChanged();
+        }
+
+        foreach (var habit in _allHabits)
+        {
+            habit.RefreshForCurrentPeriod();
         }
 
         RefreshFilter();

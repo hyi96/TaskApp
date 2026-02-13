@@ -160,6 +160,11 @@ public class HabitTask : TaskBase
         ResetCadence = cadence;
     }
 
+    public void RefreshForCurrentPeriod()
+    {
+        EnsureReset(DateTimeOffset.UtcNow);
+    }
+
     private void EnsureReset(DateTimeOffset now)
     {
         if (ResetCadence == HabitResetCadence.Never)
