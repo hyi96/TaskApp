@@ -9,18 +9,25 @@ A gamified task management desktop application built with **Avalonia UI** and **
 ## Features
 
 ### 📋 Task Management
-- **Habits** – Repeatable actions with increment counters and optional counter reset cadences (daily, weekly, monthly)
-- **Dailies** – Recurring tasks with streak tracking and customizable schedules (daily, weekly, monthly, yearly)
+- **Habits** – Repeatable actions with increment counters and optional counter reset cadences (daily, weekly, monthly) with automatic resets
+- **Dailies** – Recurring tasks with streak tracking, customizable schedules (daily, weekly, monthly, yearly), and optional time-based autocomplete
 - **Todos** – One-time tasks with optional due dates and checklists
+- **Hide/Unhide** – Archive and restore tasks or rewards without deleting them
+- **Context Menus** – Right-click tasks and rewards for quick actions
 
 ### 🏆 Gamification
 - **Gold System** – Earn gold by completing tasks, spend it on custom rewards
 - **Streak Bonuses** – Earn bonus gold for maintaining daily streaks (7, 14, 30+ days)
 - **Rewards Shop** – Create custom rewards to purchase with earned gold (one-time or repeatable)
 
+### ⏱️ Current Activity Timer
+- **Time Tracking** – Set any task as your current activity and track time spent on it
+- **Daily Autocomplete** – Dailies can auto-complete when a configurable time threshold is reached
+- **Overdue Highlighting** – Overdue dailies are visually highlighted with red titles
+
 ### 📊 Analytics & Insights
 - **Graphs** – Visualize your productivity over time (hourly, daily, weekly, monthly, yearly views)
-- **Activity Logs** – Track all task completions and reward claims with timestamps
+- **Activity Logs** – Track all task completions and reward claims with timestamps and last-completed info
 - **SQLite Database** – Persistent local storage for logs and analytics
 
 ### 🎨 Customization
@@ -77,35 +84,41 @@ dotnet run --project TaskApp
 ```
 TaskApp/
 ├── Models/
-│   ├── Tasks/          # HabitTask, DailyTask, TodoTask, ChecklistItem
+│   ├── Tasks/          # HabitTask, DailyTask, TodoTask, ChecklistItem, StreakBonusRule
 │   ├── Rewards/        # Reward model
 │   ├── Logs/           # LogEntry for activity tracking
 │   ├── Tags/           # Tag model
+│   ├── DomainEntity.cs # Base class for tasks and rewards
 │   └── User.cs         # User and UserProfile models
-├── ViewModels/         # MVVM ViewModels
+├── ViewModels/         # MVVM ViewModels (includes CurrentActivityViewModel)
 ├── Views/              # Avalonia XAML views
-├── Services/           # StorageService, UserService, SettingsService
+├── Services/           # StorageService, UserService, SettingsService, DayDetectionService
 ├── Converters/         # XAML value converters
 └── Data/               # Data transfer objects for serialization
+TaskApp.Tests/          # xUnit test project (daily autocomplete tests, etc.)
 ```
 
 ## Technology Stack
 
 | Component | Technology |
 |-----------|------------|
-| UI Framework | [Avalonia UI 11](https://avaloniaui.net/) |
+| UI Framework | [Avalonia UI 11.3](https://avaloniaui.net/) |
 | Runtime | .NET 8 |
 | Database | SQLite (Microsoft.Data.Sqlite) |
-| Charts | [ScottPlot](https://scottplot.net/) |
+| Charts | [ScottPlot 5](https://scottplot.net/) |
 | Architecture | MVVM |
+| Testing | xUnit (.NET 10) |
 
 ## Usage Tips
 
 - **Quick Add**: Type a task name and press `Enter` to quickly add it
 - **Edit Tasks**: Click on any task to open the edit form with full options
+- **Context Menus**: Right-click tasks or rewards for quick actions (set as current activity, hide/unhide, etc.)
+- **Current Activity**: Set a task as your current activity to track time spent on it
 - **Search**: Use the search bar to filter tasks across all categories
-- **Verbose Mode**: Toggle "Verbose" checkbox to see detailed information
-- **New Day Detection**: The app automatically detects day changes and resets daily tasks
+- **Verbose Mode**: Toggle "Verbose" checkbox to see detailed information including last-completed times
+- **New Day Detection**: The app automatically detects day changes, resets daily tasks, and resets habit counters based on cadence
+- **Hide/Unhide**: Archive tasks or rewards you don't need right now and restore them later
 
 ## Inspirations
 
