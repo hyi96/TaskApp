@@ -14,5 +14,6 @@ public class TodoTask : TaskBase
     public void SetDueDate(DateTimeOffset? dueDate)
     {
         DueDate = dueDate;
+        OnPropertyChanged(nameof(DueDate));
     }
 }

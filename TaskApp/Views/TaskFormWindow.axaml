@@ -120,7 +120,20 @@ Background="{DynamicResource AppBackgroundBrush}">
 
                 <StackPanel>
                     <TextBlock Text="Due Date"/>
-                    <DatePicker SelectedDate="{Binding DueDate}"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <DatePicker SelectedDate="{Binding DueDate}"/>
+                        <Button Grid.Column="1" Content="Clear" Margin="4,0,0,0"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding DueDate, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Click="ClearDueDate_Click"/>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Text="Due Time (optional)"/>
+                    <TimePicker SelectedTime="{Binding DueTime}"
+                                ClockIdentifier="24HourClock"
+                                MinuteIncrement="1"/>
                 </StackPanel>
 
                 <StackPanel Spacing="8">

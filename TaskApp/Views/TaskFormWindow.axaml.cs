@@ -47,6 +47,15 @@ public partial class TaskFormWindow : Window
         Close();
     }
 
+    private void ClearDueDate_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is TodoFormViewModel vm)
+        {
+            vm.DueDate = null;
+            vm.DueTime = null;
+        }
+    }
+
     private void SetCurrentActivity_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is TaskFormViewModel vm)

@@ -29,6 +29,7 @@ Background="{DynamicResource AppBackgroundBrush}">
     <conv:FilterTabOpacityConverter x:Key="FilterTabOpacityConverter" />
     <conv:TodoOverdueForegroundMultiConverter x:Key="TodoOverdueForegroundConverter" />
     <conv:HiddenToggleLabelConverter x:Key="HiddenToggleLabelConverter" />
+    <conv:DueDateDisplayConverter x:Key="DueDateDisplayConverter" />
 </Window.Resources>
 <Grid RowDefinitions="Auto,*,Auto" Margin="16">
 <!-- Header Row -->
@@ -367,7 +368,7 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                     </TextBlock.Foreground>
                                                 </TextBlock>
                                                 <TextBlock Grid.Row="1" 
-                                                           Text="{Binding DueDate, StringFormat='Due: {0:MMM d}'}"
+                                                           Text="{Binding DueDate, Converter={StaticResource DueDateDisplayConverter}}"
                                                            FontSize="11"
                                                            HorizontalAlignment="Left"
                                                            Foreground="{DynamicResource SecondaryTextBrush}"
