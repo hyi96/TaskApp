@@ -14,9 +14,20 @@ Height="480"
 Title="Logs"
 Background="{DynamicResource AppBackgroundBrush}">
     <Border Padding="16">
-        <Grid RowDefinitions="Auto,*">
-            <TextBlock Text="Recent Logs" FontSize="24" FontWeight="Bold" Margin="0,0,0,16" Foreground="{DynamicResource AppTextBrush}"/>
-            <ScrollViewer Grid.Row="1" Margin="0,0,12,0">
+        <Grid RowDefinitions="Auto,Auto,*">
+            <TextBlock Text="Recent Logs" FontSize="24" FontWeight="Bold" Margin="0,0,0,12" Foreground="{DynamicResource AppTextBrush}"/>
+
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*" Margin="0,0,0,12" ColumnSpacing="8">
+                <TextBlock Text="Show last" VerticalAlignment="Center" Foreground="{DynamicResource AppTextBrush}"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding LimitOptions}" SelectedItem="{Binding SelectedLimit}" Width="80" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Text="from" VerticalAlignment="Center" Foreground="{DynamicResource AppTextBrush}"/>
+                <DatePicker Grid.Column="3" SelectedDate="{Binding FromDate}" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="4" Text="to" VerticalAlignment="Center" Foreground="{DynamicResource AppTextBrush}"/>
+                <DatePicker Grid.Column="5" SelectedDate="{Binding ToDate}" VerticalAlignment="Center"/>
+                <Button Grid.Column="6" Content="Apply" Click="ApplyFilter_Click" VerticalAlignment="Center"/>
+            </Grid>
+
+            <ScrollViewer Grid.Row="2" Margin="0,0,12,0">
                 <ItemsControl ItemsSource="{Binding Logs}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:LogEntryViewModel">

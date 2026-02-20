@@ -271,6 +271,27 @@ public class StorageService
         return await ReadLogEntriesAsync(command);
     }
 
+    public async Task<List<LogEntry>> LoadFilteredLogEntriesAsync(int count, DateTime from, DateTime to)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
+                                FROM LogEntries
+                                WHERE Timestamp >= $from AND Timestamp <= $to
+                                ORDER BY Timestamp DESC
+                                LIMIT $limit;";
+        command.Parameters.AddWithValue("$from", from.ToUniversalTime().ToString("O"));
+        command.Parameters.AddWithValue("$to", to.ToUniversalTime().ToString("O"));
+        command.Parameters.AddWithValue("$limit", count);
+
+        return await ReadLogEntriesAsync(command);
+    }
+
     public async Task<List<LogEntry>> LoadAllLogEntriesAsync()
     {
         await EnsureLogsTableAsync();

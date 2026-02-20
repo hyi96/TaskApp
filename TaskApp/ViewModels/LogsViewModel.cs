@@ -10,18 +10,45 @@ namespace TaskApp.ViewModels;
 public class LogsViewModel : ViewModelBase
 {
     private readonly StorageService _storageService;
+    private int _selectedLimit = 50;
+    private DateTimeOffset _fromDate;
+    private DateTimeOffset _toDate;
 
     public ObservableCollection<LogEntryViewModel> Logs { get; } = new();
+
+    public int[] LimitOptions { get; } = [50, 100, 200, 500];
+
+    public int SelectedLimit
+    {
+        get => _selectedLimit;
+        set => SetProperty(ref _selectedLimit, value);
+    }
+
+    public DateTimeOffset FromDate
+    {
+        get => _fromDate;
+        set => SetProperty(ref _fromDate, value);
+    }
+
+    public DateTimeOffset ToDate
+    {
+        get => _toDate;
+        set => SetProperty(ref _toDate, value);
+    }
 
     public LogsViewModel(StorageService storageService)
     {
         _storageService = storageService;
+        _fromDate = DateTimeOffset.Now.AddDays(-7);
+        _toDate = DateTimeOffset.Now;
     }
 
     public async Task LoadAsync()
     {
         Logs.Clear();
-        var entries = await _storageService.LoadRecentLogEntriesAsync(50);
+        var from = FromDate.LocalDateTime.Date;
+        var to = ToDate.LocalDateTime.Date.AddDays(1).AddTicks(-1);
+        var entries = await _storageService.LoadFilteredLogEntriesAsync(SelectedLimit, from, to);
         foreach (var entry in entries)
         {
             Logs.Add(LogEntryViewModel.FromEntry(entry));
