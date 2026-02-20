@@ -54,8 +54,16 @@ public class CurrentActivityViewModel : ViewModelBase
     public bool IsRunning
     {
         get => _isRunning;
-        private set => SetProperty(ref _isRunning, value);
+        private set
+        {
+            if (SetProperty(ref _isRunning, value))
+            {
+                OnPropertyChanged(nameof(StartButtonLabel));
+            }
+        }
     }
+
+    public string StartButtonLabel => Elapsed > TimeSpan.Zero && !IsRunning ? "Resume" : "Start";
 
     public Guid? TaskId => _taskId;
     public Guid? RewardId => _rewardId;
@@ -175,5 +183,6 @@ public class CurrentActivityViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(Elapsed));
         OnPropertyChanged(nameof(ElapsedDisplay));
+        OnPropertyChanged(nameof(StartButtonLabel));
     }
 }
