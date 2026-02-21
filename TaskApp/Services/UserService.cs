@@ -125,8 +125,8 @@ public class UserService
     }
 
     /// <summary>
-    /// Migrates legacy data from the root AppData folder to the user-specific folder
-    /// if the user folder is missing files but legacy files exist.
+    /// Migrates legacy data from the root AppData folder to the user-specific folder.
+    /// Prioritizes larger/non-empty legacy files to handle cases where user directory has placeholder files.
     /// </summary>
     private void MigrateExistingDataIfNeeded(Guid userId)
     {
@@ -134,14 +134,23 @@ public class UserService
         Directory.CreateDirectory(userDataDir);
 
         var filesToMigrate = new[] { "tasks.json", "rewards.json", "tags.json", "user.json", "logs.db" };
+        const int MinFileSize = 5; // Minimum meaningful file size (in bytes)
 
         foreach (var fileName in filesToMigrate)
         {
             var legacyPath = Path.Combine(AppDataFolder, fileName);
             var userPath = Path.Combine(userDataDir, fileName);
 
-            // If legacy file exists and user file doesn't exist
-            if (File.Exists(legacyPath) && !File.Exists(userPath))
+            // Skip if legacy file doesn't exist or is too small
+            if (!File.Exists(legacyPath))
+                continue;
+
+            var legacyFileInfo = new FileInfo(legacyPath);
+            if (legacyFileInfo.Length < MinFileSize)
+                continue; // Legacy file is empty/too small, skip it
+
+            // If user file doesn't exist, copy legacy
+            if (!File.Exists(userPath))
             {
                 try
                 {
@@ -149,18 +158,18 @@ public class UserService
                 }
                 catch
                 {
-                    // Ignore migration errors
+                    // Ignore copy errors
                 }
             }
-            // Also copy if user file is empty but legacy has content
-            else if (File.Exists(legacyPath) && File.Exists(userPath) && fileName.EndsWith(".json"))
+            else
             {
+                // Both exist: prioritize legacy if user file is empty or legacy is significantly larger
                 try
                 {
                     var userFileInfo = new FileInfo(userPath);
-                    var legacyFileInfo = new FileInfo(legacyPath);
-
-                    if (userFileInfo.Length < 10 && legacyFileInfo.Length > 10)
+                    
+                    // If user file is essentially empty, use legacy
+                    if (userFileInfo.Length < MinFileSize)
                     {
                         File.Copy(legacyPath, userPath, overwrite: true);
                     }
@@ -356,5 +365,38 @@ public class UserService
         Directory.CreateDirectory(AppDataFolder);
         var json = JsonSerializer.Serialize(_users, IndentedJsonOptions);
         await File.WriteAllTextAsync(UsersFile, json);
+    }
+
+    /// <summary>
+    /// Gets diagnostic info about where user data is located (legacy vs. user-specific directory).
+    /// Useful for debugging migration issues.
+    /// </summary>
+    public string GetDataLocationDiagnostics(Guid userId)
+    {
+        var userDataDir = GetUserDataDirectory(userId);
+        var filesToCheck = new[] { "tasks.json", "rewards.json", "tags.json", "user.json", "logs.db" };
+        var diagnostics = new System.Text.StringBuilder();
+
+        diagnostics.AppendLine($"Diagnostics for user {userId}:");
+        diagnostics.AppendLine($"User data directory: {userDataDir}");
+        diagnostics.AppendLine($"Legacy data directory: {AppDataFolder}");
+        diagnostics.AppendLine();
+
+        foreach (var fileName in filesToCheck)
+        {
+            var legacyPath = Path.Combine(AppDataFolder, fileName);
+            var userPath = Path.Combine(userDataDir, fileName);
+
+            var legacyExists = File.Exists(legacyPath);
+            var userExists = File.Exists(userPath);
+            var legacySize = legacyExists ? new FileInfo(legacyPath).Length : 0;
+            var userSize = userExists ? new FileInfo(userPath).Length : 0;
+
+            diagnostics.AppendLine($"{fileName}:");
+            diagnostics.AppendLine($"  Legacy: {(legacyExists ? $"✓ ({legacySize} bytes)" : "✗")}");
+            diagnostics.AppendLine($"  User:   {(userExists ? $"✓ ({userSize} bytes)" : "✗")}");
+        }
+
+        return diagnostics.ToString();
     }
 }
