@@ -276,7 +276,24 @@ public class UserService
             foreach (var filePath in Directory.GetFiles(userDataDir))
             {
                 var fileName = Path.GetFileName(filePath);
-                archive.CreateEntryFromFile(filePath, $"data/{fileName}");
+                try
+                {
+                    archive.CreateEntryFromFile(filePath, $"data/{fileName}");
+                }
+                catch (IOException)
+                {
+                    // File may be locked (e.g. logs.db held by SQLite) — copy to a temp file first
+                    var tempPath = Path.Combine(Path.GetTempPath(), $"taskapp_export_{fileName}");
+                    try
+                    {
+                        File.Copy(filePath, tempPath, overwrite: true);
+                        archive.CreateEntryFromFile(tempPath, $"data/{fileName}");
+                    }
+                    finally
+                    {
+                        try { File.Delete(tempPath); } catch { /* cleanup best-effort */ }
+                    }
+                }
             }
         }
     }
