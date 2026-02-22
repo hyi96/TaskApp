@@ -26,6 +26,8 @@ public class MainWindowViewModel : ViewModelBase
     private const string SortDailyCurrentStreakLow = "Current streak (low to high)";
     private const string SortDailyBestStreakHigh = "Best streak (high to low)";
     private const string SortDailyBestStreakLow = "Best streak (low to high)";
+    private const string SortDailyDueDateEarly = "Due date (earliest to latest)";
+    private const string SortDailyDueDateLate = "Due date (latest to earliest)";
     private const string SortTodoDueDateEarly = "Due date (earliest to latest)";
     private const string SortTodoDueDateLate = "Due date (latest to earliest)";
 
@@ -91,7 +93,9 @@ public class MainWindowViewModel : ViewModelBase
         SortDailyCurrentStreakHigh,
         SortDailyCurrentStreakLow,
         SortDailyBestStreakHigh,
-        SortDailyBestStreakLow
+        SortDailyBestStreakLow,
+        SortDailyDueDateEarly,
+        SortDailyDueDateLate
     };
 
     public IReadOnlyList<string> TodosSortOptions { get; } = new[]
@@ -547,6 +551,8 @@ public class MainWindowViewModel : ViewModelBase
             SortDailyCurrentStreakLow => CompareWithTitle(a.CurrentStreak.CompareTo(b.CurrentStreak), a, b),
             SortDailyBestStreakHigh => CompareWithTitle(b.BestStreak.CompareTo(a.BestStreak), a, b),
             SortDailyBestStreakLow => CompareWithTitle(a.BestStreak.CompareTo(b.BestStreak), a, b),
+            SortDailyDueDateEarly => CompareWithTitle(a.CurrentPeriodEndDate.CompareTo(b.CurrentPeriodEndDate), a, b),
+            SortDailyDueDateLate => CompareWithTitle(b.CurrentPeriodEndDate.CompareTo(a.CurrentPeriodEndDate), a, b),
             _ => CompareTitles(a, b)
         });
     }
