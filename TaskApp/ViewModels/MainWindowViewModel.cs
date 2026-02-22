@@ -731,6 +731,11 @@ public class MainWindowViewModel : ViewModelBase
     {
         return LogAsync(LogType.DailyCompleted, task: daily, goldDelta: goldDelta);
     }
+
+    public Task LogDailyCompletedAsync(DailyTask daily, double goldDelta, DateTime timestampUtc)
+    {
+        return LogAsync(LogType.DailyCompleted, task: daily, goldDelta: goldDelta, timestampUtc: timestampUtc);
+    }
  
     public Task LogTodoCompletedAsync(TodoTask todo, double goldDelta)
     {
@@ -747,12 +752,12 @@ public class MainWindowViewModel : ViewModelBase
         return LogAsync(LogType.ActivityDuration, duration: duration, title: title, taskId: taskId, rewardId: rewardId);
     }
  
-    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null)
+    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null, DateTime? timestampUtc = null)
     {
         var entry = new LogEntry
         {
             Id = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
+            Timestamp = timestampUtc ?? DateTime.UtcNow,
             Type = type,
             TaskId = taskId ?? task?.Id,
             RewardId = rewardId ?? reward?.Id,
