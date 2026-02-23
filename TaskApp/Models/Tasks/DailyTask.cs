@@ -395,6 +395,7 @@ public class DailyTask : TaskBase
     public void NotifyPeriodChanged()
     {
         OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+        OnPropertyChanged(nameof(CurrentPeriodEndDate));
     }
 
     private static int GetDaysSinceWeekStart(DayOfWeek dayOfWeek)
