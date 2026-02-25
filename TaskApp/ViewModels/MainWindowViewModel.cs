@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using TaskApp.Models;
@@ -290,10 +291,11 @@ public class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(NewHabitTitle)) return;
         var habit = new HabitTask();
         habit.UpdateTitle(NewHabitTitle);
-        
+
+        habit.PropertyChanged += OnItemPropertyChanged;
         _allHabits.Add(habit);
         RefreshFilter();
-        
+
         NewHabitTitle = string.Empty;
     }
 
@@ -302,10 +304,11 @@ public class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(NewDailyTitle)) return;
         var daily = new DailyTask();
         daily.UpdateTitle(NewDailyTitle);
-        
+
+        daily.PropertyChanged += OnItemPropertyChanged;
         _allDailies.Add(daily);
         RefreshFilter();
-        
+
         NewDailyTitle = string.Empty;
     }
 
@@ -314,10 +317,11 @@ public class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(NewTodoTitle)) return;
         var todo = new TodoTask();
         todo.UpdateTitle(NewTodoTitle);
-        
+
+        todo.PropertyChanged += OnItemPropertyChanged;
         _allTodos.Add(todo);
         RefreshFilter();
-        
+
         NewTodoTitle = string.Empty;
     }
 
@@ -325,6 +329,7 @@ public class MainWindowViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(NewRewardTitle)) return;
         var reward = new Reward(NewRewardTitle);
+        reward.PropertyChanged += OnItemPropertyChanged;
         _allRewards.Add(reward);
         RefreshFilter();
         NewRewardTitle = string.Empty;
@@ -332,24 +337,28 @@ public class MainWindowViewModel : ViewModelBase
 
     public void DeleteHabit(HabitTask habit)
     {
+        habit.PropertyChanged -= OnItemPropertyChanged;
         _allHabits.Remove(habit);
         Habits.Remove(habit);
     }
     
     public void DeleteDaily(DailyTask daily)
     {
+        daily.PropertyChanged -= OnItemPropertyChanged;
         _allDailies.Remove(daily);
         Dailies.Remove(daily);
     }
 
     public void DeleteTodo(TodoTask todo)
     {
+        todo.PropertyChanged -= OnItemPropertyChanged;
         _allTodos.Remove(todo);
         Todos.Remove(todo);
     }
 
     public void DeleteReward(Reward reward)
     {
+        reward.PropertyChanged -= OnItemPropertyChanged;
         _allRewards.Remove(reward);
         Rewards.Remove(reward);
     }
@@ -379,12 +388,14 @@ public class MainWindowViewModel : ViewModelBase
 
         var tasks = await _storageService.LoadTasksAsync();
 
+        UnsubscribeAllItems();
         _allHabits.Clear();
         _allDailies.Clear();
         _allTodos.Clear();
 
         foreach (var task in tasks)
         {
+            task.PropertyChanged += OnItemPropertyChanged;
             switch (task)
             {
                 case HabitTask h:
@@ -403,7 +414,11 @@ public class MainWindowViewModel : ViewModelBase
         RefreshFilter();
 
         var rewards = await _storageService.LoadRewardsAsync();
+        foreach (var r in _allRewards)
+            r.PropertyChanged -= OnItemPropertyChanged;
         _allRewards.Clear();
+        foreach (var r in rewards)
+            r.PropertyChanged += OnItemPropertyChanged;
         _allRewards.AddRange(rewards);
         
         RefreshFilter();
@@ -615,6 +630,23 @@ public class MainWindowViewModel : ViewModelBase
         }
 
         return CompareTitles(left, right);
+    }
+
+    private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        RefreshFilter();
+    }
+
+    private void UnsubscribeAllItems()
+    {
+        foreach (var h in _allHabits)
+            h.PropertyChanged -= OnItemPropertyChanged;
+        foreach (var d in _allDailies)
+            d.PropertyChanged -= OnItemPropertyChanged;
+        foreach (var t in _allTodos)
+            t.PropertyChanged -= OnItemPropertyChanged;
+        foreach (var r in _allRewards)
+            r.PropertyChanged -= OnItemPropertyChanged;
     }
 
     private static void UpdateCollection<T>(ObservableCollection<T> target, List<T> filtered)
