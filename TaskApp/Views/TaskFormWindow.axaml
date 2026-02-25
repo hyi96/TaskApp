@@ -158,6 +158,7 @@ Background="{DynamicResource AppBackgroundBrush}">
                                               Margin="0,0,8,0"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding Text}"
+                                               TextWrapping="Wrap"
                                                VerticalAlignment="Center"/>
                                     <Button Grid.Column="2"
                                             Content="X"

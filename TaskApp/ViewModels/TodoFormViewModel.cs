@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
 using TaskApp.Models.Tasks;
 
 namespace TaskApp.ViewModels;
@@ -47,8 +49,9 @@ public class TodoFormViewModel : TaskFormViewModel
             DueTime = _todoTask.DueDate?.TimeOfDay is { } t && t != TimeSpan.Zero ? t : null;
             LastCompletedDisplay = _todoTask.LastCompletedDate?.ToLocalTime().ToString("g") ?? "Never";
 
-            foreach (var item in _todoTask.Checklist)
+            foreach (var item in _todoTask.Checklist.OrderBy(i => i.IsCompleted))
             {
+                item.PropertyChanged += OnChecklistItemPropertyChanged;
                 ChecklistItems.Add(item);
             }
         }
@@ -59,13 +62,16 @@ public class TodoFormViewModel : TaskFormViewModel
         if (!string.IsNullOrWhiteSpace(NewChecklistItem))
         {
             var item = new ChecklistItem(NewChecklistItem.Trim());
-            ChecklistItems.Add(item);
+            item.PropertyChanged += OnChecklistItemPropertyChanged;
+            var insertIndex = ChecklistItems.Count(i => !i.IsCompleted);
+            ChecklistItems.Insert(insertIndex, item);
             NewChecklistItem = string.Empty;
         }
     }
 
     public void RemoveChecklistItem(ChecklistItem item)
     {
+        item.PropertyChanged -= OnChecklistItemPropertyChanged;
         ChecklistItems.Remove(item);
     }
 
@@ -89,6 +95,22 @@ public class TodoFormViewModel : TaskFormViewModel
 
     public override Guid? GetTaskId() => _todoTask?.Id;
     public override Guid? GetRewardId() => null;
+
+    private void OnChecklistItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ChecklistItem.IsCompleted))
+            return;
+
+        var sorted = ChecklistItems.OrderBy(i => i.IsCompleted).ToList();
+        for (var i = 0; i < sorted.Count; i++)
+        {
+            var currentIndex = ChecklistItems.IndexOf(sorted[i]);
+            if (currentIndex != i)
+            {
+                ChecklistItems.Move(currentIndex, i);
+            }
+        }
+    }
 
     private DateTimeOffset? CombineDueDateTime()
     {
