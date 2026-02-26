@@ -367,6 +367,12 @@ public class MainWindowViewModel : ViewModelBase
     {
         User = await _storageService.LoadUserProfileAsync();
 
+        // Restore sort preferences from user profile
+        HabitsSortMode = User.HabitsSortMode;
+        DailiesSortMode = User.DailiesSortMode;
+        TodosSortMode = User.TodosSortMode;
+        RewardsSortMode = User.RewardsSortMode;
+
         var tags = await _storageService.LoadTagsAsync();
         
         // Unsubscribe from old tags before clearing
@@ -696,6 +702,12 @@ public class MainWindowViewModel : ViewModelBase
 
     public async Task SaveDataAsync()
     {
+        // Persist sort preferences into user profile
+        User.HabitsSortMode = HabitsSortMode;
+        User.DailiesSortMode = DailiesSortMode;
+        User.TodosSortMode = TodosSortMode;
+        User.RewardsSortMode = RewardsSortMode;
+
         await _storageService.SaveUserProfileAsync(User);
         await _storageService.SaveTagsAsync(AvailableTags.Select(t => t.Tag).ToList());
 
