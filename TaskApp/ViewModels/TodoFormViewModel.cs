@@ -17,7 +17,16 @@ public class TodoFormViewModel : TaskFormViewModel
     public DateTimeOffset? DueDate
     {
         get => _dueDate;
-        set => SetProperty(ref _dueDate, value);
+        set
+        {
+            if (SetProperty(ref _dueDate, value))
+            {
+                if (value.HasValue && !DueTime.HasValue)
+                {
+                    DueTime = new TimeSpan(23, 59, 0);
+                }
+            }
+        }
     }
 
     public TimeSpan? DueTime
@@ -46,7 +55,9 @@ public class TodoFormViewModel : TaskFormViewModel
             Notes = _todoTask.Notes ?? string.Empty;
             GoldValue = _todoTask.GoldReward;
             DueDate = _todoTask.DueDate;
-            DueTime = _todoTask.DueDate?.TimeOfDay is { } t && t != TimeSpan.Zero ? t : null;
+            DueTime = _todoTask.DueDate?.TimeOfDay is { } t && t != TimeSpan.Zero
+                ? new TimeSpan(t.Hours, t.Minutes, 0)
+                : null;
             LastCompletedDisplay = _todoTask.LastCompletedDate?.ToLocalTime().ToString("g") ?? "Never";
 
             foreach (var item in _todoTask.Checklist.OrderBy(i => i.IsCompleted))
@@ -116,7 +127,9 @@ public class TodoFormViewModel : TaskFormViewModel
     {
         if (!DueDate.HasValue) return null;
         var dateOnly = DueDate.Value.Date;
-        var time = DueTime ?? TimeSpan.Zero;
-        return new DateTimeOffset(dateOnly + time, DueDate.Value.Offset);
+        var time = DueTime ?? new TimeSpan(23, 59, 0);
+        // Store with 59 seconds so the full minute is included as due
+        var timeWithSeconds = new TimeSpan(time.Hours, time.Minutes, 59);
+        return new DateTimeOffset(dateOnly + timeWithSeconds, DueDate.Value.Offset);
     }
 }

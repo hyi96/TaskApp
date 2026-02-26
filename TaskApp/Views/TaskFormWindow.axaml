@@ -130,7 +130,7 @@ Background="{DynamicResource AppBackgroundBrush}">
                 </StackPanel>
 
                 <StackPanel IsVisible="{Binding DueDate, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <TextBlock Text="Due Time (optional)"/>
+                    <TextBlock Text="Due Time"/>
                     <TimePicker SelectedTime="{Binding DueTime}"
                                 ClockIdentifier="24HourClock"
                                 MinuteIncrement="1"/>
