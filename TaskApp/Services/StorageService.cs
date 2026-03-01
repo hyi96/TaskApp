@@ -271,7 +271,7 @@ public class StorageService
         return await ReadLogEntriesAsync(command);
     }
 
-    public async Task<List<LogEntry>> LoadFilteredLogEntriesAsync(int count, DateTime from, DateTime to)
+    public async Task<List<LogEntry>> LoadFilteredLogEntriesAsync(int count, DateTimeOffset from, DateTimeOffset to)
     {
         await EnsureLogsTableAsync();
 
@@ -285,8 +285,8 @@ public class StorageService
                                 WHERE Timestamp >= $from AND Timestamp <= $to
                                 ORDER BY Timestamp DESC
                                 LIMIT $limit;";
-        command.Parameters.AddWithValue("$from", from.ToUniversalTime().ToString("O"));
-        command.Parameters.AddWithValue("$to", to.ToUniversalTime().ToString("O"));
+        command.Parameters.AddWithValue("$from", from.UtcDateTime.ToString("O"));
+        command.Parameters.AddWithValue("$to", to.UtcDateTime.ToString("O"));
         command.Parameters.AddWithValue("$limit", count);
 
         return await ReadLogEntriesAsync(command);
@@ -308,7 +308,7 @@ public class StorageService
         return await ReadLogEntriesAsync(command);
     }
 
-    public async Task<TimeSpan> GetActivityDurationForTaskSinceAsync(Guid taskId, DateTime sinceUtc)
+    public async Task<TimeSpan> GetActivityDurationForTaskSinceAsync(Guid taskId, DateTimeOffset since)
     {
         await EnsureLogsTableAsync();
 
@@ -325,7 +325,7 @@ public class StorageService
                                   AND DurationTicks IS NOT NULL;";
         command.Parameters.AddWithValue("$taskId", taskId.ToString());
         command.Parameters.AddWithValue("$type", (int)LogType.ActivityDuration);
-        command.Parameters.AddWithValue("$since", sinceUtc.ToString("o"));
+        command.Parameters.AddWithValue("$since", since.UtcDateTime.ToString("o"));
 
         var result = await command.ExecuteScalarAsync();
         var ticks = result is long l ? l : Convert.ToInt64(result);
@@ -341,7 +341,7 @@ public class StorageService
             var entry = new LogEntry
             {
                 Id = Guid.Parse(reader.GetString(0)),
-                Timestamp = DateTime.Parse(reader.GetString(1), null, DateTimeStyles.RoundtripKind),
+                Timestamp = DateTimeOffset.Parse(reader.GetString(1), null, DateTimeStyles.RoundtripKind),
                 Type = (LogType)reader.GetInt32(2),
                 TaskId = reader.IsDBNull(3) ? null : Guid.Parse(reader.GetString(3)),
                 RewardId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)),

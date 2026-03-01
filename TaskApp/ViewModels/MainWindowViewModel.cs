@@ -782,9 +782,9 @@ public class MainWindowViewModel : ViewModelBase
         return LogAsync(LogType.DailyCompleted, task: daily, goldDelta: goldDelta);
     }
 
-    public Task LogDailyCompletedAsync(DailyTask daily, double goldDelta, DateTime timestampUtc)
+    public Task LogDailyCompletedAsync(DailyTask daily, double goldDelta, DateTimeOffset timestamp)
     {
-        return LogAsync(LogType.DailyCompleted, task: daily, goldDelta: goldDelta, timestampUtc: timestampUtc);
+        return LogAsync(LogType.DailyCompleted, task: daily, goldDelta: goldDelta, timestamp: timestamp);
     }
  
     public Task LogTodoCompletedAsync(TodoTask todo, double goldDelta)
@@ -802,12 +802,12 @@ public class MainWindowViewModel : ViewModelBase
         return LogAsync(LogType.ActivityDuration, duration: duration, title: title, taskId: taskId, rewardId: rewardId);
     }
  
-    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null, DateTime? timestampUtc = null)
+    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null, DateTimeOffset? timestamp = null)
     {
         var entry = new LogEntry
         {
             Id = Guid.NewGuid(),
-            Timestamp = timestampUtc ?? DateTime.UtcNow,
+            Timestamp = timestamp ?? DateTimeOffset.UtcNow,
             Type = type,
             TaskId = taskId ?? task?.Id,
             RewardId = rewardId ?? reward?.Id,
@@ -907,8 +907,8 @@ public class MainWindowViewModel : ViewModelBase
             return null;
 
         var periodStart = daily.GetCurrentPeriodStart();
-        var periodStartUtc = periodStart.ToDateTime(TimeOnly.MinValue).ToUniversalTime();
-        var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartUtc);
+        var periodStartOffset = new DateTimeOffset(periodStart.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartOffset);
         var totalTimeSpent = loggedDuration + currentSessionElapsed;
         return threshold - totalTimeSpent;
     }

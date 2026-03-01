@@ -249,7 +249,7 @@ public class UserService
         // Create export metadata
         var exportMetadata = new UserExportMetadata
         {
-            ExportedAt = DateTime.UtcNow,
+            ExportedAt = DateTimeOffset.UtcNow,
             AppVersion = "1.0.0",
             UserName = user.Name,
             OriginalUserId = user.Id
@@ -337,7 +337,7 @@ public class UserService
         {
             Id = Guid.NewGuid(),
             Name = userName,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow
         };
 
         var newUserDataDir = GetUserDataDirectory(newUser.Id);

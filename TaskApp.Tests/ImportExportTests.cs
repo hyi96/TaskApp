@@ -248,7 +248,7 @@ public class ImportExportTests : IAsyncLifetime
         var entry1 = new LogEntry
         {
             Id = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow.AddMinutes(-10),
+            Timestamp = DateTimeOffset.UtcNow.AddMinutes(-10),
             Type = LogType.DailyCompleted,
             TaskId = taskId,
             GoldDelta = 2.0,
@@ -258,7 +258,7 @@ public class ImportExportTests : IAsyncLifetime
         var entry2 = new LogEntry
         {
             Id = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow.AddMinutes(-5),
+            Timestamp = DateTimeOffset.UtcNow.AddMinutes(-5),
             Type = LogType.ActivityDuration,
             TaskId = taskId,
             GoldDelta = 0,

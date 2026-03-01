@@ -196,10 +196,10 @@ namespace TaskApp
                 // Log with timestamp at the last minute of the previous period
                 var currentPeriodStart = item.Daily.GetCurrentPeriodStart();
                 var endOfPreviousPeriod = currentPeriodStart.ToDateTime(new TimeOnly(0, 0)).AddMinutes(-1);
-                var endOfPreviousPeriodUtc = new DateTimeOffset(endOfPreviousPeriod, yesterday.Offset).UtcDateTime;
+                var endOfPreviousPeriodOffset = new DateTimeOffset(endOfPreviousPeriod, yesterday.Offset);
                 var goldReward = item.Daily.GetGoldRewardWithBonus();
                 _viewModel?.AddGold(goldReward);
-                await _viewModel!.LogDailyCompletedAsync(item.Daily, goldReward, endOfPreviousPeriodUtc);
+                await _viewModel!.LogDailyCompletedAsync(item.Daily, goldReward, endOfPreviousPeriodOffset);
             }
 
             // Save changes
