@@ -51,11 +51,11 @@ A gamified task management desktop application built with **Avalonia UI** and **
 ### Main Window
 ![Main Window](TaskApp/Assets/screenshots/main_window.png)
 
-### Main Window (Verbose Mode)
-![Main Window Verbose](TaskApp/Assets/screenshots/main_window_verbose.png)
-
 ### Dark Mode
 ![Dark Mode](TaskApp/Assets/screenshots/dark_mode.png)
+
+### Main Window (Verbose Mode)
+![Main Window Verbose](TaskApp/Assets/screenshots/main_window_verbose.png)
 
 ### Edit Task Form
 ![Edit Task Form](TaskApp/Assets/screenshots/edit_task_form.png)
