@@ -3,7 +3,7 @@
 
 param (
     [string]$Configuration = "Release",
-    [string]$ProjectPath = "."
+    [string]$ProjectPath = "TaskApp/TaskApp.csproj"
 )
 
 # Define platforms and output folders
