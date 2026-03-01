@@ -3,42 +3,48 @@
 A gamified task management desktop application built with **Avalonia UI** and **.NET 8**. Track habits, dailies, and todos while earning gold rewards to stay motivated.
 
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-purple)
-![Avalonia UI](https://img.shields.io/badge/Avalonia-11.3-blue)
+![Avalonia UI](https://img.shields.io/badge/Avalonia-11.3.9-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
 ## Features
 
 ### 📋 Task Management
-- **Habits** – Repeatable actions with increment counters and optional counter reset cadences (daily, weekly, monthly) with automatic resets
+- **Habits** – Repeatable actions with increment/decrement counters and automatic resets (daily, weekly, monthly)
 - **Dailies** – Recurring tasks with streak tracking, customizable schedules (daily, weekly, monthly, yearly), and optional time-based autocomplete
-- **Todos** – One-time tasks with optional due dates and checklists
+- **Todos** – One-time tasks with optional due dates (with time), checklists, and overdue highlighting
 - **Hide/Unhide** – Archive and restore tasks or rewards without deleting them
+- **Sorting** – Per-category sort modes (name, created date, gold, streak, due date, etc.) that persist across sessions
+- **Filtering** – Filter tabs for each task type (e.g. active/completed, scheduled/unscheduled)
+- **Auto-Resorting** – Columns re-sort automatically when task properties change
 - **Context Menus** – Right-click tasks and rewards for quick actions
 
 ### 🏆 Gamification
 - **Gold System** – Earn gold by completing tasks, spend it on custom rewards
-- **Streak Bonuses** – Earn bonus gold for maintaining daily streaks (7, 14, 30+ days)
+- **Streak Bonuses** – Earn bonus gold for maintaining daily streaks (configurable milestones)
 - **Rewards Shop** – Create custom rewards to purchase with earned gold (one-time or repeatable)
 
 ### ⏱️ Current Activity Timer
 - **Time Tracking** – Set any task as your current activity and track time spent on it
+- **Pause/Resume** – Pause the timer and resume with a single button
 - **Daily Autocomplete** – Dailies can auto-complete when a configurable time threshold is reached
 - **Overdue Highlighting** – Overdue dailies are visually highlighted with red titles
 
 ### 📊 Analytics & Insights
-- **Graphs** – Visualize your productivity over time (hourly, daily, weekly, monthly, yearly views)
-- **Activity Logs** – Track all task completions and reward claims with timestamps and last-completed info
-- **SQLite Database** – Persistent local storage for logs and analytics
+- **Graphs** – Visualize productivity over time (hourly, daily, weekly, monthly, yearly views)
+- **Activity Logs** – Track all task completions and reward claims with timestamps, gold changes, and activity durations
+- **Log Filtering** – Filter logs by date range and limit count
+- **New Day Detection** – Automatically detects day changes, resets daily tasks and habit counters, and logs dailies checked during the new day prompt
 
 ### 🎨 Customization
 - **Light/Dark Themes** – Switch between visual themes
 - **Multiple Users** – Support for multiple user profiles with separate data
 - **Tags** – Organize tasks with custom tags
-- **Sorting & Filtering** – Multiple sort options and filter tabs for each task type
+- **Verbose Mode** – Toggle detailed information including due dates and streak details
 
 ### 💾 Data Management
-- **Export/Import** – Backup and restore your data
-- **Per-User Data Storage** – Each user has isolated task and reward data
+- **Export/Import** – Backup and restore user data as `.taskapp` ZIP archives
+- **Per-User Data Storage** – Each user has isolated data (tasks, rewards, tags, logs)
+- **UTC-Aware Timestamps** – All timestamps use `DateTimeOffset` for correct display across time zones
 
 ## Screenshots
 
@@ -53,6 +59,9 @@ A gamified task management desktop application built with **Avalonia UI** and **
 
 ### Edit Task Form
 ![Edit Task Form](TaskApp/Assets/screenshots/edit_task_form.png)
+
+### Logs Window
+![Graphs](TaskApp/Assets/screenshots/logs_window.png)
 
 ### Graphs & Analytics
 ![Graphs](TaskApp/Assets/screenshots/graph.png)
@@ -79,35 +88,60 @@ dotnet build
 dotnet run --project TaskApp
 ```
 
+### Running Tests
+
+The test project targets .NET 10 and uses xUnit with Avalonia headless testing.
+
+```bash
+dotnet test TaskApp.Tests
+```
+
 ## Project Structure
 
 ```
-TaskApp/
+TaskApp/                    # Main application (.NET 8)
 ├── Models/
-│   ├── Tasks/          # HabitTask, DailyTask, TodoTask, ChecklistItem, StreakBonusRule
-│   ├── Rewards/        # Reward model
-│   ├── Logs/           # LogEntry for activity tracking
-│   ├── Tags/           # Tag model
-│   ├── DomainEntity.cs # Base class for tasks and rewards
-│   └── User.cs         # User and UserProfile models
-├── ViewModels/         # MVVM ViewModels (includes CurrentActivityViewModel)
-├── Views/              # Avalonia XAML views
-├── Services/           # StorageService, UserService, SettingsService, DayDetectionService
-├── Converters/         # XAML value converters
-└── Data/               # Data transfer objects for serialization
-TaskApp.Tests/          # xUnit test project (daily autocomplete tests, etc.)
+│   ├── Tasks/              # HabitTask, DailyTask, TodoTask, ChecklistItem, StreakBonusRule
+│   ├── Rewards/            # Reward model
+│   ├── Logs/               # LogEntry for activity tracking
+│   ├── Tags/               # Tag model
+│   ├── DomainEntity.cs     # Base class for tasks and rewards
+│   ├── User.cs             # User and UserExportMetadata
+│   └── UserProfile.cs      # User preferences (gold, sort modes)
+├── ViewModels/             # MVVM ViewModels
+│   ├── MainWindowViewModel.cs      # Core app logic, filtering, sorting, logging
+│   ├── CurrentActivityViewModel.cs # Timer, autocomplete detection
+│   ├── LogsViewModel.cs            # Log display with date filtering
+│   ├── GraphViewModel.cs           # Productivity charts
+│   ├── NewDayViewModel.cs          # Day-change handling
+│   └── *FormViewModel.cs           # Task and reward edit forms
+├── Views/                  # Avalonia XAML views
+├── Services/
+│   ├── StorageService.cs   # JSON + SQLite persistence
+│   ├── UserService.cs      # Multi-user, export/import
+│   ├── SettingsService.cs  # Theme and app settings
+│   ├── DayDetectionService.cs # Day-change detection
+│   ├── TaskMapper.cs       # Model ↔ Data mapping
+│   └── RewardMapper.cs     # Model ↔ Data mapping
+├── Converters/             # XAML value converters
+└── Data/                   # Data transfer objects for JSON serialization
+TaskApp.Tests/              # xUnit test project (.NET 10)
+├── DailyAutocompleteTests.cs       # Autocomplete threshold logic
+├── MainWindowViewModelTests.cs     # Filtering and sorting
+├── CurrentActivityViewModelTests.cs # Timer and autocomplete UI tests (Avalonia Headless)
+└── ImportExportTests.cs            # Export/import round-trip tests
 ```
 
 ## Technology Stack
 
 | Component | Technology |
 |-----------|------------|
-| UI Framework | [Avalonia UI 11.3](https://avaloniaui.net/) |
+| UI Framework | [Avalonia UI 11.3.9](https://avaloniaui.net/) |
 | Runtime | .NET 8 |
 | Database | SQLite (Microsoft.Data.Sqlite) |
 | Charts | [ScottPlot 5](https://scottplot.net/) |
 | Architecture | MVVM |
-| Testing | xUnit (.NET 10) |
+| Testing | xUnit 2.9.3 + Avalonia.Headless.XUnit (.NET 10) |
 
 ## Usage Tips
 
@@ -119,6 +153,9 @@ TaskApp.Tests/          # xUnit test project (daily autocomplete tests, etc.)
 - **Verbose Mode**: Toggle "Verbose" checkbox to see detailed information including last-completed times
 - **New Day Detection**: The app automatically detects day changes, resets daily tasks, and resets habit counters based on cadence
 - **Hide/Unhide**: Archive tasks or rewards you don't need right now and restore them later
+- **Sort Preferences**: Each task category has its own sort mode that persists between sessions
+- **Log Filtering**: Use the date range picker and limit options in the Logs window to narrow down entries
+- **Export/Import**: Back up your data via Settings — the `.taskapp` file is portable across time zones
 
 ## Inspirations
 
