@@ -186,7 +186,7 @@ public class HabitTask : TaskBase
         return cadence switch
         {
             HabitResetCadence.Daily => date,
-            HabitResetCadence.Weekly => date.AddDays(-GetDaysSinceWeekStart(currentTime.DayOfWeek)),
+            HabitResetCadence.Weekly => date.AddDays(-GetDaysSinceWeekStart(date.DayOfWeek)),
             HabitResetCadence.Monthly => new DateOnly(date.Year, date.Month, 1),
             _ => date
         };

@@ -166,6 +166,34 @@ public class HabitCounterResetTests
         Assert.Equal(new DateOnly(2026, 2, 2), habit.LastResetPeriod);
     }
 
+    [Fact]
+    public void CounterReset_Weekly_UsesLocalDayOfWeek_WhenOffsetDiffers()
+    {
+        var habit = CreateHabit();
+        habit.SetResetCadence(HabitResetCadence.Weekly);
+
+        var (first, _, expectedPeriod) = CreateWeeklyBoundaryRegressionScenario();
+
+        habit.Complete(first);
+
+        Assert.Equal(expectedPeriod, habit.LastResetPeriod);
+    }
+
+    [Fact]
+    public void CounterReset_Weekly_DoesNotResetMidWeek_WhenOffsetDiffers()
+    {
+        var habit = CreateHabit();
+        habit.SetResetCadence(HabitResetCadence.Weekly);
+
+        var (first, second, expectedPeriod) = CreateWeeklyBoundaryRegressionScenario();
+
+        habit.Complete(first);
+        habit.Complete(second);
+
+        Assert.Equal(2.0, habit.Count);
+        Assert.Equal(expectedPeriod, habit.LastResetPeriod);
+    }
+
     #endregion
 
     #region Monthly cadence
@@ -334,20 +362,20 @@ public class HabitCounterResetTests
     {
         var habit = CreateHabit();
         habit.SetResetCadence(HabitResetCadence.Daily);
-        var today = DateTimeOffset.UtcNow;
+        var wednesday = new DateTimeOffset(2026, 2, 4, 12, 0, 0, TimeSpan.Zero);
 
-        habit.Complete(today);
-        habit.Complete(today);
+        habit.Complete(wednesday);
+        habit.Complete(wednesday);
         Assert.Equal(2.0, habit.Count);
 
         // Change to weekly
         habit.SetResetCadence(HabitResetCadence.Weekly);
-        
-        var tomorrow = today.AddDays(1);
-        habit.Complete(tomorrow);
-        
-        // Should not reset (same week)
-        Assert.Equal(3.0, habit.Count);
+
+        var thursday = wednesday.AddDays(1);
+        habit.Complete(thursday);
+
+        // Daily period (Wednesday) differs from weekly period start (Monday), so count resets
+        Assert.Equal(1.0, habit.Count);
     }
 
     [Fact]
@@ -375,6 +403,40 @@ public class HabitCounterResetTests
         var habit = new HabitTask();
         habit.UpdateTitle("Test Habit");
         return habit;
+    }
+
+    private static (DateTimeOffset First, DateTimeOffset Second, DateOnly ExpectedPeriod) CreateWeeklyBoundaryRegressionScenario()
+    {
+        var localOffset = TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 2, 4));
+        var maxOffset = TimeSpan.FromHours(14);
+        var minOffset = TimeSpan.FromHours(-14);
+
+        var increasedOffset = localOffset + TimeSpan.FromHours(2);
+        if (increasedOffset <= maxOffset)
+        {
+            var firstLocal = new DateTimeOffset(2026, 2, 4, 23, 30, 0, localOffset); // Wednesday local
+            var first = firstLocal.ToOffset(increasedOffset); // Thursday in source offset
+            var second = new DateTimeOffset(2026, 2, 5, 0, 30, 0, localOffset); // Thursday local
+            var expectedPeriod = GetMondayStart(DateOnly.FromDateTime(first.ToLocalTime().DateTime));
+            return (first, second, expectedPeriod);
+        }
+
+        var decreasedOffset = localOffset - TimeSpan.FromHours(2);
+        if (decreasedOffset >= minOffset)
+        {
+            var firstLocal = new DateTimeOffset(2026, 2, 4, 0, 30, 0, localOffset); // Wednesday local
+            var first = firstLocal.ToOffset(decreasedOffset); // Tuesday in source offset
+            var second = new DateTimeOffset(2026, 2, 4, 1, 30, 0, localOffset); // Wednesday local
+            var expectedPeriod = GetMondayStart(DateOnly.FromDateTime(first.ToLocalTime().DateTime));
+            return (first, second, expectedPeriod);
+        }
+
+        throw new InvalidOperationException("Unable to create offset mismatch scenario for local timezone.");
+    }
+
+    private static DateOnly GetMondayStart(DateOnly date)
+    {
+        return date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
     }
 
     #endregion
