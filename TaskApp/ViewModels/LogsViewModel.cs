@@ -46,8 +46,10 @@ public class LogsViewModel : ViewModelBase
     public async Task LoadAsync()
     {
         Logs.Clear();
-        var from = new DateTimeOffset(FromDate.LocalDateTime.Date, FromDate.Offset);
-        var to = new DateTimeOffset(ToDate.LocalDateTime.Date.AddDays(1).AddTicks(-1), ToDate.Offset);
+        var fromLocal = FromDate.LocalDateTime.Date;
+        var from = new DateTimeOffset(fromLocal, TimeZoneInfo.Local.GetUtcOffset(fromLocal));
+        var toLocal = ToDate.LocalDateTime.Date.AddDays(1).AddTicks(-1);
+        var to = new DateTimeOffset(toLocal, TimeZoneInfo.Local.GetUtcOffset(toLocal));
         var entries = await _storageService.LoadFilteredLogEntriesAsync(SelectedLimit, from, to);
         foreach (var entry in entries)
         {
