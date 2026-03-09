@@ -142,7 +142,7 @@ public class HabitTask : TaskBase
 
     public void SetIncrementAmount(double amount)
     {
-        IncrementAmount = amount;
+        IncrementAmount = amount < 0 ? 0 : amount;
     }
 
     public void SetIncrementEnabled(bool enabled)

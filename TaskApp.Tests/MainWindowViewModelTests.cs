@@ -1,12 +1,26 @@
 using System;
+using System.IO;
 using TaskApp.Services;
 using TaskApp.ViewModels;
 using Xunit;
 
 namespace TaskApp.Tests;
 
-public class MainWindowViewModelTests
+public class MainWindowViewModelTests : IDisposable
 {
+    private readonly string _tempDir;
+
+    public MainWindowViewModelTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), $"TaskAppTests_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_tempDir);
+    }
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_tempDir, recursive: true); } catch { }
+    }
+
     [Fact]
     public void TodosFilter_ScheduledShowsOnlyActiveWithDueDate()
     {
@@ -107,9 +121,9 @@ public class MainWindowViewModelTests
         Assert.Same(beta, vm.Todos[1]);
     }
 
-    private static MainWindowViewModel CreateViewModel()
+    private MainWindowViewModel CreateViewModel()
     {
-        var userService = new UserService();
+        var userService = new UserService(_tempDir);
         userService.LoadSync();
         var storageService = new StorageService(userService);
         return new MainWindowViewModel(storageService, userService);

@@ -11,12 +11,13 @@ namespace TaskApp.Services;
 
 public class UserService
 {
-    private static readonly string AppDataFolder = Path.Combine(
+    private static readonly string DefaultAppDataFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TaskApp");
 
-    private static readonly string UsersFile = Path.Combine(AppDataFolder, "users.json");
-    private static readonly string CurrentUserFile = Path.Combine(AppDataFolder, "current_user.json");
+    private readonly string AppDataFolder;
+    private readonly string UsersFile;
+    private readonly string CurrentUserFile;
     private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
 
     private List<User> _users = new();
@@ -26,6 +27,22 @@ public class UserService
     public User? CurrentUser => _currentUser;
 
     public event Action? CurrentUserChanged;
+
+    /// <summary>
+    /// Creates a UserService that stores data in the default application data folder.
+    /// </summary>
+    public UserService() : this(DefaultAppDataFolder) { }
+
+    /// <summary>
+    /// Creates a UserService that stores data in the specified folder.
+    /// Use this constructor in tests to avoid touching real user data.
+    /// </summary>
+    public UserService(string appDataFolder)
+    {
+        AppDataFolder = appDataFolder;
+        UsersFile = Path.Combine(AppDataFolder, "users.json");
+        CurrentUserFile = Path.Combine(AppDataFolder, "current_user.json");
+    }
 
     /// <summary>
     /// Synchronous load for use during app startup to avoid deadlocks.

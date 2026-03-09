@@ -687,15 +687,9 @@ public class MainWindowViewModel : ViewModelBase
         if (reward.TryClaim(User.Gold))
         {
             RemoveGold(reward.GoldCost);
-            
-            // If reward should be hidden after claim, remove it from the visible collection
-            if (!reward.IsRepeatable && reward.IsClaimed)
-            {
-                Rewards.Remove(reward);
-            }
-            
+
             _ = SaveDataAsync();
- 
+
             _ = LogRewardClaimedAsync(reward, reward.GoldCost);
         }
     }

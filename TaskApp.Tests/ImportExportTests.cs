@@ -15,47 +15,39 @@ namespace TaskApp.Tests;
 /// <summary>
 /// Tests that verify data survives an export → import round-trip intact.
 ///
-/// ISOLATION: A dedicated throwaway "source" user is created for each test
-/// run. All writes go there — the real user's data is never touched.
-/// Both the source and every imported user are deleted in DisposeAsync.
+/// ISOLATION: All file operations use a temporary directory via UserService(tempDir).
+/// No real user data under %LOCALAPPDATA%\TaskApp is ever read or written.
 /// </summary>
 public class ImportExportTests : IAsyncLifetime
 {
     private readonly string _tempDir;
+    private readonly string _appDataDir;
     private readonly UserService _userService;
     private readonly List<Guid> _testUserIds = new();
-    private Guid _originalUserId;
 
     public ImportExportTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), $"TaskAppTests_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
 
-        _userService = new UserService();
+        // Use an isolated app-data directory so tests never touch real user data
+        _appDataDir = Path.Combine(_tempDir, "AppData");
+        _userService = new UserService(_appDataDir);
         _userService.LoadSync();
-        _originalUserId = _userService.CurrentUser!.Id;
     }
 
     public async Task InitializeAsync()
     {
-        // Create a throwaway user so tests never write to the real profile
+        // Create a throwaway user so each test starts with a clean slate
         var sourceUser = await _userService.CreateUserAsync($"_Test_{Guid.NewGuid():N}");
         _testUserIds.Add(sourceUser.Id);
         await _userService.SwitchUserAsync(sourceUser.Id);
     }
 
-    public async Task DisposeAsync()
+    public Task DisposeAsync()
     {
-        // Switch back to the original user first
-        await _userService.SwitchUserAsync(_originalUserId);
-
-        // Delete every user that was created during the test
-        foreach (var userId in _testUserIds)
-        {
-            try { await _userService.DeleteUserAsync(userId); } catch { }
-        }
-
         try { Directory.Delete(_tempDir, recursive: true); } catch { }
+        return Task.CompletedTask;
     }
 
     #region Tasks round-trip
