@@ -253,6 +253,17 @@ public class UserService
         CurrentUserChanged?.Invoke();
     }
 
+    public async Task RenameUserAsync(Guid userId, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName)) return;
+
+        var user = _users.FirstOrDefault(u => u.Id == userId);
+        if (user == null) return;
+
+        user.Name = newName.Trim();
+        await SaveUsersAsync();
+    }
+
     /// <summary>
     /// Exports user data to a ZIP archive at the specified path.
     /// </summary>

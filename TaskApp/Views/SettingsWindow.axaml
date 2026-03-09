@@ -64,6 +64,18 @@ Background="{DynamicResource AppBackgroundBrush}">
                             </Grid>
                         </StackPanel>
 
+                        <!-- Rename User -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Rename Selected User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0"
+                                         Watermark="New name..."
+                                         Text="{Binding RenameUserName}"
+                                         HorizontalAlignment="Stretch"/>
+                                <Button Grid.Column="1" Content="Rename" Command="{Binding RenameUserCommand}"/>
+                            </Grid>
+                        </StackPanel>
+
                         <!-- Create User -->
                         <StackPanel Spacing="4">
                             <TextBlock Text="Create New User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>

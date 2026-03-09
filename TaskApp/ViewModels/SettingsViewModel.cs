@@ -16,6 +16,7 @@ public class SettingsViewModel : ViewModelBase
     private readonly Window _parentWindow;
     private ThemeMode _selectedTheme;
     private string _newUserName = string.Empty;
+    private string _renameUserName = string.Empty;
     private User? _selectedUser;
 
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } = new[]
@@ -64,10 +65,17 @@ public class SettingsViewModel : ViewModelBase
 
     public bool CanExportUser => SelectedUser != null;
 
+    public string RenameUserName
+    {
+        get => _renameUserName;
+        set => SetProperty(ref _renameUserName, value);
+    }
+
     // Commands
     public ICommand SwitchUserCommand { get; }
     public ICommand CreateUserCommand { get; }
     public ICommand DeleteUserCommand { get; }
+    public ICommand RenameUserCommand { get; }
     public ICommand ExportUserCommand { get; }
     public ICommand ImportUserCommand { get; }
 
@@ -82,6 +90,7 @@ public class SettingsViewModel : ViewModelBase
         SwitchUserCommand = new AsyncRelayCommand(SwitchUserAsync);
         CreateUserCommand = new AsyncRelayCommand(CreateUserAsync);
         DeleteUserCommand = new AsyncRelayCommand(DeleteUserAsync);
+        RenameUserCommand = new AsyncRelayCommand(RenameUserAsync);
         ExportUserCommand = new AsyncRelayCommand(ExportUserAsync);
         ImportUserCommand = new AsyncRelayCommand(ImportUserAsync);
     }
@@ -109,6 +118,15 @@ public class SettingsViewModel : ViewModelBase
     {
         if (SelectedUser == null || !CanDeleteUser) return;
         await _userService.DeleteUserAsync(SelectedUser.Id);
+        RefreshUsers();
+        OnPropertyChanged(nameof(CurrentUserName));
+    }
+
+    private async Task RenameUserAsync()
+    {
+        if (SelectedUser == null || string.IsNullOrWhiteSpace(RenameUserName)) return;
+        await _userService.RenameUserAsync(SelectedUser.Id, RenameUserName);
+        RenameUserName = string.Empty;
         RefreshUsers();
         OnPropertyChanged(nameof(CurrentUserName));
     }
