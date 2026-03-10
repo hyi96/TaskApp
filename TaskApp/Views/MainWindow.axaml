@@ -139,7 +139,15 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                               Click="ContextMenu_ToggleHidden_Click"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
-                                            <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
+                                            <Grid RowDefinitions="Auto,Auto">
+                                                <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
+                                                <TextBlock Grid.Row="1"
+                                                           Text="{Binding ResetCadence, StringFormat='Resets: {0}'}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                                           Margin="0,4,0,0"
+                                                           IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsVerbose}"/>
+                                            </Grid>
                                         </Button>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="4,0,0,0">
                                             <TextBlock Text="{Binding Count}" VerticalAlignment="Center" Margin="0,0,4,0" MinWidth="20" TextAlignment="Center"/>
