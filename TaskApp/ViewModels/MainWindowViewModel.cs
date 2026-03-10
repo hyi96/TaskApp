@@ -795,6 +795,22 @@ public class MainWindowViewModel : ViewModelBase
     {
         return LogAsync(LogType.ActivityDuration, duration: duration, title: title, taskId: taskId, rewardId: rewardId);
     }
+
+    public async Task TryAutocompleteFromLoggedDurationAsync(Guid taskId)
+    {
+        var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
+        if (daily == null || daily.AutocompleteTimeThreshold is not TimeSpan threshold || daily.IsCompleteForCurrentPeriod)
+            return;
+
+        var periodStart = daily.GetCurrentPeriodStart();
+        var periodStartOffset = new DateTimeOffset(periodStart.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartOffset);
+
+        if (loggedDuration >= threshold)
+        {
+            OnAutocompleteTriggered(taskId);
+        }
+    }
  
     private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null, DateTimeOffset? timestamp = null)
     {

@@ -258,6 +258,34 @@ Background="{DynamicResource AppBackgroundBrush}">
                     <!-- Specific Fields -->
                     <ContentControl Content="{Binding}"/>
 
+                    <!-- Manual Activity Duration Logging -->
+                    <Separator Height="1" Background="#E0E0E0" Margin="0,8,0,0"/>
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Log Activity Duration" FontWeight="Medium"/>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Hours" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <NumericUpDown Value="{Binding ManualHours}" Minimum="0" Increment="1"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Minutes" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <NumericUpDown Value="{Binding ManualMinutes}" Minimum="0" Maximum="59" Increment="1"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Seconds" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <NumericUpDown Value="{Binding ManualSeconds}" Minimum="0" Maximum="59" Increment="1"/>
+                            </StackPanel>
+                        </Grid>
+                        <Button Content="Log Duration"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Click="LogManualDuration_Click"/>
+                        <TextBlock Text="{Binding ManualDurationStatus}"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="12"
+                                   IsVisible="{Binding ManualDurationStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+
                 </StackPanel>
             </ScrollViewer>
 

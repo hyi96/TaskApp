@@ -88,6 +88,14 @@ public partial class MainWindow : Window
             if (vm != null)
             {
                 vm.RequestSetAsCurrentActivity += (title, taskId, rewardId) => mainVm.SetCurrentActivity(title, taskId, rewardId);
+                vm.RequestLogManualDuration += async (duration, title, taskId, rewardId) =>
+                {
+                    await mainVm.LogActivityDurationAsync(duration, title, taskId, rewardId);
+                    if (taskId.HasValue)
+                    {
+                        await mainVm.TryAutocompleteFromLoggedDurationAsync(taskId.Value);
+                    }
+                };
 
                 var taskWindow = new TaskFormWindow
                 {

@@ -15,6 +15,10 @@ public abstract class TaskFormViewModel : ViewModelBase, IDisposable
     private string _notes = string.Empty;
     private double _goldValue;
     private bool _disposed;
+    private int _manualHours;
+    private int _manualMinutes;
+    private int _manualSeconds;
+    private string _manualDurationStatus = string.Empty;
     
     // Selectable tags for this specific task
     public ObservableCollection<SelectableTag> TaskTags { get; } = new();
@@ -94,7 +98,50 @@ public abstract class TaskFormViewModel : ViewModelBase, IDisposable
         RequestSetAsCurrentActivity?.Invoke(Title, GetTaskId(), GetRewardId());
     }
 
-    protected TaskFormViewModel(IEnumerable<SelectableTag> availableTags, IEnumerable<Tag>? currentTags = null) 
+    // Manual activity duration logging
+    public event Action<TimeSpan, string, Guid?, Guid?>? RequestLogManualDuration;
+
+    public int ManualHours
+    {
+        get => _manualHours;
+        set => SetProperty(ref _manualHours, value);
+    }
+
+    public int ManualMinutes
+    {
+        get => _manualMinutes;
+        set => SetProperty(ref _manualMinutes, value);
+    }
+
+    public int ManualSeconds
+    {
+        get => _manualSeconds;
+        set => SetProperty(ref _manualSeconds, value);
+    }
+
+    public string ManualDurationStatus
+    {
+        get => _manualDurationStatus;
+        set => SetProperty(ref _manualDurationStatus, value);
+    }
+
+    public void LogManualDuration()
+    {
+        var duration = new TimeSpan(ManualHours, ManualMinutes, ManualSeconds);
+        if (duration <= TimeSpan.Zero)
+        {
+            ManualDurationStatus = "Enter a duration greater than zero.";
+            return;
+        }
+
+        RequestLogManualDuration?.Invoke(duration, Title, GetTaskId(), GetRewardId());
+        ManualDurationStatus = $"Logged {duration:hh\\:mm\\:ss} successfully.";
+        ManualHours = 0;
+        ManualMinutes = 0;
+        ManualSeconds = 0;
+    }
+
+    protected TaskFormViewModel(IEnumerable<SelectableTag> availableTags, IEnumerable<Tag>? currentTags = null)
     {
         var currentTagIds = currentTags != null ? new HashSet<Guid>(currentTags.Select(t => t.Id)) : new HashSet<Guid>();
         
@@ -137,6 +184,7 @@ public abstract class TaskFormViewModel : ViewModelBase, IDisposable
             RequestClose = null;
             RequestDelete = null;
             RequestSetAsCurrentActivity = null;
+            RequestLogManualDuration = null;
         }
 
         _disposed = true;

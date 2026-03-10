@@ -106,4 +106,12 @@ public partial class TaskFormWindow : Window
             vm.RemoveStreakBonusRule(rule);
         }
     }
+
+    private void LogManualDuration_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is TaskFormViewModel vm)
+        {
+            vm.LogManualDuration();
+        }
+    }
 }
