@@ -117,6 +117,12 @@ public class SettingsViewModel : ViewModelBase
     private async Task DeleteUserAsync()
     {
         if (SelectedUser == null || !CanDeleteUser) return;
+
+        var confirmed = await ShowConfirmationAsync(
+            "Delete User",
+            $"Are you sure you want to delete \"{SelectedUser.Name}\"? This cannot be undone.");
+        if (!confirmed) return;
+
         await _userService.DeleteUserAsync(SelectedUser.Id);
         RefreshUsers();
         OnPropertyChanged(nameof(CurrentUserName));
@@ -200,6 +206,52 @@ public class SettingsViewModel : ViewModelBase
         SelectedUser = _userService.CurrentUser;
         OnPropertyChanged(nameof(CanDeleteUser));
         OnPropertyChanged(nameof(CanExportUser));
+    }
+
+    private async Task<bool> ShowConfirmationAsync(string title, string message)
+    {
+        var result = false;
+
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 350,
+            Height = 160,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = _parentWindow.Background
+        };
+
+        var yesButton = new Button { Content = "Yes", Width = 80 };
+        var noButton = new Button { Content = "No", Width = 80 };
+
+        yesButton.Click += (_, _) => { result = true; dialog.Close(); };
+        noButton.Click += (_, _) => dialog.Close();
+
+        dialog.Content = new StackPanel
+        {
+            Margin = new Avalonia.Thickness(20),
+            Spacing = 16,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = message,
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    Foreground = Avalonia.Media.Brushes.White
+                },
+                new StackPanel
+                {
+                    Orientation = Avalonia.Layout.Orientation.Horizontal,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                    Spacing = 8,
+                    Children = { yesButton, noButton }
+                }
+            }
+        };
+
+        await dialog.ShowDialog(_parentWindow);
+        return result;
     }
 }
 
