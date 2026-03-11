@@ -22,8 +22,8 @@ Background="{DynamicResource AppBackgroundBrush}">
                        Foreground="{DynamicResource AppTextBrush}"/>
 
             <!-- List of Tags -->
-            <ScrollViewer Grid.Row="1" Margin="0,0,12,16">
-                <ItemsControl ItemsSource="{Binding Tags}">
+            <ScrollViewer Grid.Row="1" Margin="0,0,0,16">
+                <ItemsControl ItemsSource="{Binding Tags}" Margin="0,0,16,0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:SelectableTag">
                             <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
