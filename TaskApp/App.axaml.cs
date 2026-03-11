@@ -20,6 +20,7 @@ namespace TaskApp
         private MainWindowViewModel? _viewModel;
         private UserService? _userService;
         private StorageService? _storageService;
+        private bool _emergencySaved;
 
         public override void Initialize()
         {
@@ -56,6 +57,16 @@ namespace TaskApp
                         InitializeDayDetection();
                     };
 
+                    desktop.ShutdownRequested += (s, e) =>
+                    {
+                        PerformEmergencySave();
+                    };
+
+                    AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+                    {
+                        PerformEmergencySave();
+                    };
+
                     var isClosing = false;
                     desktop.MainWindow.Closing += async (s, e) =>
                     {
@@ -67,6 +78,7 @@ namespace TaskApp
                                 _dayDetectionService?.Stop();
                                 await _viewModel.LogCurrentActivityIfRunningAsync();
                                 await _viewModel.SaveDataAsync();
+                                _emergencySaved = true;
                             }
                             finally
                             {
@@ -115,6 +127,15 @@ namespace TaskApp
         private void OnThemeChanged(ThemeMode mode)
         {
             Dispatcher.UIThread.Post(() => ApplyTheme(mode));
+        }
+
+        private void PerformEmergencySave()
+        {
+            if (_emergencySaved || _viewModel == null) return;
+            _emergencySaved = true;
+
+            _dayDetectionService?.Stop();
+            _viewModel.EmergencySaveSync();
         }
         
         private void ApplyTheme(ThemeMode mode)

@@ -96,6 +96,24 @@ public class StorageService
         await File.WriteAllTextAsync(filePath, json);
     }
 
+    /// <summary>
+    /// Synchronous save of all data for use during process shutdown.
+    /// </summary>
+    public void SaveAllSync(IEnumerable<TaskBase> tasks, IEnumerable<Reward> rewards, UserProfile profile, IEnumerable<Tag> tags)
+    {
+        var tasksJson = JsonSerializer.Serialize(tasks.Select(TaskMapper.ToData).ToList(), IndentedJsonOptions);
+        File.WriteAllText(Path.Combine(_dataDirectory, TasksFileName), tasksJson);
+
+        var rewardsJson = JsonSerializer.Serialize(rewards.Select(RewardMapper.ToData).ToList(), IndentedJsonOptions);
+        File.WriteAllText(Path.Combine(_dataDirectory, RewardsFileName), rewardsJson);
+
+        var profileJson = JsonSerializer.Serialize(profile, IndentedJsonOptions);
+        File.WriteAllText(Path.Combine(_dataDirectory, UserProfileFileName), profileJson);
+
+        var tagsJson = JsonSerializer.Serialize(tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList(), IndentedJsonOptions);
+        File.WriteAllText(Path.Combine(_dataDirectory, TagsFileName), tagsJson);
+    }
+
     public async Task<List<TaskBase>> LoadTasksAsync()
     {
         var filePath = Path.Combine(_dataDirectory, TasksFileName);
@@ -197,6 +215,21 @@ public class StorageService
         await EnsureColumnsExistAsync(connection);
     }
 
+    private void EnsureLogsTableSync()
+    {
+        var dbPath = GetLogsDbPath();
+        using var connection = new SqliteConnection($"Data Source={dbPath}");
+        connection.Open();
+
+        var command = connection.CreateCommand();
+        var columns = string.Join(",\n                                    ",
+            LogEntriesSchema.Select(kvp => $"{kvp.Key} {kvp.Value}"));
+        command.CommandText = $@"CREATE TABLE IF NOT EXISTS LogEntries (
+                                    {columns}
+                                );";
+        command.ExecuteNonQuery();
+    }
+
     private async Task EnsureColumnsExistAsync(SqliteConnection connection)
     {
         try
@@ -251,6 +284,34 @@ public class StorageService
         command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
 
         await command.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Synchronous version of AddLogEntryAsync for use during process shutdown.
+    /// </summary>
+    public void AddLogEntrySync(LogEntry entry)
+    {
+        EnsureLogsTableSync();
+
+        var dbPath = GetLogsDbPath();
+        using var connection = new SqliteConnection($"Data Source={dbPath}");
+        connection.Open();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot)
+                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot);";
+        command.Parameters.AddWithValue("$id", entry.Id.ToString());
+        command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
+        command.Parameters.AddWithValue("$type", (int)entry.Type);
+        command.Parameters.AddWithValue("$taskId", (object?)entry.TaskId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$rewardId", (object?)entry.RewardId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$goldDelta", entry.GoldDelta);
+        command.Parameters.AddWithValue("$userGold", entry.UserGold);
+        command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
+        command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
+        command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
+
+        command.ExecuteNonQuery();
     }
 
     public async Task<List<LogEntry>> LoadRecentLogEntriesAsync(int count = 50)

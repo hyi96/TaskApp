@@ -760,6 +760,53 @@ public class MainWindowViewModel : ViewModelBase
             CurrentActivity.StopWithoutLogging();
         }
     }
+
+    /// <summary>
+    /// Synchronous emergency save for use during system shutdown or process exit.
+    /// Logs the running activity duration and saves all data without async I/O.
+    /// </summary>
+    public void EmergencySaveSync()
+    {
+        try
+        {
+            if (CurrentActivity.IsRunning)
+            {
+                var sessionElapsed = CurrentActivity.Elapsed - CurrentActivity.GetSessionStartElapsed();
+                if (!string.IsNullOrWhiteSpace(CurrentActivity.Title) && sessionElapsed > TimeSpan.Zero)
+                {
+                    var entry = new LogEntry
+                    {
+                        Id = Guid.NewGuid(),
+                        Timestamp = DateTimeOffset.UtcNow,
+                        Type = LogType.ActivityDuration,
+                        TaskId = CurrentActivity.TaskId,
+                        RewardId = CurrentActivity.RewardId,
+                        GoldDelta = 0,
+                        UserGold = User.Gold,
+                        Duration = sessionElapsed,
+                        TitleSnapshot = CurrentActivity.Title
+                    };
+                    _storageService.AddLogEntrySync(entry);
+                }
+                CurrentActivity.StopWithoutLogging();
+            }
+
+            User.HabitsSortMode = HabitsSortMode;
+            User.DailiesSortMode = DailiesSortMode;
+            User.TodosSortMode = TodosSortMode;
+            User.RewardsSortMode = RewardsSortMode;
+
+            _storageService.SaveAllSync(
+                _allHabits.Cast<TaskBase>().Concat(_allDailies).Concat(_allTodos).ToList(),
+                _allRewards,
+                User,
+                AvailableTags.Select(t => t.Tag).ToList());
+        }
+        catch
+        {
+            // Best-effort during shutdown — don't crash the exit sequence
+        }
+    }
  
     public Task<List<LogEntry>> LoadRecentLogsAsync(int count = 50)
     {
