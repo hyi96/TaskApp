@@ -314,6 +314,49 @@ public class StorageService
         command.ExecuteNonQuery();
     }
 
+    public async Task DeleteLogEntryAsync(Guid entryId)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM LogEntries WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", entryId.ToString());
+        await command.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Finds the most recent log entry for a task or reward of a given type,
+    /// excluding a specific entry (the one being undone).
+    /// </summary>
+    public async Task<LogEntry?> FindPreviousLogEntryAsync(LogType type, Guid? taskId, Guid? rewardId, Guid excludeEntryId)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
+                                FROM LogEntries
+                                WHERE Type = $type AND Id != $excludeId
+                                  AND ($taskId IS NULL OR TaskId = $taskId)
+                                  AND ($rewardId IS NULL OR RewardId = $rewardId)
+                                ORDER BY Timestamp DESC
+                                LIMIT 1;";
+        command.Parameters.AddWithValue("$type", (int)type);
+        command.Parameters.AddWithValue("$excludeId", excludeEntryId.ToString());
+        command.Parameters.AddWithValue("$taskId", (object?)taskId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$rewardId", (object?)rewardId?.ToString() ?? DBNull.Value);
+
+        var results = await ReadLogEntriesAsync(command);
+        return results.Count > 0 ? results[0] : null;
+    }
+
     public async Task<List<LogEntry>> LoadRecentLogEntriesAsync(int count = 50)
     {
         await EnsureLogsTableAsync();

@@ -13,6 +13,7 @@ public class LogsViewModel : ViewModelBase
     private int _selectedLimit = 50;
     private DateTimeOffset _fromDate;
     private DateTimeOffset _toDate;
+    private bool _isUndoMode;
 
     public ObservableCollection<LogEntryViewModel> Logs { get; } = new();
 
@@ -36,6 +37,14 @@ public class LogsViewModel : ViewModelBase
         set => SetProperty(ref _toDate, value);
     }
 
+    public bool IsUndoMode
+    {
+        get => _isUndoMode;
+        set => SetProperty(ref _isUndoMode, value);
+    }
+
+    public event Func<LogEntry, Task<bool>>? RequestUndo;
+
     public LogsViewModel(StorageService storageService)
     {
         _storageService = storageService;
@@ -56,19 +65,32 @@ public class LogsViewModel : ViewModelBase
             Logs.Add(LogEntryViewModel.FromEntry(entry));
         }
     }
+
+    public async Task UndoEntryAsync(LogEntryViewModel entryVm)
+    {
+        if (entryVm.Entry == null || RequestUndo == null) return;
+
+        var success = await RequestUndo(entryVm.Entry);
+        if (success)
+        {
+            Logs.Remove(entryVm);
+        }
+    }
 }
 
 public class LogEntryViewModel
 {
     public string Message { get; init; } = string.Empty;
     public string Timestamp { get; init; } = string.Empty;
+    public LogEntry? Entry { get; init; }
 
     public static LogEntryViewModel FromEntry(LogEntry entry)
     {
         return new LogEntryViewModel
         {
             Message = BuildMessage(entry),
-            Timestamp = entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            Timestamp = entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            Entry = entry
         };
     }
 

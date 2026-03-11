@@ -858,7 +858,94 @@ public class MainWindowViewModel : ViewModelBase
             OnAutocompleteTriggered(taskId);
         }
     }
- 
+
+    public async Task<bool> UndoLogEntryAsync(LogEntry entry)
+    {
+        switch (entry.Type)
+        {
+            case LogType.HabitIncremented:
+            {
+                if (entry.TaskId is not Guid taskId) return false;
+                var habit = _allHabits.FirstOrDefault(h => h.Id == taskId);
+                if (habit == null) return false;
+
+                var delta = entry.CountDelta ?? habit.IncrementAmount;
+                habit.Count = Math.Max(0, habit.Count - delta);
+
+                var prev = await _storageService.FindPreviousLogEntryAsync(LogType.HabitIncremented, taskId, null, entry.Id);
+                habit.LastCompletedDate = prev?.Timestamp;
+                break;
+            }
+            case LogType.DailyCompleted:
+            {
+                if (entry.TaskId is not Guid taskId) return false;
+                var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
+                if (daily == null) return false;
+
+                var prevDaily = await _storageService.FindPreviousLogEntryAsync(LogType.DailyCompleted, taskId, null, entry.Id);
+
+                // Only undo if LastCompletionPeriod matches the period the log entry was for
+                var logLocal = entry.Timestamp.ToLocalTime();
+                var logPeriod = daily.GetPeriodStartFor(logLocal);
+                if (daily.LastCompletionPeriod == logPeriod)
+                {
+                    if (prevDaily != null)
+                    {
+                        // Restore to the previous completion's period so re-completing preserves streak
+                        var prevLocal = prevDaily.Timestamp.ToLocalTime();
+                        daily.LastCompletionPeriod = daily.GetPeriodStartFor(prevLocal);
+                    }
+                    else
+                    {
+                        daily.LastCompletionPeriod = null;
+                    }
+                    daily.DecrementStreak();
+                    daily.NotifyPeriodChanged();
+                }
+
+                daily.LastCompletedDate = prevDaily?.Timestamp;
+                break;
+            }
+            case LogType.TodoCompleted:
+            {
+                if (entry.TaskId is not Guid taskId) return false;
+                var todo = _allTodos.FirstOrDefault(t => t.Id == taskId);
+                if (todo == null) return false;
+
+                todo.LastCompletedDate = null;
+                break;
+            }
+            case LogType.RewardClaimed:
+            {
+                if (entry.RewardId is not Guid rewardId) return false;
+                var reward = _allRewards.FirstOrDefault(r => r.Id == rewardId);
+                if (reward == null) return false;
+
+                if (reward.ClaimCount > 0)
+                    reward.ClaimCount--;
+                if (!reward.IsRepeatable && reward.ClaimCount == 0)
+                    reward.IsClaimed = false;
+
+                var prev = await _storageService.FindPreviousLogEntryAsync(LogType.RewardClaimed, null, rewardId, entry.Id);
+                reward.ClaimedAt = prev?.Timestamp;
+                break;
+            }
+            case LogType.ActivityDuration:
+                // No state to reverse — just delete the log entry
+                break;
+            default:
+                return false;
+        }
+
+        // Reverse the gold change: subtract gold that was earned, add back gold that was spent
+        User.Gold -= entry.GoldDelta;
+
+        await _storageService.DeleteLogEntryAsync(entry.Id);
+        RefreshFilter();
+        await SaveDataAsync();
+        return true;
+    }
+
     private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null, DateTimeOffset? timestamp = null)
     {
         var entry = new LogEntry

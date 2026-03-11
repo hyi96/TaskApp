@@ -47,6 +47,7 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel mainVm)
         {
             var vm = new LogsViewModel(mainVm.StorageService);
+            vm.RequestUndo += entry => mainVm.UndoLogEntryAsync(entry);
             await vm.LoadAsync();
 
             var logsWindow = new LogsWindow
