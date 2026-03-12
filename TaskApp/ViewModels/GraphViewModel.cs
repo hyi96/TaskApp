@@ -28,6 +28,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     private SearchResultOption? _selectedSearchResult;
     private bool _isLoaded;
     private bool _disposed;
+    private bool _suppressSearchUpdate;
 
     public GraphViewModel(StorageService storageService)
     {
@@ -102,7 +103,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
         get => _searchQuery;
         set
         {
-            if (SetProperty(ref _searchQuery, value))
+            if (SetProperty(ref _searchQuery, value) && !_suppressSearchUpdate)
             {
                 UpdateSearchResults();
             }
@@ -273,7 +274,12 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     private void ApplySearchSelection(SearchResultOption selection)
     {
         SelectedTargetType = TargetTypes.FirstOrDefault(t => t.Value == selection.TargetType);
+
+        _suppressSearchUpdate = true;
         SearchQuery = selection.Name;
+        _suppressSearchUpdate = false;
+
+        SearchResults.Clear();
 
         var instance = TargetInstances.FirstOrDefault(option => option.Matches(selection));
 
