@@ -329,6 +329,31 @@ public class StorageService
     }
 
     /// <summary>
+    /// Reassigns all orphaned log entries (any type) that match a title (and have no TaskId/RewardId)
+    /// to a specific task or reward.
+    /// </summary>
+    public async Task<int> MergeActivityLogEntriesAsync(string activityTitle, Guid? targetTaskId, Guid? targetRewardId)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"UPDATE LogEntries
+                                SET TaskId = $taskId, RewardId = $rewardId
+                                WHERE TitleSnapshot = $title COLLATE NOCASE
+                                  AND TaskId IS NULL
+                                  AND RewardId IS NULL;";
+        command.Parameters.AddWithValue("$taskId", (object?)targetTaskId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$rewardId", (object?)targetRewardId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$title", activityTitle);
+
+        return await command.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
     /// Finds the most recent log entry for a task or reward of a given type,
     /// excluding a specific entry (the one being undone).
     /// </summary>

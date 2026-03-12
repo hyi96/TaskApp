@@ -29,6 +29,9 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     private bool _isLoaded;
     private bool _disposed;
     private bool _suppressSearchUpdate;
+    private bool _canMerge;
+    private SearchResultOption? _mergeTarget;
+    private string? _mergeActivityTitle;
 
     public GraphViewModel(StorageService storageService)
     {
@@ -120,6 +123,36 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
                 ApplySearchSelection(value);
             }
         }
+    }
+
+    public bool CanMerge
+    {
+        get => _canMerge;
+        private set => SetProperty(ref _canMerge, value);
+    }
+
+    public async Task MergeAsync()
+    {
+        if (_mergeTarget == null || _mergeActivityTitle == null) return;
+
+        Guid? taskId = _mergeTarget.TargetType != TargetType.Reward ? _mergeTarget.EntityId : null;
+        Guid? rewardId = _mergeTarget.TargetType == TargetType.Reward ? _mergeTarget.EntityId : null;
+
+        await _storageService.MergeActivityLogEntriesAsync(_mergeActivityTitle, taskId, rewardId);
+
+        // Reload only log entries (that's what changed) — keep current selection intact
+        _logEntries.Clear();
+        _logEntries.AddRange(await _storageService.LoadAllLogEntriesAsync());
+
+        _mergeTarget = null;
+        _mergeActivityTitle = null;
+        CanMerge = false;
+
+        // Clear search without re-triggering the dropdown
+        _suppressSearchUpdate = true;
+        SearchQuery = string.Empty;
+        _suppressSearchUpdate = false;
+        SearchResults.Clear();
     }
 
     public event Action<PlotData>? PlotDataUpdated;
@@ -226,6 +259,9 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     private void UpdateSearchResults()
     {
         SearchResults.Clear();
+        CanMerge = false;
+        _mergeTarget = null;
+        _mergeActivityTitle = null;
 
         if (string.IsNullOrWhiteSpace(SearchQuery))
         {
@@ -237,12 +273,42 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
         var results = BuildSearchIndex()
             .Where(result => result.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
             .OrderBy(result => result.Name)
-            .Take(10);
+            .Take(10)
+            .ToList();
 
         foreach (var result in results)
         {
             SearchResults.Add(result);
         }
+
+        EvaluateMergeEligibility(results);
+    }
+
+    private void EvaluateMergeEligibility(List<SearchResultOption> results)
+    {
+        if (results.Count < 2) return;
+
+        // All results must share the same name (case-insensitive)
+        var firstName = results[0].Name;
+        if (!results.All(r => r.Name.Equals(firstName, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        var types = results.Select(r => r.TargetType).Distinct().ToList();
+
+        // Exactly 2 distinct types, one must be Activity
+        if (types.Count != 2 || !types.Contains(TargetType.Activity))
+            return;
+
+        var nonActivityType = types.First(t => t != TargetType.Activity);
+        var nonActivityResults = results.Where(r => r.TargetType == nonActivityType).ToList();
+
+        // Must have exactly 1 non-Activity instance (no ambiguity)
+        if (nonActivityResults.Count != 1)
+            return;
+
+        _mergeTarget = nonActivityResults[0];
+        _mergeActivityTitle = firstName;
+        CanMerge = true;
     }
 
     private IEnumerable<SearchResultOption> BuildSearchIndex()
@@ -569,6 +635,9 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
 
     private bool IsActivityEntry(LogEntry entry)
     {
+        if (entry.Type != LogType.ActivityDuration)
+            return false;
+
         var missingTask = entry.TaskId.HasValue && !_taskLookup.ContainsKey(entry.TaskId.Value);
         var missingReward = entry.RewardId.HasValue && !_rewardLookup.ContainsKey(entry.RewardId.Value);
 

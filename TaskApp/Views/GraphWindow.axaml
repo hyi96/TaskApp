@@ -63,11 +63,19 @@ Background="{DynamicResource AppBackgroundBrush}">
                 </StackPanel>
 
                 <StackPanel Spacing="4">
-                    <TextBox Width="350"
-                             Watermark="Search target instance..."
-                             Text="{Binding SearchQuery}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox Width="350"
+                                 Watermark="Search target instance..."
+                                 Text="{Binding SearchQuery}"/>
+                        <Button Content="Merge"
+                                Click="Merge_Click"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding CanMerge}"
+                                ToolTip.Tip="Merge orphaned activity log entries into the matching task or reward so their durations are tracked together."/>
+                    </StackPanel>
                     <ListBox Width="350"
                              MaxHeight="140"
+                             HorizontalAlignment="Left"
                              ItemsSource="{Binding SearchResults}"
                              SelectedItem="{Binding SelectedSearchResult}">
                         <ListBox.ItemTemplate>

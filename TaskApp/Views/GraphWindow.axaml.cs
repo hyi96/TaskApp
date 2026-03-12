@@ -181,4 +181,12 @@ public partial class GraphWindow : Window
     {
         _viewModel?.SetResolution(TimeResolution.Year);
     }
+
+    public async void Merge_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel != null)
+        {
+            await _viewModel.MergeAsync();
+        }
+    }
 }

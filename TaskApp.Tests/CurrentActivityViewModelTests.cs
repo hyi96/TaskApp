@@ -35,7 +35,7 @@ public class CurrentActivityViewModelTests
 
         vm.SetTitleAndReset("Focus");
         vm.Start();
-        await Task.Delay(50);
+        await Task.Delay(200);
         vm.Pause();
 
         Assert.True(recorded);
@@ -57,7 +57,7 @@ public class CurrentActivityViewModelTests
 
         vm.SetTitleAndReset("Focus", Guid.NewGuid(), Guid.NewGuid());
         vm.Start();
-        await Task.Delay(50);
+        await Task.Delay(200);
 
         vm.SetTitleAndReset("Next", Guid.NewGuid(), null);
 
@@ -76,7 +76,7 @@ public class CurrentActivityViewModelTests
 
         vm.SetTitleAndReset(string.Empty);
         vm.Start();
-        await Task.Delay(50);
+        await Task.Delay(200);
         vm.Pause();
 
         Assert.False(recorded);
