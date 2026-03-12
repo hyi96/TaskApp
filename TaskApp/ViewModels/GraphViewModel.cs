@@ -693,6 +693,8 @@ public record TargetInstanceOption(TargetType Type, Guid? EntityId, string Name,
 
 public record SearchResultOption(TargetType TargetType, Guid? EntityId, string? ActivityTitle, string Name)
 {
+    public string DisplayName => $"{Name} ({TargetType})";
+
     public static SearchResultOption ForDomain(TargetType type, Guid id, string name)
     {
         return new SearchResultOption(type, id, null, name);

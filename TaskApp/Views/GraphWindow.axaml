@@ -72,7 +72,7 @@ Background="{DynamicResource AppBackgroundBrush}">
                              SelectedItem="{Binding SelectedSearchResult}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}"/>
+                                <TextBlock Text="{Binding DisplayName}"/>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
