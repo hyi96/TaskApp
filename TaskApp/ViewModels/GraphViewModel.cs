@@ -552,10 +552,10 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
         return resolution switch
         {
             TimeResolution.Hour => CreateHourBuckets(currentHourLocal, 72),
-            TimeResolution.Day => CreateDayBuckets(currentDayLocal, 14),
-            TimeResolution.Week => CreateWeekBuckets(localNow, 8),
+            TimeResolution.Day => CreateDayBuckets(currentDayLocal, 16),
+            TimeResolution.Week => CreateWeekBuckets(localNow, 12),
             TimeResolution.Month => CreateMonthBuckets(localNow, 12),
-            TimeResolution.Year => CreateYearBuckets(localNow, 4),
+            TimeResolution.Year => CreateYearBuckets(localNow, 8),
             _ => Array.Empty<TimeBucket>()
         };
     }
