@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TaskApp.Models;
+using TaskApp.Models.Logs;
 using TaskApp.Services;
 using Xunit;
 
@@ -225,6 +226,39 @@ public class UserServiceTests : IDisposable
         var bob = await svc.CreateUserAsync("Bob");
         var bobDir = svc.GetUserDataDirectory(bob.Id);
         Assert.True(Directory.Exists(bobDir));
+
+        await svc.DeleteUserAsync(bob.Id);
+
+        Assert.False(Directory.Exists(bobDir));
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_DeletesDataDirectory_WithSqliteDatabase()
+    {
+        var svc = new UserService(_tempDir);
+        svc.LoadSync();
+        var bob = await svc.CreateUserAsync("Bob");
+        var bobDir = svc.GetUserDataDirectory(bob.Id);
+
+        // Simulate StorageService creating and using a SQLite database
+        var storageService = new StorageService(svc);
+        await svc.SwitchUserAsync(bob.Id);
+        storageService.RefreshDataDirectory();
+        await storageService.AddLogEntryAsync(new LogEntry
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = DateTimeOffset.UtcNow,
+            Type = LogType.HabitIncremented,
+            GoldDelta = 1.0,
+            TitleSnapshot = "test"
+        });
+
+        // Switch away so Bob is not the current user
+        var defaultUser = svc.Users.First(u => u.Id != bob.Id);
+        await svc.SwitchUserAsync(defaultUser.Id);
+
+        Assert.True(Directory.Exists(bobDir));
+        Assert.True(File.Exists(Path.Combine(bobDir, "logs.db")));
 
         await svc.DeleteUserAsync(bob.Id);
 

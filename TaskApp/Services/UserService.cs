@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using TaskApp.Models;
 
 namespace TaskApp.Services;
@@ -218,18 +219,19 @@ public class UserService
 
         _users.Remove(user);
 
-        // Delete user's data directory
+        // Release any SQLite connection pool locks on the user's database
         var userDir = GetUserDataDirectory(userId);
+        var logsDbPath = Path.Combine(userDir, "logs.db");
+        if (File.Exists(logsDbPath))
+        {
+            using var conn = new SqliteConnection($"Data Source={logsDbPath}");
+            SqliteConnection.ClearPool(conn);
+        }
+
+        // Delete user's data directory
         if (Directory.Exists(userDir))
         {
-            try
-            {
-                Directory.Delete(userDir, recursive: true);
-            }
-            catch
-            {
-                // Ignore deletion errors
-            }
+            Directory.Delete(userDir, recursive: true);
         }
 
         await SaveUsersAsync();
