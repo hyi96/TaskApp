@@ -882,18 +882,25 @@ public class MainWindowViewModel : ViewModelBase
                 var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
                 if (daily == null) return false;
 
-                var prevDaily = await _storageService.FindPreviousLogEntryAsync(LogType.DailyCompleted, taskId, null, entry.Id);
+                // Find the most recent DailyCompleted entry for this task (excluding the one being undone)
+                var remainingLatest = await _storageService.FindPreviousLogEntryAsync(LogType.DailyCompleted, taskId, null, entry.Id);
 
-                // Only undo if LastCompletionPeriod matches the period the log entry was for
-                var logLocal = entry.Timestamp.ToLocalTime();
-                var logPeriod = daily.GetPeriodStartFor(logLocal);
-                if (daily.LastCompletionPeriod == logPeriod)
+                // Only reverse completion state if we're undoing the latest entry
+                // (no remaining entry, or remaining entry is older than the one being undone)
+                if (remainingLatest == null || remainingLatest.Timestamp <= entry.Timestamp)
                 {
-                    if (prevDaily != null)
+                    if (remainingLatest != null)
                     {
-                        // Restore to the previous completion's period so re-completing preserves streak
-                        var prevLocal = prevDaily.Timestamp.ToLocalTime();
-                        daily.LastCompletionPeriod = daily.GetPeriodStartFor(prevLocal);
+                        var prevLocal = remainingLatest.Timestamp.ToLocalTime();
+                        var prevPeriod = daily.GetPeriodStartFor(prevLocal);
+                        var currentPeriod = daily.GetCurrentPeriodStart();
+
+                        // If the remaining entry maps to the current period (e.g., after a
+                        // cadence change from daily→weekly), push to previous period so the
+                        // task appears uncompleted — the user explicitly undid the completion.
+                        daily.LastCompletionPeriod = prevPeriod == currentPeriod
+                            ? daily.GetPreviousPeriodStart()
+                            : prevPeriod;
                     }
                     else
                     {
@@ -903,7 +910,7 @@ public class MainWindowViewModel : ViewModelBase
                     daily.NotifyPeriodChanged();
                 }
 
-                daily.LastCompletedDate = prevDaily?.Timestamp;
+                daily.LastCompletedDate = remainingLatest?.Timestamp;
                 break;
             }
             case LogType.TodoCompleted:

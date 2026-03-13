@@ -320,37 +320,36 @@ public class UndoLogEntryTests : IDisposable
     }
 
     [Fact]
-    public async Task UndoDaily_NoOp_WhenPeriodDoesNotMatch()
+    public async Task UndoDaily_NoOp_WhenNewerCompletionExists()
     {
         var vm = CreateViewModel();
         vm.NewDailyTitle = "Read";
         vm.AddDaily();
         var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Weekly);
+
+        // First completion (last week)
+        var lastWeek = DateTimeOffset.UtcNow.AddDays(-7);
+        daily.Complete(lastWeek);
+        vm.AddGold(daily.GetGoldRewardWithBonus());
+        await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus(), lastWeek);
+
+        // Second completion (today)
         daily.Complete();
         vm.AddGold(daily.GetGoldRewardWithBonus());
         await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus());
 
-        // Create a log entry whose timestamp is in a different period than the current completion
+        Assert.Equal(2, daily.CurrentStreak);
+
+        // Undo the OLDER entry — should not change completion state since a newer entry exists
         var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
-        var entry = logs.First(e => e.Type == LogType.DailyCompleted);
+        var olderEntry = logs.Where(e => e.Type == LogType.DailyCompleted)
+            .OrderBy(e => e.Timestamp).First();
 
-        // Fabricate a log entry with a very old timestamp so logPeriod != LastCompletionPeriod
-        var oldEntry = new LogEntry
-        {
-            Id = entry.Id,
-            Timestamp = new DateTimeOffset(2020, 1, 1, 12, 0, 0, TimeSpan.Zero),
-            Type = LogType.DailyCompleted,
-            TaskId = entry.TaskId,
-            GoldDelta = entry.GoldDelta,
-            TitleSnapshot = entry.TitleSnapshot
-        };
+        await vm.UndoLogEntryAsync(olderEntry);
 
-        var streakBefore = daily.CurrentStreak;
-        await vm.UndoLogEntryAsync(oldEntry);
-
-        // Period didn't match, so completion state should not have changed
+        // Completion state preserved — newer entry still exists
         Assert.True(daily.IsCompleteForCurrentPeriod);
-        Assert.Equal(streakBefore, daily.CurrentStreak);
     }
 
     [Fact]
@@ -372,6 +371,166 @@ public class UndoLogEntryTests : IDisposable
         await vm.UndoLogEntryAsync(entry);
 
         Assert.Null(daily.LastCompletedDate);
+    }
+
+    [Fact]
+    public async Task UndoDaily_WorksAfterPeriodChange()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Read";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+
+        // Complete with daily cadence
+        daily.Complete();
+        vm.AddGold(daily.GetGoldRewardWithBonus());
+        await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus());
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Change period to weekly — completion should be preserved
+        daily.SetCadence(RepeatCadence.Weekly);
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Undo the completion — should uncomplete even after period change
+        var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
+        var entry = logs.First(e => e.Type == LogType.DailyCompleted);
+        await vm.UndoLogEntryAsync(entry);
+
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+        Assert.Null(daily.LastCompletionPeriod);
+        Assert.Null(daily.LastCompletedDate);
+    }
+
+    [Fact]
+    public async Task UndoDaily_WorksAfterRepeatEveryChange()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Read";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Weekly);
+
+        // Complete with weekly cadence
+        daily.Complete();
+        vm.AddGold(daily.GetGoldRewardWithBonus());
+        await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus());
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Change to every 2 weeks — completion should be preserved
+        daily.SetRepeatEvery(2);
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Undo
+        var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
+        var entry = logs.First(e => e.Type == LogType.DailyCompleted);
+        await vm.UndoLogEntryAsync(entry);
+
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+        Assert.Null(daily.LastCompletedDate);
+    }
+
+    [Fact]
+    public async Task UndoDaily_WorksAfterFormSave_ChangeCadence()
+    {
+        // Exact app flow: complete → open edit form → change cadence → save form → save data → undo
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Read";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+
+        // Step 1: Complete (daily cadence, every 1)
+        daily.Complete();
+        vm.AddGold(daily.GetGoldRewardWithBonus());
+        await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus());
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Step 2: Open edit form and change cadence (simulating DailyFormViewModel)
+        var formVm = new DailyFormViewModel(Enumerable.Empty<SelectableTag>(), daily);
+        formVm.Cadence = RepeatCadence.Weekly;
+        formVm.Save();
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Step 3: Save data (like the app does after form closes)
+        await vm.SaveDataAsync();
+
+        // Step 4: Undo the completion
+        var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
+        var entry = logs.First(e => e.Type == LogType.DailyCompleted);
+        await vm.UndoLogEntryAsync(entry);
+
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+        Assert.Null(daily.LastCompletedDate);
+        Assert.Null(daily.LastCompletionPeriod);
+    }
+
+    [Fact]
+    public async Task UndoDaily_WorksAfterFormSave_ChangeRepeatEvery()
+    {
+        // Exact app flow: complete → open edit form → change repeat every → save form → save data → undo
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Read";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Weekly);
+
+        // Step 1: Complete
+        daily.Complete();
+        vm.AddGold(daily.GetGoldRewardWithBonus());
+        await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus());
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Step 2: Open edit form and change repeat every
+        var formVm = new DailyFormViewModel(Enumerable.Empty<SelectableTag>(), daily);
+        formVm.RepeatEvery = 2;
+        formVm.Save();
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Step 3: Save data
+        await vm.SaveDataAsync();
+
+        // Step 4: Undo
+        var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
+        var entry = logs.First(e => e.Type == LogType.DailyCompleted);
+        await vm.UndoLogEntryAsync(entry);
+
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+        Assert.Null(daily.LastCompletedDate);
+    }
+
+    [Fact]
+    public async Task UndoDaily_WorksAfterPeriodChange_WithOlderEntriesInSameNewPeriod()
+    {
+        // Bug: daily cadence, completed Mon + Tue. Change to weekly. Undo Tue.
+        // Mon's entry maps to current week → task stays completed. Should be uncompleted.
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Read";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+
+        // Complete yesterday (daily cadence, different period)
+        var yesterday = DateTimeOffset.UtcNow.AddDays(-1);
+        daily.Complete(yesterday);
+        vm.AddGold(daily.GetGoldRewardWithBonus());
+        await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus(), yesterday);
+
+        // Complete today (daily cadence, current period)
+        daily.Complete();
+        vm.AddGold(daily.GetGoldRewardWithBonus());
+        await vm.LogDailyCompletedAsync(daily, daily.GetGoldRewardWithBonus());
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Change to weekly — both entries now fall in the same week
+        daily.SetCadence(RepeatCadence.Weekly);
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // Undo today's completion
+        var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
+        var latestEntry = logs.Where(e => e.Type == LogType.DailyCompleted)
+            .OrderByDescending(e => e.Timestamp).First();
+        await vm.UndoLogEntryAsync(latestEntry);
+
+        // Must be uncompleted even though yesterday's entry is in the same week
+        Assert.False(daily.IsCompleteForCurrentPeriod);
     }
 
     [Fact]
