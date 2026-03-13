@@ -248,7 +248,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     private IEnumerable<TargetInstanceOption> GetActivityInstances()
     {
         return _logEntries
-            .Where(IsActivityEntry)
+            .Where(entry => entry.Type == LogType.ActivityDuration)
             .Select(entry => entry.TitleSnapshot)
             .Where(title => !string.IsNullOrWhiteSpace(title))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -331,7 +331,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
             yield return SearchResultOption.ForDomain(TargetType.Reward, reward.Id, reward.Title);
         }
 
-        foreach (var activity in GetActivityInstances())
+        foreach (var activity in GetOrphanedActivityInstances())
         {
             yield return SearchResultOption.ForActivity(activity.ActivityTitle ?? activity.Name);
         }
@@ -517,7 +517,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
         for (var i = 0; i < buckets.Count; i++)
         {
             var bucketEntries = GetEntriesForBucket(buckets[i])
-                .Where(entry => IsActivityEntry(entry) && string.Equals(entry.TitleSnapshot, instance.ActivityTitle, StringComparison.OrdinalIgnoreCase))
+                .Where(entry => entry.Type == LogType.ActivityDuration && string.Equals(entry.TitleSnapshot, instance.ActivityTitle, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             values[i] = bucketEntries.Sum(entry => entry.Duration?.TotalMinutes ?? 0);
@@ -633,7 +633,18 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
             : start;
     }
 
-    private bool IsActivityEntry(LogEntry entry)
+    private IEnumerable<TargetInstanceOption> GetOrphanedActivityInstances()
+    {
+        return _logEntries
+            .Where(IsOrphanedActivityEntry)
+            .Select(entry => entry.TitleSnapshot)
+            .Where(title => !string.IsNullOrWhiteSpace(title))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(title => title)
+            .Select(TargetInstanceOption.ForActivity);
+    }
+
+    private bool IsOrphanedActivityEntry(LogEntry entry)
     {
         if (entry.Type != LogType.ActivityDuration)
             return false;
