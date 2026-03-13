@@ -541,6 +541,177 @@ public class DailyTaskTests
 
     #endregion
 
+    #region Period change preserves completion
+
+    [Fact]
+    public void SetCadence_PreservesCompletion_WhenCompletedInCurrentPeriod()
+    {
+        // Weekly every 1 → complete → change to every 2 weeks → still complete
+        var daily = CreateDaily(RepeatCadence.Weekly, 1);
+
+        daily.Complete();
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+        Assert.Equal(1, daily.CurrentStreak);
+
+        daily.SetRepeatEvery(2);
+
+        // Should still be complete for the current period under new settings
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+        Assert.Equal(1, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void SetCadence_PreservesCompletion_WhenChangingCadenceType()
+    {
+        // Daily every 1 → complete today → change to Weekly → still complete
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+
+        daily.Complete();
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        daily.SetCadence(RepeatCadence.Weekly);
+
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+    }
+
+    [Fact]
+    public void SetRepeatEvery_PreservesStreak_WhenReCompleting()
+    {
+        // Complete current weekly period → change to every 2 weeks → re-complete → streak preserved
+        var daily = CreateDaily(RepeatCadence.Weekly, 1);
+
+        daily.Complete();
+        Assert.Equal(1, daily.CurrentStreak);
+
+        // Change to every 2 weeks
+        daily.SetRepeatEvery(2);
+
+        // Already complete for current period, re-complete is a no-op
+        daily.Complete();
+        Assert.Equal(1, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void SetCadence_DoesNotMarkComplete_WhenNotPreviouslyCompleted()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        Assert.Null(daily.LastCompletedDate);
+
+        daily.SetCadence(RepeatCadence.Weekly);
+
+        Assert.Null(daily.LastCompletedDate);
+        Assert.Null(daily.LastCompletionPeriod);
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+    }
+
+    [Fact]
+    public void SetRepeatEvery_PreservesCompletionState()
+    {
+        var daily = CreateDaily(RepeatCadence.Weekly, 1);
+
+        daily.Complete();
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+        var completedDate = daily.LastCompletedDate;
+
+        daily.SetRepeatEvery(2);
+
+        // Completion state preserved, LastCompletedDate untouched
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+        Assert.Equal(completedDate, daily.LastCompletedDate);
+    }
+
+    [Fact]
+    public void Reproduce_UserBug_WeeklyToEvery2Weeks()
+    {
+        // Bug: streak built up, complete for this week, change to every 2 weeks,
+        // task uncompletes, re-complete → streak resets to 1
+        var daily = CreateDaily(RepeatCadence.Weekly, 1);
+
+        // Complete previous period to build streak foundation
+        var prevPeriod = daily.GetPreviousPeriodStart();
+        daily.CompleteForPeriod(prevPeriod);
+        daily.SetCurrentStreak(5);
+
+        // Complete for current week → streak 6
+        daily.Complete();
+        Assert.Equal(6, daily.CurrentStreak);
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+
+        // User changes period to every 2 weeks
+        daily.SetRepeatEvery(2);
+
+        // Task should still be done
+        Assert.True(daily.IsCompleteForCurrentPeriod);
+        // Streak should NOT have been wiped
+        Assert.Equal(6, daily.CurrentStreak);
+
+        // Re-complete is a no-op
+        daily.Complete();
+        Assert.Equal(6, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void SetCadence_DailyToWeekly_IncompleteStaysIncomplete()
+    {
+        // Completed yesterday (daily cadence) → not complete today.
+        // Switch to weekly → yesterday is in the same week → but should NOT become complete.
+        var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
+        var anchor = yesterday.AddDays(-7);
+        var daily = CreateDailyWithAnchor(RepeatCadence.Daily, 1, anchor);
+
+        daily.Complete(yesterday);
+        Assert.False(daily.IsCompleteForCurrentPeriod); // not complete for today
+        var savedCompletedDate = daily.LastCompletedDate;
+
+        daily.SetCadence(RepeatCadence.Weekly);
+
+        // Must remain NOT complete — user didn't complete it for the new weekly period
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+        // LastCompletedDate must be untouched
+        Assert.Equal(savedCompletedDate, daily.LastCompletedDate);
+    }
+
+    [Fact]
+    public void SetRepeatEvery_IncompleteStaysIncomplete()
+    {
+        // Weekly every 1 → completed last week → not complete this week.
+        // Change to every 2 weeks — if last week falls in same 2-week period, should still NOT be complete.
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var anchor = now.AddDays(-21);
+        var daily = CreateDailyWithAnchor(RepeatCadence.Weekly, 1, anchor);
+
+        var lastWeek = now.AddDays(-7);
+        daily.Complete(lastWeek);
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+
+        daily.SetRepeatEvery(2);
+
+        // Must remain NOT complete
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+    }
+
+    [Fact]
+    public void SetCadence_LastCompletedDate_NeverChanges()
+    {
+        var anchor = MakeLocal(2026, 3, 1, 12);
+        var daily = CreateDailyWithAnchor(RepeatCadence.Daily, 1, anchor);
+        var completionTime = MakeLocal(2026, 3, 10, 14);
+
+        daily.Complete(completionTime);
+        var original = daily.LastCompletedDate;
+
+        daily.SetCadence(RepeatCadence.Weekly);
+        Assert.Equal(original, daily.LastCompletedDate);
+
+        daily.SetCadence(RepeatCadence.Monthly);
+        Assert.Equal(original, daily.LastCompletedDate);
+
+        daily.SetRepeatEvery(3);
+        Assert.Equal(original, daily.LastCompletedDate);
+    }
+
+    #endregion
+
     #region Test helpers
 
     private static DailyTask CreateDaily(RepeatCadence cadence, int repeatEvery)

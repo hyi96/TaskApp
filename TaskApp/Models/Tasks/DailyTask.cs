@@ -33,6 +33,7 @@ public class DailyTask : TaskBase
                 _cadence = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+                OnPropertyChanged(nameof(CurrentPeriodEndDate));
             }
         }
     }
@@ -48,6 +49,7 @@ public class DailyTask : TaskBase
                 _repeatEvery = newValue;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+                OnPropertyChanged(nameof(CurrentPeriodEndDate));
             }
         }
     }
@@ -244,12 +246,64 @@ public class DailyTask : TaskBase
 
     public void SetCadence(RepeatCadence cadence)
     {
+        if (_cadence == cadence) return;
+        var wasComplete = IsCompleteForCurrentPeriod;
         Cadence = cadence;
+        PreserveCompletionState(wasComplete);
     }
 
     public void SetRepeatEvery(int repeatEvery)
     {
-        RepeatEvery = repeatEvery;
+        var newValue = repeatEvery < 1 ? 1 : repeatEvery;
+        if (_repeatEvery == newValue) return;
+        var wasComplete = IsCompleteForCurrentPeriod;
+        RepeatEvery = newValue;
+        PreserveCompletionState(wasComplete);
+    }
+
+    /// <summary>
+    /// Adjusts LastCompletionPeriod so that IsCompleteForCurrentPeriod matches the state
+    /// before a cadence/repeatEvery change. LastCompletedDate is never touched.
+    /// </summary>
+    private void PreserveCompletionState(bool wasComplete)
+    {
+        if (LastCompletedDate is not DateTimeOffset)
+            return;
+
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var currentPeriod = GetPeriodStart(now, Cadence, RepeatEvery, CreatedAt);
+
+        if (wasComplete)
+        {
+            // Was complete → stay complete: pin to current period
+            LastCompletionPeriod = currentPeriod;
+        }
+        else
+        {
+            // Was NOT complete → stay NOT complete
+            if (LastCompletionPeriod == currentPeriod)
+            {
+                // Recalculation would flip it to complete — push to previous period
+                LastCompletionPeriod = GetPreviousPeriodStart(currentPeriod, Cadence, RepeatEvery);
+            }
+            else
+            {
+                // Already in a different period, recalculate naturally
+                var localTime = LastCompletedDate!.Value.ToLocalTime();
+                var completionPeriod = GetPeriodStart(localTime, Cadence, RepeatEvery, CreatedAt);
+                if (completionPeriod == currentPeriod)
+                {
+                    // Would become complete — push to previous
+                    LastCompletionPeriod = GetPreviousPeriodStart(currentPeriod, Cadence, RepeatEvery);
+                }
+                else
+                {
+                    LastCompletionPeriod = completionPeriod;
+                }
+            }
+        }
+
+        OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
     }
 
     public void SetCurrentStreak(int value)
