@@ -27,6 +27,80 @@ public class StorageService
 
     private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
 
+    private const string BackupExtension = ".bak";
+    private const string TempExtension = ".tmp";
+
+    /// <summary>
+    /// Detects files corrupted by an unclean shutdown (e.g. filled with null bytes).
+    /// </summary>
+    private static bool IsCorruptedFile(string json)
+    {
+        return string.IsNullOrWhiteSpace(json) || json[0] == '\0';
+    }
+
+    /// <summary>
+    /// Writes text to a file atomically with backup rotation.
+    /// Flow: current → .bak, then write .tmp → rename to current.
+    /// If the system crashes mid-write, .bak holds the last known-good state.
+    /// </summary>
+    private static async Task WriteFileAtomicAsync(string filePath, string content)
+    {
+        var backupPath = filePath + BackupExtension;
+        var tempPath = filePath + TempExtension;
+
+        if (File.Exists(filePath))
+        {
+            File.Copy(filePath, backupPath, overwrite: true);
+        }
+
+        await File.WriteAllTextAsync(tempPath, content);
+        File.Move(tempPath, filePath, overwrite: true);
+    }
+
+    private static void WriteFileAtomic(string filePath, string content)
+    {
+        var backupPath = filePath + BackupExtension;
+        var tempPath = filePath + TempExtension;
+
+        if (File.Exists(filePath))
+        {
+            File.Copy(filePath, backupPath, overwrite: true);
+        }
+
+        File.WriteAllText(tempPath, content);
+        File.Move(tempPath, filePath, overwrite: true);
+    }
+
+    /// <summary>
+    /// Reads a JSON file, falling back to the .bak copy if the primary is missing or corrupted.
+    /// Returns null if neither file yields valid content.
+    /// </summary>
+    private static async Task<string?> ReadFileWithBackupFallbackAsync(string filePath)
+    {
+        // Try primary file
+        if (File.Exists(filePath))
+        {
+            var json = await File.ReadAllTextAsync(filePath);
+            if (!IsCorruptedFile(json))
+            {
+                return json;
+            }
+        }
+
+        // Try backup
+        var backupPath = filePath + BackupExtension;
+        if (File.Exists(backupPath))
+        {
+            var backupJson = await File.ReadAllTextAsync(backupPath);
+            if (!IsCorruptedFile(backupJson))
+            {
+                return backupJson;
+            }
+        }
+
+        return null;
+    }
+
     public StorageService(UserService userService)
     {
         _userService = userService;
@@ -55,25 +129,31 @@ public class StorageService
         var filePath = Path.Combine(_dataDirectory, TagsFileName);
         var tagsData = tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList();
         var json = JsonSerializer.Serialize(tagsData, IndentedJsonOptions);
-        await File.WriteAllTextAsync(filePath, json);
+        await WriteFileAtomicAsync(filePath, json);
     }
 
     public async Task<List<Tag>> LoadTagsAsync()
     {
         var filePath = Path.Combine(_dataDirectory, TagsFileName);
-        if (!File.Exists(filePath))
+        var json = await ReadFileWithBackupFallbackAsync(filePath);
+
+        if (json == null)
         {
-            // Default tags
-            return new List<Tag>
+            if (!File.Exists(filePath) && !File.Exists(filePath + BackupExtension))
             {
-                new("Health"),
-                new("Work"),
-                new("Urgent"),
-                new("Personal")
-            };
+                // First launch — return defaults
+                return new List<Tag>
+                {
+                    new("Health"),
+                    new("Work"),
+                    new("Urgent"),
+                    new("Personal")
+                };
+            }
+
+            return new List<Tag>();
         }
 
-        var json = await File.ReadAllTextAsync(filePath);
         try
         {
             var dataList = JsonSerializer.Deserialize<List<TagData>>(json);
@@ -81,9 +161,16 @@ public class StorageService
         }
         catch (JsonException)
         {
-            // Fallback for legacy string format
-            var stringList = JsonSerializer.Deserialize<List<string>>(json);
-            return stringList?.Select(s => new Tag(s)).ToList() ?? new List<Tag>();
+            try
+            {
+                // Fallback for legacy string format
+                var stringList = JsonSerializer.Deserialize<List<string>>(json);
+                return stringList?.Select(s => new Tag(s)).ToList() ?? new List<Tag>();
+            }
+            catch (JsonException)
+            {
+                return new List<Tag>();
+            }
         }
     }
 
@@ -93,7 +180,7 @@ public class StorageService
         var filePath = Path.Combine(_dataDirectory, TasksFileName);
 
         var json = JsonSerializer.Serialize(dataList, IndentedJsonOptions);
-        await File.WriteAllTextAsync(filePath, json);
+        await WriteFileAtomicAsync(filePath, json);
     }
 
     /// <summary>
@@ -102,32 +189,34 @@ public class StorageService
     public void SaveAllSync(IEnumerable<TaskBase> tasks, IEnumerable<Reward> rewards, UserProfile profile, IEnumerable<Tag> tags)
     {
         var tasksJson = JsonSerializer.Serialize(tasks.Select(TaskMapper.ToData).ToList(), IndentedJsonOptions);
-        File.WriteAllText(Path.Combine(_dataDirectory, TasksFileName), tasksJson);
+        WriteFileAtomic(Path.Combine(_dataDirectory, TasksFileName), tasksJson);
 
         var rewardsJson = JsonSerializer.Serialize(rewards.Select(RewardMapper.ToData).ToList(), IndentedJsonOptions);
-        File.WriteAllText(Path.Combine(_dataDirectory, RewardsFileName), rewardsJson);
+        WriteFileAtomic(Path.Combine(_dataDirectory, RewardsFileName), rewardsJson);
 
         var profileJson = JsonSerializer.Serialize(profile, IndentedJsonOptions);
-        File.WriteAllText(Path.Combine(_dataDirectory, UserProfileFileName), profileJson);
+        WriteFileAtomic(Path.Combine(_dataDirectory, UserProfileFileName), profileJson);
 
         var tagsJson = JsonSerializer.Serialize(tags.Select(t => new TagData { Id = t.Id, Name = t.Name }).ToList(), IndentedJsonOptions);
-        File.WriteAllText(Path.Combine(_dataDirectory, TagsFileName), tagsJson);
+        WriteFileAtomic(Path.Combine(_dataDirectory, TagsFileName), tagsJson);
     }
 
     public async Task<List<TaskBase>> LoadTasksAsync()
     {
         var filePath = Path.Combine(_dataDirectory, TasksFileName);
-        if (!File.Exists(filePath))
+        var json = await ReadFileWithBackupFallbackAsync(filePath);
+        if (json == null) return new List<TaskBase>();
+
+        try
+        {
+            var dataList = JsonSerializer.Deserialize<List<TaskData>>(json);
+            if (dataList == null) return new List<TaskBase>();
+            return dataList.Select(TaskMapper.ToModel).ToList();
+        }
+        catch (JsonException)
         {
             return new List<TaskBase>();
         }
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var dataList = JsonSerializer.Deserialize<List<TaskData>>(json);
-        
-        if (dataList == null) return new List<TaskBase>();
-
-        return dataList.Select(TaskMapper.ToModel).ToList();
     }
 
     public async Task SaveRewardsAsync(IEnumerable<Reward> rewards)
@@ -135,41 +224,40 @@ public class StorageService
         var dataList = rewards.Select(RewardMapper.ToData).ToList();
         var filePath = Path.Combine(_dataDirectory, RewardsFileName);
         var json = JsonSerializer.Serialize(dataList, IndentedJsonOptions);
-        await File.WriteAllTextAsync(filePath, json);
+        await WriteFileAtomicAsync(filePath, json);
     }
 
     public async Task<List<Reward>> LoadRewardsAsync()
     {
         var filePath = Path.Combine(_dataDirectory, RewardsFileName);
-        if (!File.Exists(filePath))
+        var json = await ReadFileWithBackupFallbackAsync(filePath);
+        if (json == null) return new List<Reward>();
+
+        try
+        {
+            var dataList = JsonSerializer.Deserialize<List<RewardData>>(json);
+            if (dataList == null) return new List<Reward>();
+            return dataList.Select(RewardMapper.ToModel).ToList();
+        }
+        catch (JsonException)
         {
             return new List<Reward>();
         }
-
-        var json = await File.ReadAllTextAsync(filePath);
-        var dataList = JsonSerializer.Deserialize<List<RewardData>>(json);
-        
-        if (dataList == null) return new List<Reward>();
-
-        return dataList.Select(RewardMapper.ToModel).ToList();
     }
 
     public async Task SaveUserProfileAsync(UserProfile user)
     {
         var filePath = Path.Combine(_dataDirectory, UserProfileFileName);
         var json = JsonSerializer.Serialize(user, IndentedJsonOptions);
-        await File.WriteAllTextAsync(filePath, json);
+        await WriteFileAtomicAsync(filePath, json);
     }
 
     public async Task<UserProfile> LoadUserProfileAsync()
     {
         var filePath = Path.Combine(_dataDirectory, UserProfileFileName);
-        if (!File.Exists(filePath))
-        {
-            return new UserProfile();
-        }
+        var json = await ReadFileWithBackupFallbackAsync(filePath);
+        if (json == null) return new UserProfile();
 
-        var json = await File.ReadAllTextAsync(filePath);
         try
         {
             var user = JsonSerializer.Deserialize<UserProfile>(json);

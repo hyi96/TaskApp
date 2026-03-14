@@ -20,6 +20,7 @@ public class UserService
     private readonly string UsersFile;
     private readonly string CurrentUserFile;
     private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
+    private const string BackupExtension = ".bak";
 
     private List<User> _users = new();
     private User? _currentUser;
@@ -66,6 +67,20 @@ public class UserService
             }
         }
 
+        // Fall back to backup if primary is empty/missing
+        if (_users.Count == 0 && File.Exists(UsersFile + BackupExtension))
+        {
+            try
+            {
+                var backupJson = File.ReadAllText(UsersFile + BackupExtension);
+                _users = JsonSerializer.Deserialize<List<User>>(backupJson) ?? new List<User>();
+            }
+            catch
+            {
+                _users = new List<User>();
+            }
+        }
+
         // Create default user if none exist
         if (_users.Count == 0)
         {
@@ -86,6 +101,20 @@ public class UserService
             catch
             {
                 // Ignore deserialization errors
+            }
+        }
+
+        // Fall back to backup
+        if (currentUserId == null && File.Exists(CurrentUserFile + BackupExtension))
+        {
+            try
+            {
+                var backupJson = File.ReadAllText(CurrentUserFile + BackupExtension);
+                currentUserId = JsonSerializer.Deserialize<Guid>(backupJson);
+            }
+            catch
+            {
+                // Ignore
             }
         }
 
@@ -113,6 +142,20 @@ public class UserService
             }
         }
 
+        // Fall back to backup if primary is empty/missing
+        if (_users.Count == 0 && File.Exists(UsersFile + BackupExtension))
+        {
+            try
+            {
+                var backupJson = await File.ReadAllTextAsync(UsersFile + BackupExtension);
+                _users = JsonSerializer.Deserialize<List<User>>(backupJson) ?? new List<User>();
+            }
+            catch
+            {
+                _users = new List<User>();
+            }
+        }
+
         // Create default user if none exist
         if (_users.Count == 0)
         {
@@ -133,6 +176,20 @@ public class UserService
             catch
             {
                 // Ignore deserialization errors
+            }
+        }
+
+        // Fall back to backup
+        if (currentUserId == null && File.Exists(CurrentUserFile + BackupExtension))
+        {
+            try
+            {
+                var backupJson = await File.ReadAllTextAsync(CurrentUserFile + BackupExtension);
+                currentUserId = JsonSerializer.Deserialize<Guid>(backupJson);
+            }
+            catch
+            {
+                // Ignore
             }
         }
 
@@ -250,7 +307,15 @@ public class UserService
 
         _currentUser = user;
         var json = JsonSerializer.Serialize(userId);
-        await File.WriteAllTextAsync(CurrentUserFile, json);
+        var tempPath = CurrentUserFile + ".tmp";
+
+        if (File.Exists(CurrentUserFile))
+        {
+            File.Copy(CurrentUserFile, CurrentUserFile + BackupExtension, overwrite: true);
+        }
+
+        await File.WriteAllTextAsync(tempPath, json);
+        File.Move(tempPath, CurrentUserFile, overwrite: true);
 
         CurrentUserChanged?.Invoke();
     }
@@ -404,14 +469,30 @@ public class UserService
     {
         Directory.CreateDirectory(AppDataFolder);
         var json = JsonSerializer.Serialize(_users, IndentedJsonOptions);
-        File.WriteAllText(UsersFile, json);
+        var tempPath = UsersFile + ".tmp";
+
+        if (File.Exists(UsersFile))
+        {
+            File.Copy(UsersFile, UsersFile + BackupExtension, overwrite: true);
+        }
+
+        File.WriteAllText(tempPath, json);
+        File.Move(tempPath, UsersFile, overwrite: true);
     }
 
     private async Task SaveUsersAsync()
     {
         Directory.CreateDirectory(AppDataFolder);
         var json = JsonSerializer.Serialize(_users, IndentedJsonOptions);
-        await File.WriteAllTextAsync(UsersFile, json);
+        var tempPath = UsersFile + ".tmp";
+
+        if (File.Exists(UsersFile))
+        {
+            File.Copy(UsersFile, UsersFile + BackupExtension, overwrite: true);
+        }
+
+        await File.WriteAllTextAsync(tempPath, json);
+        File.Move(tempPath, UsersFile, overwrite: true);
     }
 
     /// <summary>
