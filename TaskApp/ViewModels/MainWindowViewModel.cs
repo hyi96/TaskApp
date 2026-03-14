@@ -701,6 +701,7 @@ public class MainWindowViewModel : ViewModelBase
         User.DailiesSortMode = DailiesSortMode;
         User.TodosSortMode = TodosSortMode;
         User.RewardsSortMode = RewardsSortMode;
+        User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now);
 
         await _storageService.SaveUserProfileAsync(User);
         await _storageService.SaveTagsAsync(AvailableTags.Select(t => t.Tag).ToList());
@@ -795,6 +796,7 @@ public class MainWindowViewModel : ViewModelBase
             User.DailiesSortMode = DailiesSortMode;
             User.TodosSortMode = TodosSortMode;
             User.RewardsSortMode = RewardsSortMode;
+            User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now);
 
             _storageService.SaveAllSync(
                 _allHabits.Cast<TaskBase>().Concat(_allDailies).Concat(_allTodos).ToList(),

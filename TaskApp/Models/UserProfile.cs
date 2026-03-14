@@ -14,6 +14,12 @@ public class UserProfile : INotifyPropertyChanged
 
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>
+    /// The local date when data was last saved for this profile.
+    /// Used to determine if the new day window should show on user switch.
+    /// </summary>
+    public DateOnly? LastActiveDate { get; set; }
+
     public double Gold
     {
         get => _gold;

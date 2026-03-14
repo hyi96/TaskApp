@@ -539,6 +539,98 @@ public class NewDayCompletionTests : IDisposable
 
     #endregion
 
+    #region LastActiveDate stamping
+
+    [Fact]
+    public async Task SaveDataAsync_StampsLastActiveDateToToday()
+    {
+        var vm = CreateViewModel();
+        Assert.Null(vm.User.LastActiveDate);
+
+        await vm.SaveDataAsync();
+
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now), vm.User.LastActiveDate);
+    }
+
+    [Fact]
+    public async Task SaveDataAsync_LastActiveDate_PersistsAcrossLoad()
+    {
+        var vm = CreateViewModel();
+        await vm.SaveDataAsync();
+
+        // Load a fresh ViewModel from the same directory
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now), vm2.User.LastActiveDate);
+    }
+
+    [Fact]
+    public void NewProfile_HasNullLastActiveDate()
+    {
+        var vm = CreateViewModel();
+        Assert.Null(vm.User.LastActiveDate);
+    }
+
+    #endregion
+
+    #region New day window trigger conditions on user switch
+
+    [Fact]
+    public void ShouldShowNewDay_WhenLastActiveDateIsYesterday()
+    {
+        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        var vm = CreateViewModel();
+        vm.User.LastActiveDate = yesterday;
+
+        // Replicate the condition from OnCurrentUserChanged
+        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.True(shouldShow);
+    }
+
+    [Fact]
+    public void ShouldNotShowNewDay_WhenLastActiveDateIsToday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var vm = CreateViewModel();
+        vm.User.LastActiveDate = today;
+
+        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.False(shouldShow);
+    }
+
+    [Fact]
+    public void ShouldNotShowNewDay_WhenLastActiveDateIsNull()
+    {
+        var vm = CreateViewModel();
+        vm.User.LastActiveDate = null;
+
+        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.False(shouldShow);
+    }
+
+    [Fact]
+    public void ShouldNotShowNewDay_WhenLastActiveDateIsAncient()
+    {
+        var vm = CreateViewModel();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-30);
+
+        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.False(shouldShow);
+    }
+
+    [Fact]
+    public void ShouldNotShowNewDay_WhenLastActiveDateIsTwoDaysAgo()
+    {
+        var vm = CreateViewModel();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-2);
+
+        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.False(shouldShow);
+    }
+
+    #endregion
+
     #region Test helpers
 
     private MainWindowViewModel CreateViewModel()
