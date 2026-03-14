@@ -121,6 +121,9 @@ namespace TaskApp
                 _storageService.RefreshDataDirectory();
                 await _viewModel.LoadDataAsync();
                 _viewModel.RefreshCurrentUserName();
+
+                // Check if the new user has uncompleted dailies from yesterday
+                await HandleNewDay();
             });
         }
         
