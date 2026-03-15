@@ -631,6 +631,844 @@ public class NewDayCompletionTests : IDisposable
 
     #endregion
 
+    #region Streak preservation through new day window
+
+    [Fact]
+    public void NewDayCompletion_PreservesStreak_WhenCompletedBeforeRefresh()
+    {
+        // Simulate a daily with a 5-day streak, last completed day-before-yesterday.
+        // The correct flow: CompleteForPeriod (new day window) THEN RefreshForCurrentPeriod.
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var anchor = now.AddDays(-10);
+        var daily = CreateDailyWithAnchor(anchor);
+
+        // Build up a streak by completing consecutive days up to day-before-yesterday
+        for (int i = 7; i >= 2; i--)
+        {
+            var day = now.AddDays(-i);
+            var period = daily.GetPeriodStartFor(day);
+            daily.CompleteForPeriod(period);
+        }
+
+        // Streak should be 6 (days -7 through -2)
+        Assert.Equal(6, daily.CurrentStreak);
+
+        // Now simulate the new day window: complete for yesterday's period
+        var yesterday = now.AddDays(-1);
+        var yesterdayPeriod = daily.GetPeriodStartFor(yesterday);
+        daily.CompleteForPeriod(yesterdayPeriod);
+
+        // Streak should be 7 (continued from 6)
+        Assert.Equal(7, daily.CurrentStreak);
+
+        // THEN refresh for current period (today) — streak should NOT be reset
+        daily.RefreshForCurrentPeriod(now);
+
+        Assert.Equal(7, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void NewDayCompletion_StreakResetToOne_WhenRefreshRunsBeforeComplete()
+    {
+        // This test documents the OLD buggy behavior where RefreshForCurrentPeriod
+        // runs BEFORE CompleteForPeriod, destroying the streak.
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var anchor = now.AddDays(-10);
+        var daily = CreateDailyWithAnchor(anchor);
+
+        // Build up a streak by completing consecutive days up to day-before-yesterday
+        for (int i = 7; i >= 2; i--)
+        {
+            var day = now.AddDays(-i);
+            var period = daily.GetPeriodStartFor(day);
+            daily.CompleteForPeriod(period);
+        }
+
+        Assert.Equal(6, daily.CurrentStreak);
+
+        // BUG: RefreshForCurrentPeriod runs first — resets streak to 0
+        daily.RefreshForCurrentPeriod(now);
+        Assert.Equal(0, daily.CurrentStreak);
+
+        // Then CompleteForPeriod runs — streak becomes 1 instead of 7
+        var yesterday = now.AddDays(-1);
+        var yesterdayPeriod = daily.GetPeriodStartFor(yesterday);
+        daily.CompleteForPeriod(yesterdayPeriod);
+
+        // Streak is 1 instead of 7 — this was the bug
+        Assert.Equal(1, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void NewDayCompletion_BestStreak_NotLostByCorrectOrder()
+    {
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var anchor = now.AddDays(-20);
+        var daily = CreateDailyWithAnchor(anchor);
+
+        // Build up a 10-day streak
+        for (int i = 12; i >= 2; i--)
+        {
+            var day = now.AddDays(-i);
+            var period = daily.GetPeriodStartFor(day);
+            daily.CompleteForPeriod(period);
+        }
+
+        Assert.Equal(11, daily.CurrentStreak);
+        Assert.Equal(11, daily.BestStreak);
+
+        // Correct order: complete yesterday, then refresh
+        var yesterday = now.AddDays(-1);
+        var yesterdayPeriod = daily.GetPeriodStartFor(yesterday);
+        daily.CompleteForPeriod(yesterdayPeriod);
+        daily.RefreshForCurrentPeriod(now);
+
+        Assert.Equal(12, daily.CurrentStreak);
+        Assert.Equal(12, daily.BestStreak);
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_DoesNotCallRefreshTasksForNewDay()
+    {
+        // After the fix, LoadDataAsync should not reset streaks.
+        // Create a daily with a streak, save, then reload — streak should be intact.
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Streak Test";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+
+        // Build a streak by completing consecutive days
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        for (int i = 5; i >= 1; i--)
+        {
+            var day = now.AddDays(-i);
+            var period = daily.GetPeriodStartFor(day);
+            daily.CompleteForPeriod(period);
+        }
+
+        Assert.Equal(5, daily.CurrentStreak);
+
+        await vm.SaveDataAsync();
+
+        // Reload from disk — LoadDataAsync should NOT reset the streak
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+        var reloaded = vm2.Dailies.First(d => d.Title == "Streak Test");
+
+        // Streak should be preserved (LoadDataAsync no longer calls RefreshTasksForNewDay)
+        Assert.Equal(5, reloaded.CurrentStreak);
+    }
+
+    [Fact]
+    public void NewDayCompletion_StreakOfOne_PreservedWithCorrectOrder()
+    {
+        // Edge case: streak of 1 (completed day-before-yesterday only)
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var anchor = now.AddDays(-5);
+        var daily = CreateDailyWithAnchor(anchor);
+
+        var twoDaysAgo = now.AddDays(-2);
+        var twoDaysAgoPeriod = daily.GetPeriodStartFor(twoDaysAgo);
+        daily.CompleteForPeriod(twoDaysAgoPeriod);
+
+        Assert.Equal(1, daily.CurrentStreak);
+
+        // Correct order: complete yesterday, then refresh
+        var yesterday = now.AddDays(-1);
+        var yesterdayPeriod = daily.GetPeriodStartFor(yesterday);
+        daily.CompleteForPeriod(yesterdayPeriod);
+        daily.RefreshForCurrentPeriod(now);
+
+        Assert.Equal(2, daily.CurrentStreak);
+    }
+
+    #endregion
+
+    #region User switch integration — new day window flow
+
+    [Fact]
+    public async Task UserSwitch_LoadDataThenGetUncompleted_FindsUncompletedDaily()
+    {
+        // Setup: save a daily that was NOT completed yesterday
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Morning Run";
+        vm.AddDaily();
+        await vm.SaveDataAsync();
+
+        // Overwrite LastActiveDate to yesterday (SaveDataAsync stamps today)
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        // Simulate user switch: fresh load from disk
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        // LastActiveDate should be yesterday
+        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.Equal(yesterday, vm2.User.LastActiveDate);
+
+        // Condition from OnCurrentUserChanged should be true
+        Assert.True(vm2.User.LastActiveDate == yesterday);
+
+        // GetUncompletedDailiesFromYesterday should find the daily
+        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        Assert.Single(uncompletedDailies);
+        Assert.Equal("Morning Run", uncompletedDailies[0].Title);
+    }
+
+    [Fact]
+    public async Task UserSwitch_CompletedDailyYesterday_NotInUncompletedList()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Completed Yesterday";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+
+        // Complete the daily for yesterday's period
+        var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
+        daily.CompleteForPeriod(daily.GetPeriodStartFor(yesterday));
+
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        // Reload from disk
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        // This daily was completed yesterday → should NOT appear
+        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        Assert.Empty(uncompletedDailies);
+    }
+
+    [Fact]
+    public async Task UserSwitch_MixedDailies_OnlyUncompletedAppear()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Completed";
+        vm.AddDaily();
+        vm.NewDailyTitle = "Not Completed";
+        vm.AddDaily();
+        vm.NewDailyTitle = "Also Not Completed";
+        vm.AddDaily();
+
+        var completed = vm.Dailies.First(d => d.Title == "Completed");
+        var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
+        completed.CompleteForPeriod(completed.GetPeriodStartFor(yesterday));
+
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        Assert.Equal(2, uncompletedDailies.Count);
+        Assert.DoesNotContain(uncompletedDailies, d => d.Title == "Completed");
+        Assert.Contains(uncompletedDailies, d => d.Title == "Not Completed");
+        Assert.Contains(uncompletedDailies, d => d.Title == "Also Not Completed");
+    }
+
+    [Fact]
+    public async Task UserSwitch_FullHandleNewDayFlow_StreakPreserved()
+    {
+        // Setup: daily with a 3-day streak, last completed 2 days ago (not yesterday)
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Streak Daily";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetGoldReward(5.0);
+
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        for (int i = 4; i >= 2; i--)
+        {
+            daily.CompleteForPeriod(daily.GetPeriodStartFor(now.AddDays(-i)));
+        }
+        Assert.Equal(3, daily.CurrentStreak);
+
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        // Simulate user switch: LoadDataAsync (no RefreshTasksForNewDay)
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+        var reloaded = vm2.Dailies.First(d => d.Title == "Streak Daily");
+
+        // Streak should be intact (LoadDataAsync doesn't reset)
+        Assert.Equal(3, reloaded.CurrentStreak);
+
+        // Simulate HandleNewDay: get unchecked dailies
+        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        Assert.Single(uncompletedDailies);
+
+        // Simulate ShowNewDayWindow: complete for yesterday
+        var yesterday = now.AddDays(-1);
+        reloaded.CompleteForPeriod(reloaded.GetPeriodStartFor(yesterday));
+
+        // Streak should be 4 (continued from 3)
+        Assert.Equal(4, reloaded.CurrentStreak);
+
+        // Simulate HandleNewDay calls RefreshTasksForNewDay after window
+        vm2.RefreshTasksForNewDay();
+
+        // Streak should still be 4
+        Assert.Equal(4, reloaded.CurrentStreak);
+
+        // SaveDataAsync (HandleNewDay saves at end)
+        await vm2.SaveDataAsync();
+
+        // Verify persisted correctly
+        var vm3 = CreateViewModel();
+        await vm3.LoadDataAsync();
+        var final = vm3.Dailies.First(d => d.Title == "Streak Daily");
+        Assert.Equal(4, final.CurrentStreak);
+    }
+
+    [Fact]
+    public async Task UserSwitch_SaveThenLoad_PreservesLastActiveDateFromDisk()
+    {
+        // Simulate user A saving data (stamps LastActiveDate = today)
+        var vm = CreateViewModel();
+        await vm.SaveDataAsync();
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now), vm.User.LastActiveDate);
+
+        // Manually set LastActiveDate to yesterday and re-save the profile
+        // (simulates the JSON file having yesterday's date)
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        // Fresh load should read yesterday from disk
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now).AddDays(-1), vm2.User.LastActiveDate);
+    }
+
+    [Fact]
+    public async Task UserSwitch_NoDailies_HandleNewDayDoesNotShowWindow()
+    {
+        // User with no dailies — HandleNewDay should find nothing
+        var vm = CreateViewModel();
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        // LastActiveDate matches yesterday
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now).AddDays(-1), vm2.User.LastActiveDate);
+
+        // But no dailies → empty list
+        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        Assert.Empty(uncompletedDailies);
+    }
+
+    [Fact]
+    public async Task UserSwitch_LastActiveDateNotYesterday_SkipsHandleNewDay()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Some Daily";
+        vm.AddDaily();
+        await vm.SaveDataAsync();
+
+        // LastActiveDate = 2 days ago (not yesterday)
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-2);
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        // Condition should fail
+        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.NotEqual(yesterday, vm2.User.LastActiveDate);
+
+        // RefreshTasksForNewDay runs in the else path — verify it works
+        vm2.RefreshTasksForNewDay();
+        Assert.Single(vm2.Dailies);
+    }
+
+    #endregion
+
+    #region Two-user switch integration tests
+
+    [Fact]
+    public async Task TwoUserSwitch_SaveOldThenLoadNew_LastActiveDateCorrect()
+    {
+        // Setup: two users with separate data directories
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("User B");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+
+        // User A: add a daily and save
+        vm.NewDailyTitle = "User A Daily";
+        vm.AddDaily();
+        await vm.SaveDataAsync(); // stamps User A LastActiveDate = today
+
+        // Switch to User B and set up data with LastActiveDate = yesterday
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        vm.NewDailyTitle = "User B Daily";
+        vm.AddDaily();
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await storageService.SaveUserProfileAsync(vm.User);
+
+        // Now switch back to User A
+        await userService.SwitchUserAsync(userA.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        await vm.SaveDataAsync(); // stamps today
+
+        // === Simulate OnCurrentUserChanged: A → B ===
+        // Step 1: SaveDataAsync (old user A) — stamps today
+        await vm.SaveDataAsync();
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now), vm.User.LastActiveDate);
+
+        // Step 2: RefreshDataDirectory to User B
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+
+        // Step 3: LoadDataAsync (new user B)
+        await vm.LoadDataAsync();
+
+        // User B's LastActiveDate should be yesterday (from disk), NOT today
+        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.Equal(yesterday, vm.User.LastActiveDate);
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_OldUserDataIntact_AfterSwitch()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("User B");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+
+        // User A: add dailies and save
+        vm.NewDailyTitle = "A-Daily-1";
+        vm.AddDaily();
+        vm.NewDailyTitle = "A-Daily-2";
+        vm.AddDaily();
+        vm.User.Gold = 100.0;
+        await vm.SaveDataAsync();
+        var userAGold = vm.User.Gold;
+
+        // Setup User B with data
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        vm.NewDailyTitle = "B-Daily-1";
+        vm.AddDaily();
+        vm.User.Gold = 50.0;
+        await vm.SaveDataAsync();
+
+        // Simulate OnCurrentUserChanged: B → A
+        await vm.SaveDataAsync(); // save B's data
+        await userService.SwitchUserAsync(userA.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        // User A's data should be intact
+        Assert.Equal(2, vm.Dailies.Count);
+        Assert.Contains(vm.Dailies, d => d.Title == "A-Daily-1");
+        Assert.Contains(vm.Dailies, d => d.Title == "A-Daily-2");
+        Assert.Equal(userAGold, vm.User.Gold);
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_HandleNewDay_FindsNewUserUncompletedDailies()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("User B");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+
+        // User A: active today
+        vm.NewDailyTitle = "A-Task";
+        vm.AddDaily();
+        await vm.SaveDataAsync();
+
+        // User B: active yesterday, has uncompleted dailies
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        vm.NewDailyTitle = "B-Uncompleted";
+        vm.AddDaily();
+        vm.NewDailyTitle = "B-Also-Uncompleted";
+        vm.AddDaily();
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await storageService.SaveUserProfileAsync(vm.User);
+
+        // Switch back to A so we can simulate A → B switch
+        await userService.SwitchUserAsync(userA.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        // === Full OnCurrentUserChanged: A → B ===
+        await vm.SaveDataAsync();                        // save A
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();            // switch dir
+        await vm.LoadDataAsync();                         // load B
+
+        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        Assert.Equal(yesterday, vm.User.LastActiveDate);
+
+        // HandleNewDay logic
+        var uncompleted = vm.GetUncompletedDailiesFromYesterday();
+        Assert.Equal(2, uncompleted.Count);
+        Assert.Contains(uncompleted, d => d.Title == "B-Uncompleted");
+        Assert.Contains(uncompleted, d => d.Title == "B-Also-Uncompleted");
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_WeeklyCadence_SamePeriod_ExcludedFromUncompleted()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+
+        // Add a weekly daily — yesterday and today are in the same week period
+        vm.NewDailyTitle = "Weekly Task";
+        vm.AddDaily();
+        var weekly = vm.Dailies[0];
+        weekly.SetCadence(RepeatCadence.Weekly);
+        weekly.SetRepeatEvery(1);
+
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await storageService.SaveUserProfileAsync(vm.User);
+
+        // Reload and check
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        var uncompleted = vm2.GetUncompletedDailiesFromYesterday();
+
+        // Weekly tasks where today and yesterday share a period should NOT appear
+        var weeklyReloaded = vm2.Dailies.First(d => d.Title == "Weekly Task");
+        var todayPeriod = weeklyReloaded.GetCurrentPeriodStart();
+        var yesterdayPeriod = weeklyReloaded.GetPeriodStartFor(DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1));
+
+        if (todayPeriod == yesterdayPeriod)
+        {
+            Assert.DoesNotContain(uncompleted, d => d.Title == "Weekly Task");
+        }
+        else
+        {
+            // Edge case: if today is Monday, yesterday was Sunday (different week)
+            Assert.Contains(uncompleted, d => d.Title == "Weekly Task");
+        }
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_AllDailiesCompleted_EmptyUncompletedList()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("User B");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+        await vm.SaveDataAsync();
+
+        // User B: all dailies completed yesterday
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        vm.NewDailyTitle = "Completed-1";
+        vm.AddDaily();
+        vm.NewDailyTitle = "Completed-2";
+        vm.AddDaily();
+
+        var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
+        foreach (var daily in vm.Dailies)
+        {
+            daily.CompleteForPeriod(daily.GetPeriodStartFor(yesterday));
+        }
+
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await storageService.SaveUserProfileAsync(vm.User);
+
+        // Switch A → B
+        await userService.SwitchUserAsync(userA.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        await vm.SaveDataAsync();
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        // LastActiveDate == yesterday, but all dailies were completed
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Now).AddDays(-1), vm.User.LastActiveDate);
+        var uncompleted = vm.GetUncompletedDailiesFromYesterday();
+        Assert.Empty(uncompleted); // window should NOT show
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_NewUserNullLastActiveDate_SkipsHandleNewDay()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("Brand New User");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+        await vm.SaveDataAsync();
+
+        // Simulate A → B switch (B has never been used, no user.json or fresh profile)
+        await vm.SaveDataAsync();
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+
+        // New user's LastActiveDate should be null (or today from SaveDataAsync)
+        // Either way, it should NOT equal yesterday
+        Assert.NotEqual(yesterday, vm.User.LastActiveDate);
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_StreakPreserved_ThroughFullSwitchFlow()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("User B");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+        await vm.SaveDataAsync();
+
+        // Setup User B: daily with 5-day streak, last completed day before yesterday
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        vm.NewDailyTitle = "Streak Task";
+        vm.AddDaily();
+        var daily = vm.Dailies.First(d => d.Title == "Streak Task");
+        daily.SetGoldReward(10.0);
+
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        // Complete for days -6 through -2 (5 consecutive days, NOT yesterday)
+        for (int i = 6; i >= 2; i--)
+        {
+            daily.CompleteForPeriod(daily.GetPeriodStartFor(now.AddDays(-i)));
+        }
+        Assert.Equal(5, daily.CurrentStreak);
+
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await storageService.SaveUserProfileAsync(vm.User);
+
+        // Switch back to A
+        await userService.SwitchUserAsync(userA.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        // === Full OnCurrentUserChanged: A → B ===
+        // Step 1: Save A
+        await vm.SaveDataAsync();
+
+        // Step 2-3: Switch to B, load
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        // Verify: streak intact after load (no RefreshTasksForNewDay yet)
+        var reloaded = vm.Dailies.First(d => d.Title == "Streak Task");
+        Assert.Equal(5, reloaded.CurrentStreak);
+
+        // Step 4: HandleNewDay
+        var uncompleted = vm.GetUncompletedDailiesFromYesterday();
+        Assert.Single(uncompleted);
+
+        // Complete for yesterday (simulates checking in new day window)
+        var yesterday = now.AddDays(-1);
+        reloaded.CompleteForPeriod(reloaded.GetPeriodStartFor(yesterday));
+        Assert.Equal(6, reloaded.CurrentStreak); // continued!
+
+        // Step 5: RefreshTasksForNewDay (called after HandleNewDay)
+        vm.RefreshTasksForNewDay();
+        Assert.Equal(6, reloaded.CurrentStreak); // still intact!
+
+        // Step 6: Save
+        await vm.SaveDataAsync();
+
+        // Verify persistence
+        var vm2 = new MainWindowViewModel(storageService, userService);
+        await vm2.LoadDataAsync();
+        var final = vm2.Dailies.First(d => d.Title == "Streak Task");
+        Assert.Equal(6, final.CurrentStreak);
+        Assert.Equal(6, final.BestStreak);
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_SaveWritesToOldDirectory_NotNewDirectory()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("User B");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+
+        // User A: save with specific gold
+        vm.User.Gold = 999.0;
+        await vm.SaveDataAsync();
+
+        // User B: save with different gold
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        vm.User.Gold = 50.0;
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await storageService.SaveUserProfileAsync(vm.User);
+
+        // Switch back to A
+        await userService.SwitchUserAsync(userA.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        // === Simulate OnCurrentUserChanged ordering ===
+        // At this point, _dataDirectory points to A. SwitchUserAsync changes _currentUser but NOT _dataDirectory.
+        await userService.SwitchUserAsync(userB.Id);
+
+        // SaveDataAsync writes to _dataDirectory (still A's dir!)
+        await vm.SaveDataAsync();
+
+        // Now switch directory
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+
+        // User B's gold should still be 50 (SaveDataAsync didn't overwrite B's data)
+        Assert.Equal(50.0, vm.User.Gold);
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_RepeatEvery2Days_SamePeriod_NotInUncompleted()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+
+        // Create a daily with RepeatEvery=2 anchored so today and yesterday share a period
+        vm.NewDailyTitle = "Every-2-Days";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetRepeatEvery(2);
+
+        // Determine if today and yesterday share a period for this daily
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var todayPeriod = daily.GetCurrentPeriodStart();
+        var yesterdayPeriod = daily.GetPeriodStartFor(now.AddDays(-1));
+
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        await storageService.SaveUserProfileAsync(vm.User);
+
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        var uncompleted = vm2.GetUncompletedDailiesFromYesterday();
+
+        if (todayPeriod == yesterdayPeriod)
+        {
+            // Same period — daily should NOT appear (period hasn't changed)
+            Assert.DoesNotContain(uncompleted, d => d.Title == "Every-2-Days");
+        }
+        else
+        {
+            // Different period — daily should appear
+            Assert.Contains(uncompleted, d => d.Title == "Every-2-Days");
+        }
+    }
+
+    [Fact]
+    public async Task TwoUserSwitch_MultipleRapidSwitches_DataStaysConsistent()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var userA = userService.CurrentUser!;
+        var userB = await userService.CreateUserAsync("User B");
+
+        var storageService = new StorageService(userService);
+        var vm = new MainWindowViewModel(storageService, userService);
+
+        // Setup User A
+        vm.NewDailyTitle = "A-Task";
+        vm.AddDaily();
+        vm.User.Gold = 100.0;
+        await vm.SaveDataAsync();
+
+        // Setup User B
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        vm.NewDailyTitle = "B-Task";
+        vm.AddDaily();
+        vm.User.Gold = 200.0;
+        await vm.SaveDataAsync();
+
+        // Rapid switches: B → A → B → A
+        for (int i = 0; i < 2; i++)
+        {
+            await vm.SaveDataAsync();
+            await userService.SwitchUserAsync(userA.Id);
+            storageService.RefreshDataDirectory();
+            await vm.LoadDataAsync();
+
+            Assert.Single(vm.Dailies);
+            Assert.Equal("A-Task", vm.Dailies[0].Title);
+
+            await vm.SaveDataAsync();
+            await userService.SwitchUserAsync(userB.Id);
+            storageService.RefreshDataDirectory();
+            await vm.LoadDataAsync();
+
+            Assert.Single(vm.Dailies);
+            Assert.Equal("B-Task", vm.Dailies[0].Title);
+        }
+
+        // Final check: each user still has correct gold
+        await vm.SaveDataAsync();
+        await userService.SwitchUserAsync(userA.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        Assert.Equal(100.0, vm.User.Gold);
+
+        await vm.SaveDataAsync();
+        await userService.SwitchUserAsync(userB.Id);
+        storageService.RefreshDataDirectory();
+        await vm.LoadDataAsync();
+        Assert.Equal(200.0, vm.User.Gold);
+    }
+
+    #endregion
+
     #region Test helpers
 
     private MainWindowViewModel CreateViewModel()
@@ -644,6 +1482,18 @@ public class NewDayCompletionTests : IDisposable
     private static DailyTask CreateDaily()
     {
         var daily = new DailyTask();
+        daily.UpdateTitle("Test Daily");
+        daily.SetCadence(RepeatCadence.Daily);
+        daily.SetRepeatEvery(1);
+        return daily;
+    }
+
+    private static DailyTask CreateDailyWithAnchor(DateTimeOffset anchor)
+    {
+        var daily = new DailyTask
+        {
+            CreatedAt = anchor
+        };
         daily.UpdateTitle("Test Daily");
         daily.SetCadence(RepeatCadence.Daily);
         daily.SetRepeatEvery(1);

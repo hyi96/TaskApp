@@ -415,8 +415,7 @@ public class MainWindowViewModel : ViewModelBase
                     break;
             }
         }
-        
-        RefreshTasksForNewDay();
+
         RefreshFilter();
 
         var rewards = await _storageService.LoadRewardsAsync();

@@ -54,6 +54,18 @@ namespace TaskApp
                         await SettingsService.Instance.LoadAsync();
                         ApplyTheme(SettingsService.Instance.ThemeMode);
                         await _viewModel.LoadDataAsync();
+
+                        // Handle new day BEFORE refreshing tasks so streaks are preserved
+                        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+                        if (_viewModel.User.LastActiveDate == yesterday)
+                        {
+                            await HandleNewDay();
+                        }
+                        else
+                        {
+                            _viewModel.RefreshTasksForNewDay();
+                        }
+
                         InitializeDayDetection();
                     };
 
@@ -124,10 +136,15 @@ namespace TaskApp
 
                 // Only show the new day window if this profile was active yesterday.
                 // Profiles that haven't been used recently shouldn't trigger it.
+                // HandleNewDay must run BEFORE RefreshTasksForNewDay so streaks are preserved.
                 var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
                 if (_viewModel.User.LastActiveDate == yesterday)
                 {
                     await HandleNewDay();
+                }
+                else
+                {
+                    _viewModel.RefreshTasksForNewDay();
                 }
             });
         }
