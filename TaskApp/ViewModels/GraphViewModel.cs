@@ -466,18 +466,14 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        if (valueOption.Value == TargetValueKey.Created)
+        if (valueOption.Value == TargetValueKey.CreatedCompleted)
         {
             var createdBucketIndex = GetBucketIndexForDate(buckets, todo.CreatedAt.UtcDateTime);
             if (createdBucketIndex.HasValue)
             {
                 values[createdBucketIndex.Value] = 1;
             }
-            return;
-        }
 
-        if (valueOption.Value == TargetValueKey.Completed)
-        {
             if (todo.LastCompletedDate.HasValue)
             {
                 var completedBucketIndex = GetBucketIndexForDate(buckets, todo.LastCompletedDate.Value.UtcDateTime);
@@ -548,7 +544,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
         var localNow = DateTime.Now;
         var currentHourLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, localNow.Hour, 0, 0, DateTimeKind.Local);
         var currentDayLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, 0, 0, 0, DateTimeKind.Local);
-        
+
         return resolution switch
         {
             TimeResolution.Hour => CreateHourBuckets(currentHourLocal, 72),
@@ -682,8 +678,7 @@ public enum TargetValueKey
     CountDelta,
     TimeSpent,
     Completions,
-    Created,
-    Completed,
+    CreatedCompleted,
     Claims
 }
 
@@ -719,8 +714,7 @@ public record TargetValueOption(TargetValueKey Value, string DisplayName)
             },
             TargetType.Todo => new[]
             {
-                new TargetValueOption(TargetValueKey.Created, "Created"),
-                new TargetValueOption(TargetValueKey.Completed, "Completed"),
+                new TargetValueOption(TargetValueKey.CreatedCompleted, "Created-Completed"),
                 new TargetValueOption(TargetValueKey.TimeSpent, "Total Time Spent (minutes)")
             },
             TargetType.Reward => new[]
