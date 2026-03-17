@@ -547,7 +547,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
 
         return resolution switch
         {
-            TimeResolution.Hour => CreateHourBuckets(currentHourLocal, 72),
+            TimeResolution.Hour => CreateHourBuckets(currentHourLocal, 48),
             TimeResolution.Day => CreateDayBuckets(currentDayLocal, 16),
             TimeResolution.Week => CreateWeekBuckets(localNow, 12),
             TimeResolution.Month => CreateMonthBuckets(localNow, 12),
@@ -559,11 +559,17 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     private static IEnumerable<TimeBucket> CreateHourBuckets(DateTime currentHourLocal, int count)
     {
         var startLocal = currentHourLocal.AddHours(-(count - 1));
+        DateTime? previousDate = null;
         for (var i = 0; i < count; i++)
         {
             var bucketStartLocal = startLocal.AddHours(i);
             var bucketEndLocal = bucketStartLocal.AddHours(1);
-            var label = bucketStartLocal.ToString("MM/dd HH:mm", CultureInfo.InvariantCulture);
+            var currentDate = bucketStartLocal.Date;
+            // Show the date only on the first bucket of each new day; otherwise show time only
+            var label = previousDate != currentDate
+                ? bucketStartLocal.ToString("MM/dd HH:mm", CultureInfo.InvariantCulture)
+                : bucketStartLocal.ToString("HH:mm", CultureInfo.InvariantCulture);
+            previousDate = currentDate;
             yield return new TimeBucket(bucketStartLocal.ToUniversalTime(), bucketEndLocal.ToUniversalTime(), label);
         }
     }

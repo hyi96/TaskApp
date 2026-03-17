@@ -4,12 +4,12 @@ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:vm="using:TaskApp.ViewModels"
 xmlns:sp="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
-mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
 x:Class="TaskApp.Views.GraphWindow"
 x:DataType="vm:GraphViewModel"
 Icon="/Assets/app-icon.png"
 Title="Graphs"
-Width="900" Height="600"
+Width="1200" Height="700"
 Background="{DynamicResource AppBackgroundBrush}">
 <Border Background="{DynamicResource ColumnBackgroundBrush}" Padding="12" Margin="16" CornerRadius="6">
     <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
