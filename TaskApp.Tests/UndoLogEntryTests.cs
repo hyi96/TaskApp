@@ -929,9 +929,9 @@ public class UndoLogEntryTests : IDisposable
     }
 
     [Fact]
-    public async Task UndoHabit_GoldCanGoBelowZero_AfterUndo()
+    public async Task UndoHabit_GoldClampsToZero_AfterUndo()
     {
-        // If user spent all gold and then undoes an earn, gold goes negative
+        // If user spent all gold and then undoes an earn, gold should not go negative
         var vm = CreateViewModel();
         vm.NewHabitTitle = "Exercise";
         vm.AddHabit();
@@ -949,8 +949,8 @@ public class UndoLogEntryTests : IDisposable
 
         await vm.UndoLogEntryAsync(entry);
 
-        // Gold should go negative (correct reversal even when broke)
-        Assert.Equal(-10.0, vm.User.Gold, 2);
+        // Gold should clamp to zero, not go negative
+        Assert.Equal(0, vm.User.Gold, 2);
     }
 
     #endregion

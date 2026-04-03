@@ -946,7 +946,7 @@ public class MainWindowViewModel : ViewModelBase
         }
 
         // Reverse the gold change: subtract gold that was earned, add back gold that was spent
-        User.Gold -= entry.GoldDelta;
+        User.Gold = Math.Max(0, User.Gold - entry.GoldDelta);
 
         await _storageService.DeleteLogEntryAsync(entry.Id);
         RefreshFilter();

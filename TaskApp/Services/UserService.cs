@@ -439,11 +439,14 @@ public class UserService
         Directory.CreateDirectory(newUserDataDir);
 
         // Extract data files
+        var fullNewUserDataDir = Path.GetFullPath(newUserDataDir);
         foreach (var entry in archive.Entries)
         {
             if (entry.FullName.StartsWith("data/") && !string.IsNullOrEmpty(entry.Name))
             {
-                var destPath = Path.Combine(newUserDataDir, entry.Name);
+                var destPath = Path.GetFullPath(Path.Combine(newUserDataDir, entry.Name));
+                if (!destPath.StartsWith(fullNewUserDataDir + Path.DirectorySeparatorChar))
+                    continue; // skip entries that would escape the user directory
                 entry.ExtractToFile(destPath, overwrite: true);
             }
         }
