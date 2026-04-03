@@ -1077,6 +1077,10 @@ public class MainWindowViewModel : ViewModelBase
         RefreshFilter();
         _ = SaveDataAsync();
         await LogDailyCompletedAsync(daily, rewardAmount);
+
+        NotificationService.Show(
+            "Task Auto-Completed",
+            $"\"{daily.Title}\" completed! +{rewardAmount:0.#}g");
     }
 }
 
