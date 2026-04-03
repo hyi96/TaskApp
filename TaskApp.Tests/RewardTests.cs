@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using TaskApp.Models.Rewards;
 using TaskApp.Services;
 using TaskApp.ViewModels;
@@ -218,7 +219,7 @@ public class RewardTests : IDisposable
     #region Reward filter — claimed non-repeatable bug regression
 
     [Fact]
-    public void ClaimReward_NonRepeatable_StaysVisibleInAllFilter()
+    public async Task ClaimReward_NonRepeatable_StaysVisibleInAllFilter()
     {
         var vm = CreateViewModel();
         vm.AddGold(100);
@@ -228,14 +229,14 @@ public class RewardTests : IDisposable
 
         Assert.Contains(reward, vm.Rewards);
 
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
         vm.RefreshFilter();
 
         Assert.Contains(reward, vm.Rewards);
     }
 
     [Fact]
-    public void ClaimReward_NonRepeatable_StaysVisibleAfterFilterChange()
+    public async Task ClaimReward_NonRepeatable_StaysVisibleAfterFilterChange()
     {
         var vm = CreateViewModel();
         vm.AddGold(100);
@@ -243,7 +244,7 @@ public class RewardTests : IDisposable
         var reward = new Reward("One-Time Reward", isRepeatable: false, goldCost: 10);
         AddRewardToViewModel(vm, reward);
 
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         vm.RewardsFilter = "one-time";
         Assert.Contains(reward, vm.Rewards);
@@ -253,7 +254,7 @@ public class RewardTests : IDisposable
     }
 
     [Fact]
-    public void ClaimReward_Repeatable_StaysInAllFilter()
+    public async Task ClaimReward_Repeatable_StaysInAllFilter()
     {
         var vm = CreateViewModel();
         vm.AddGold(100);
@@ -261,7 +262,7 @@ public class RewardTests : IDisposable
         var reward = new Reward("Repeatable Reward", isRepeatable: true, goldCost: 10);
         AddRewardToViewModel(vm, reward);
 
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
         vm.RefreshFilter();
 
         Assert.Contains(reward, vm.Rewards);

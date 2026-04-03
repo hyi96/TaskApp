@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using TaskApp.Models.Rewards;
 using TaskApp.Models.Tags;
 using TaskApp.Models.Tasks;
@@ -412,7 +413,7 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ClaimReward_DeductsGold()
+    public async Task ClaimReward_DeductsGold()
     {
         var vm = CreateViewModel();
         vm.User.Gold = 10;
@@ -421,14 +422,14 @@ public class MainWindowViewModelTests : IDisposable
         var reward = vm.Rewards[0];
         reward.SetGoldCost(3);
 
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         Assert.Equal(7, vm.User.Gold, precision: 2);
         Assert.True(reward.IsClaimed);
     }
 
     [Fact]
-    public void ClaimReward_DoesNotDeductWhenInsufficientGold()
+    public async Task ClaimReward_DoesNotDeductWhenInsufficientGold()
     {
         var vm = CreateViewModel();
         vm.User.Gold = 1;
@@ -437,7 +438,7 @@ public class MainWindowViewModelTests : IDisposable
         var reward = vm.Rewards[0];
         reward.SetGoldCost(100);
 
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         Assert.Equal(1, vm.User.Gold, precision: 2);
         Assert.False(reward.IsClaimed);

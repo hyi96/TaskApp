@@ -343,9 +343,9 @@ public class StorageService
                 }
             }
         }
-        catch
+        catch (SqliteException)
         {
-            // If PRAGMA fails or columns already exist, continue
+            // Expected when columns already exist or PRAGMA returns unexpected results
         }
     }
 

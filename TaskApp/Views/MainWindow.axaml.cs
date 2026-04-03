@@ -233,11 +233,11 @@ public partial class MainWindow : Window
          }
      }
 
-    public void ClaimReward_Click(object? sender, RoutedEventArgs e)
+    public async void ClaimReward_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Control control && control.DataContext is Reward reward && DataContext is MainWindowViewModel mainVm)
         {
-            mainVm.ClaimReward(reward);
+            await mainVm.ClaimRewardAsync(reward);
         }
     }
 

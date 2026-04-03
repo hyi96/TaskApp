@@ -23,11 +23,11 @@ public partial class TagsWindow : Window
         }
     }
 
-    private void RemoveTag_Click(object? sender, RoutedEventArgs e)
+    private async void RemoveTag_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.DataContext is SelectableTag tag && DataContext is TagsViewModel vm)
         {
-            vm.RemoveTag(tag);
+            await vm.RemoveTagAsync(tag);
         }
     }
 

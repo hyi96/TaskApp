@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using TaskApp.Models.Tags;
 
 namespace TaskApp.ViewModels;
@@ -36,16 +37,16 @@ public class TagsViewModel : ViewModelBase
         NewTagValue = string.Empty;
     }
 
-    public void RemoveTag(SelectableTag tag)
+    public async Task RemoveTagAsync(SelectableTag tag)
     {
         if (_availableTags.Contains(tag))
         {
             _availableTags.Remove(tag);
-            
+
             // Remove the tag from all tasks and rewards
             if (_mainViewModel != null)
             {
-                _mainViewModel.RemoveTagFromAllItems(tag.Tag.Id);
+                await _mainViewModel.RemoveTagFromAllItemsAsync(tag.Tag.Id);
             }
         }
     }

@@ -681,15 +681,15 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    public void ClaimReward(Reward reward)
+    public async Task ClaimRewardAsync(Reward reward)
     {
         if (reward.TryClaim(User.Gold))
         {
             RemoveGold(reward.GoldCost);
 
-            _ = SaveDataAsync();
+            await SaveDataAsync();
 
-            _ = LogRewardClaimedAsync(reward, reward.GoldCost);
+            await LogRewardClaimedAsync(reward, reward.GoldCost);
         }
     }
 
@@ -973,7 +973,7 @@ public class MainWindowViewModel : ViewModelBase
         return _storageService.AddLogEntryAsync(entry);
     }
  
-    public void RemoveTagFromAllItems(Guid tagId)
+    public async Task RemoveTagFromAllItemsAsync(Guid tagId)
     {
         foreach (var task in _allHabits.Concat<DomainEntity>(_allDailies).Concat(_allTodos))
         {
@@ -986,7 +986,7 @@ public class MainWindowViewModel : ViewModelBase
         }
 
         RefreshFilter();
-        _ = SaveDataAsync();
+        await SaveDataAsync();
     }
 
     private void AvailableTags_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)

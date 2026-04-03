@@ -715,7 +715,7 @@ public class UndoLogEntryTests : IDisposable
         reward.SetGoldCost(2.0);
         reward.SetRepeatable(true);
         vm.User.Gold = 10;
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         Assert.Equal(1, reward.ClaimCount);
 
@@ -739,7 +739,7 @@ public class UndoLogEntryTests : IDisposable
         vm.User.Gold = 20;
 
         var goldBefore = vm.User.Gold;
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
         var entry = logs.First(e => e.Type == LogType.RewardClaimed);
@@ -759,7 +759,7 @@ public class UndoLogEntryTests : IDisposable
         reward.SetGoldCost(1.0);
         reward.SetRepeatable(false);
         vm.User.Gold = 10;
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         Assert.True(reward.IsClaimed);
 
@@ -784,11 +784,11 @@ public class UndoLogEntryTests : IDisposable
         vm.User.Gold = 100;
 
         // First claim
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
         await Task.Delay(50);
 
         // Second claim
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         Assert.Equal(2, reward.ClaimCount);
 
@@ -812,7 +812,7 @@ public class UndoLogEntryTests : IDisposable
         reward.SetGoldCost(1.0);
         reward.SetRepeatable(true);
         vm.User.Gold = 10;
-        vm.ClaimReward(reward);
+        await vm.ClaimRewardAsync(reward);
 
         var logs = await vm.StorageService.LoadRecentLogEntriesAsync(10);
         var entry = logs.First(e => e.Type == LogType.RewardClaimed);
@@ -916,7 +916,7 @@ public class UndoLogEntryTests : IDisposable
         reward.SetGoldCost(10.0);
         reward.SetRepeatable(true);
         vm.User.Gold = 50;
-        vm.ClaimReward(reward); // Gold: 50 - 10 = 40
+        await vm.ClaimRewardAsync(reward); // Gold: 50 - 10 = 40
 
         Assert.Equal(40, vm.User.Gold, 2);
 

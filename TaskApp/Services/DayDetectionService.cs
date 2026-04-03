@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace TaskApp.Services;
 
-public class DayDetectionService
+public class DayDetectionService : IDisposable
 {
     private Timer? _dayCheckTimer;
     private DateTime _lastCheckedDate;
