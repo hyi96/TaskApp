@@ -584,7 +584,8 @@ public class NewDayCompletionTests : IDisposable
         vm.User.LastActiveDate = yesterday;
 
         // Replicate the condition from OnCurrentUserChanged
-        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var shouldShow = vm.User.LastActiveDate.HasValue && vm.User.LastActiveDate.Value < today;
         Assert.True(shouldShow);
     }
 
@@ -595,7 +596,7 @@ public class NewDayCompletionTests : IDisposable
         var vm = CreateViewModel();
         vm.User.LastActiveDate = today;
 
-        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        var shouldShow = vm.User.LastActiveDate.HasValue && vm.User.LastActiveDate.Value < today;
         Assert.False(shouldShow);
     }
 
@@ -605,28 +606,31 @@ public class NewDayCompletionTests : IDisposable
         var vm = CreateViewModel();
         vm.User.LastActiveDate = null;
 
-        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var shouldShow = vm.User.LastActiveDate.HasValue && vm.User.LastActiveDate.Value < today;
         Assert.False(shouldShow);
     }
 
     [Fact]
-    public void ShouldNotShowNewDay_WhenLastActiveDateIsAncient()
+    public void ShouldShowNewDay_WhenLastActiveDateIsAncient()
     {
         var vm = CreateViewModel();
         vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-30);
 
-        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
-        Assert.False(shouldShow);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var shouldShow = vm.User.LastActiveDate.HasValue && vm.User.LastActiveDate.Value < today;
+        Assert.True(shouldShow);
     }
 
     [Fact]
-    public void ShouldNotShowNewDay_WhenLastActiveDateIsTwoDaysAgo()
+    public void ShouldShowNewDay_WhenLastActiveDateIsTwoDaysAgo()
     {
         var vm = CreateViewModel();
         vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-2);
 
-        var shouldShow = vm.User.LastActiveDate == DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
-        Assert.False(shouldShow);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var shouldShow = vm.User.LastActiveDate.HasValue && vm.User.LastActiveDate.Value < today;
+        Assert.True(shouldShow);
     }
 
     #endregion
@@ -810,8 +814,8 @@ public class NewDayCompletionTests : IDisposable
         // Condition from OnCurrentUserChanged should be true
         Assert.True(vm2.User.LastActiveDate == yesterday);
 
-        // GetUncompletedDailiesFromYesterday should find the daily
-        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        // GetUncompletedDailiesSinceLastActive should find the daily
+        var uncompletedDailies = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
         Assert.Single(uncompletedDailies);
         Assert.Equal("Morning Run", uncompletedDailies[0].Title);
     }
@@ -837,7 +841,7 @@ public class NewDayCompletionTests : IDisposable
         await vm2.LoadDataAsync();
 
         // This daily was completed yesterday → should NOT appear
-        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        var uncompletedDailies = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
         Assert.Empty(uncompletedDailies);
     }
 
@@ -863,7 +867,7 @@ public class NewDayCompletionTests : IDisposable
         var vm2 = CreateViewModel();
         await vm2.LoadDataAsync();
 
-        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        var uncompletedDailies = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
         Assert.Equal(2, uncompletedDailies.Count);
         Assert.DoesNotContain(uncompletedDailies, d => d.Title == "Completed");
         Assert.Contains(uncompletedDailies, d => d.Title == "Not Completed");
@@ -900,7 +904,7 @@ public class NewDayCompletionTests : IDisposable
         Assert.Equal(3, reloaded.CurrentStreak);
 
         // Simulate HandleNewDay: get unchecked dailies
-        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        var uncompletedDailies = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
         Assert.Single(uncompletedDailies);
 
         // Simulate ShowNewDayWindow: complete for yesterday
@@ -961,32 +965,33 @@ public class NewDayCompletionTests : IDisposable
         Assert.Equal(DateOnly.FromDateTime(DateTime.Now).AddDays(-1), vm2.User.LastActiveDate);
 
         // But no dailies → empty list
-        var uncompletedDailies = vm2.GetUncompletedDailiesFromYesterday();
+        var uncompletedDailies = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
         Assert.Empty(uncompletedDailies);
     }
 
     [Fact]
-    public async Task UserSwitch_LastActiveDateNotYesterday_SkipsHandleNewDay()
+    public async Task UserSwitch_LastActiveDateTwoDaysAgo_ShowsHandleNewDay()
     {
         var vm = CreateViewModel();
         vm.NewDailyTitle = "Some Daily";
         vm.AddDaily();
         await vm.SaveDataAsync();
 
-        // LastActiveDate = 2 days ago (not yesterday)
+        // LastActiveDate = 2 days ago — should still trigger HandleNewDay
         vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-2);
         await vm.StorageService.SaveUserProfileAsync(vm.User);
 
         var vm2 = CreateViewModel();
         await vm2.LoadDataAsync();
 
-        // Condition should fail
-        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
-        Assert.NotEqual(yesterday, vm2.User.LastActiveDate);
+        // Gate condition should pass (lastActive < today)
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        Assert.True(vm2.User.LastActiveDate.HasValue && vm2.User.LastActiveDate.Value < today);
 
-        // RefreshTasksForNewDay runs in the else path — verify it works
-        vm2.RefreshTasksForNewDay();
-        Assert.Single(vm2.Dailies);
+        // HandleNewDay should find the uncompleted daily
+        var uncompleted = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
+        Assert.Single(uncompleted);
+        Assert.Equal("Some Daily", uncompleted[0].Title);
     }
 
     #endregion
@@ -1128,7 +1133,7 @@ public class NewDayCompletionTests : IDisposable
         Assert.Equal(yesterday, vm.User.LastActiveDate);
 
         // HandleNewDay logic
-        var uncompleted = vm.GetUncompletedDailiesFromYesterday();
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(vm.User.LastActiveDate!.Value);
         Assert.Equal(2, uncompleted.Count);
         Assert.Contains(uncompleted, d => d.Title == "B-Uncompleted");
         Assert.Contains(uncompleted, d => d.Title == "B-Also-Uncompleted");
@@ -1157,7 +1162,7 @@ public class NewDayCompletionTests : IDisposable
         var vm2 = CreateViewModel();
         await vm2.LoadDataAsync();
 
-        var uncompleted = vm2.GetUncompletedDailiesFromYesterday();
+        var uncompleted = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
 
         // Weekly tasks where today and yesterday share a period should NOT appear
         var weeklyReloaded = vm2.Dailies.First(d => d.Title == "Weekly Task");
@@ -1218,7 +1223,7 @@ public class NewDayCompletionTests : IDisposable
 
         // LastActiveDate == yesterday, but all dailies were completed
         Assert.Equal(DateOnly.FromDateTime(DateTime.Now).AddDays(-1), vm.User.LastActiveDate);
-        var uncompleted = vm.GetUncompletedDailiesFromYesterday();
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(vm.User.LastActiveDate!.Value);
         Assert.Empty(uncompleted); // window should NOT show
     }
 
@@ -1300,7 +1305,7 @@ public class NewDayCompletionTests : IDisposable
         Assert.Equal(5, reloaded.CurrentStreak);
 
         // Step 4: HandleNewDay
-        var uncompleted = vm.GetUncompletedDailiesFromYesterday();
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(vm.User.LastActiveDate!.Value);
         Assert.Single(uncompleted);
 
         // Complete for yesterday (simulates checking in new day window)
@@ -1393,7 +1398,7 @@ public class NewDayCompletionTests : IDisposable
         var vm2 = CreateViewModel();
         await vm2.LoadDataAsync();
 
-        var uncompleted = vm2.GetUncompletedDailiesFromYesterday();
+        var uncompleted = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
 
         if (todayPeriod == yesterdayPeriod)
         {
@@ -1465,6 +1470,296 @@ public class NewDayCompletionTests : IDisposable
         storageService.RefreshDataDirectory();
         await vm.LoadDataAsync();
         Assert.Equal(200.0, vm.User.Gold);
+    }
+
+    #endregion
+
+    #region Multi-day gap tests
+
+    [Fact]
+    public void MultiDayGap_DailyTask_ShowsAfterTwoDayGap()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Daily Exercise";
+        vm.AddDaily();
+
+        var lastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-2);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastActiveDate);
+        Assert.Single(uncompleted);
+        Assert.Equal("Daily Exercise", uncompleted[0].Title);
+    }
+
+    [Fact]
+    public void MultiDayGap_DailyTask_ShowsAfterFiveDayGap()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Daily Workout";
+        vm.AddDaily();
+
+        var lastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-5);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastActiveDate);
+        Assert.Single(uncompleted);
+        Assert.Equal("Daily Workout", uncompleted[0].Title);
+    }
+
+    [Fact]
+    public void MultiDayGap_DailyTask_ExcludedWhenCompletedInLastActivePeriod()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Daily Exercise";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+
+        // Complete the task for 3 days ago (the last active period)
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var threeDaysAgo = now.AddDays(-3);
+        daily.CompleteForPeriod(daily.GetPeriodStartFor(threeDaysAgo));
+
+        var lastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-3);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastActiveDate);
+        Assert.Empty(uncompleted);
+    }
+
+    [Fact]
+    public void MultiDayGap_MonthlyTask_ShowsWhenMonthChanged()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Monthly Review";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Monthly);
+        daily.SetRepeatEvery(1);
+
+        // LastActiveDate = last day of the previous month (guaranteed different period from today)
+        var firstOfThisMonth = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var lastOfPrevMonth = firstOfThisMonth.AddDays(-1);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastOfPrevMonth);
+        Assert.Single(uncompleted);
+        Assert.Equal("Monthly Review", uncompleted[0].Title);
+    }
+
+    [Fact]
+    public void MultiDayGap_MonthlyTask_ExcludedWhenSameMonth()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Monthly Review";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Monthly);
+        daily.SetRepeatEvery(1);
+
+        // Use first of THIS month as LastActiveDate
+        var firstOfThisMonth = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, 1);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(firstOfThisMonth);
+        Assert.Empty(uncompleted);
+    }
+
+    [Fact]
+    public void MultiDayGap_MonthlyTask_CompletedInPreviousMonth_Excluded()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Monthly Review";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Monthly);
+        daily.SetRepeatEvery(1);
+
+        // Complete the task for last month's period
+        var firstOfThisMonth = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var lastOfPrevMonth = firstOfThisMonth.AddDays(-1);
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var lastOfPrevMonthTime = new DateTimeOffset(lastOfPrevMonth.ToDateTime(new TimeOnly(12, 0)), now.Offset);
+        var prevMonthPeriod = daily.GetPeriodStartFor(lastOfPrevMonthTime);
+        daily.CompleteForPeriod(prevMonthPeriod);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastOfPrevMonth);
+        Assert.Empty(uncompleted);
+    }
+
+    [Fact]
+    public void MultiDayGap_WeeklyTask_ShowsWhenWeekChanged()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Weekly Report";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Weekly);
+        daily.SetRepeatEvery(1);
+
+        // LastActiveDate = 8 days ago (guaranteed different week)
+        var lastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-8);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastActiveDate);
+        Assert.Single(uncompleted);
+        Assert.Equal("Weekly Report", uncompleted[0].Title);
+    }
+
+    [Fact]
+    public void MultiDayGap_WeeklyTask_ExcludedWhenSameWeek()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Weekly Report";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Weekly);
+        daily.SetRepeatEvery(1);
+
+        // Use the current weekly period start as lastActiveDate
+        var currentPeriod = daily.GetCurrentPeriodStart();
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(currentPeriod);
+        Assert.Empty(uncompleted);
+    }
+
+    [Fact]
+    public void MultiDayGap_GateCondition_PassesForFiveDayGap()
+    {
+        var vm = CreateViewModel();
+        vm.User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-5);
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var shouldShow = vm.User.LastActiveDate.HasValue && vm.User.LastActiveDate.Value < today;
+        Assert.True(shouldShow);
+    }
+
+    [Fact]
+    public async Task MultiDayGap_FullFlow_MonthlyTaskCompletedForPreviousPeriod()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Monthly Goal";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetCadence(RepeatCadence.Monthly);
+        daily.SetRepeatEvery(1);
+        daily.SetGoldReward(10.0);
+
+        // Set LastActiveDate to last day of previous month
+        var firstOfThisMonth = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var lastOfPrevMonth = firstOfThisMonth.AddDays(-1);
+        vm.User.LastActiveDate = lastOfPrevMonth;
+        await vm.SaveDataAsync();
+        vm.User.LastActiveDate = lastOfPrevMonth;
+        await vm.StorageService.SaveUserProfileAsync(vm.User);
+
+        // Reload
+        var vm2 = CreateViewModel();
+        await vm2.LoadDataAsync();
+
+        // Gate passes
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        Assert.True(vm2.User.LastActiveDate.HasValue && vm2.User.LastActiveDate.Value < today);
+
+        // Find uncompleted
+        var uncompleted = vm2.GetUncompletedDailiesSinceLastActive(vm2.User.LastActiveDate!.Value);
+        Assert.Single(uncompleted);
+
+        // Simulate completing via new day window using GetPreviousPeriodStart
+        var monthlyTask = uncompleted[0];
+        var previousPeriod = monthlyTask.GetPreviousPeriodStart();
+        monthlyTask.CompleteForPeriod(previousPeriod);
+
+        // Should have completed for the previous month
+        Assert.Equal(previousPeriod, monthlyTask.LastCompletionPeriod);
+        Assert.NotNull(monthlyTask.LastCompletedDate);
+
+        // The previous period should be the first of the previous month
+        var firstOfPrevMonth = firstOfThisMonth.AddMonths(-1);
+        Assert.Equal(firstOfPrevMonth, previousPeriod);
+    }
+
+    [Fact]
+    public void MultiDayGap_MixedCadences_CorrectlyFiltered()
+    {
+        var vm = CreateViewModel();
+
+        vm.NewDailyTitle = "Daily Task";
+        vm.AddDaily();
+        vm.NewDailyTitle = "Monthly Task";
+        vm.AddDaily();
+        vm.NewDailyTitle = "Weekly Task";
+        vm.AddDaily();
+
+        var dailyTask = vm.Dailies.First(d => d.Title == "Daily Task");
+        var monthlyTask = vm.Dailies.First(d => d.Title == "Monthly Task");
+        var weeklyTask = vm.Dailies.First(d => d.Title == "Weekly Task");
+
+        monthlyTask.SetCadence(RepeatCadence.Monthly);
+        monthlyTask.SetRepeatEvery(1);
+
+        weeklyTask.SetCadence(RepeatCadence.Weekly);
+        weeklyTask.SetRepeatEvery(1);
+
+        // LastActiveDate = 3 days ago
+        var lastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-3);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastActiveDate);
+
+        // Daily task: 3 days ago is a different period from today → included
+        Assert.Contains(uncompleted, d => d.Title == "Daily Task");
+
+        // Monthly task: depends on whether 3 days ago is in the same month
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var lastActiveTime = new DateTimeOffset(lastActiveDate.ToDateTime(new TimeOnly(12, 0)), now.Offset);
+        var monthlyCurrentPeriod = monthlyTask.GetCurrentPeriodStart();
+        var monthlyLastActivePeriod = monthlyTask.GetPeriodStartFor(lastActiveTime);
+
+        if (monthlyCurrentPeriod != monthlyLastActivePeriod)
+        {
+            Assert.Contains(uncompleted, d => d.Title == "Monthly Task");
+        }
+        else
+        {
+            Assert.DoesNotContain(uncompleted, d => d.Title == "Monthly Task");
+        }
+
+        // Weekly task: depends on whether 3 days ago is in the same week
+        var weeklyCurrentPeriod = weeklyTask.GetCurrentPeriodStart();
+        var weeklyLastActivePeriod = weeklyTask.GetPeriodStartFor(lastActiveTime);
+
+        if (weeklyCurrentPeriod != weeklyLastActivePeriod)
+        {
+            Assert.Contains(uncompleted, d => d.Title == "Weekly Task");
+        }
+        else
+        {
+            Assert.DoesNotContain(uncompleted, d => d.Title == "Weekly Task");
+        }
+    }
+
+    [Fact]
+    public async Task MultiDayGap_DailyTask_StreakResets_WhenMultipleDaysMissed()
+    {
+        var vm = CreateViewModel();
+        vm.NewDailyTitle = "Streak Daily";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetGoldReward(5.0);
+
+        // Build a 5-day streak ending 4 days ago
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        for (int i = 8; i >= 4; i--)
+        {
+            daily.CompleteForPeriod(daily.GetPeriodStartFor(now.AddDays(-i)));
+        }
+        Assert.Equal(5, daily.CurrentStreak);
+
+        // App unused for 3 days (lastActive = 3 days ago)
+        var lastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-3);
+
+        var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastActiveDate);
+        Assert.Single(uncompleted);
+
+        // Complete via new day window (GetPreviousPeriodStart = yesterday)
+        var previousPeriod = daily.GetPreviousPeriodStart();
+        daily.CompleteForPeriod(previousPeriod);
+
+        // Streak should reset to 1 because there's a gap between -4 and yesterday
+        Assert.Equal(1, daily.CurrentStreak);
     }
 
     #endregion

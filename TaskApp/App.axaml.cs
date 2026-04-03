@@ -56,8 +56,8 @@ namespace TaskApp
                         await _viewModel.LoadDataAsync();
 
                         // Handle new day BEFORE refreshing tasks so streaks are preserved
-                        var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
-                        if (_viewModel.User.LastActiveDate == yesterday)
+                        var today = DateOnly.FromDateTime(DateTime.Now);
+                        if (_viewModel.User.LastActiveDate.HasValue && _viewModel.User.LastActiveDate.Value < today)
                         {
                             await HandleNewDay();
                         }
@@ -134,11 +134,10 @@ namespace TaskApp
                 await _viewModel.LoadDataAsync();
                 _viewModel.RefreshCurrentUserName();
 
-                // Only show the new day window if this profile was active yesterday.
-                // Profiles that haven't been used recently shouldn't trigger it.
+                // Show the new day window if the profile was last active before today.
                 // HandleNewDay must run BEFORE RefreshTasksForNewDay so streaks are preserved.
-                var yesterday = DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
-                if (_viewModel.User.LastActiveDate == yesterday)
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                if (_viewModel.User.LastActiveDate.HasValue && _viewModel.User.LastActiveDate.Value < today)
                 {
                     await HandleNewDay();
                 }
@@ -193,8 +192,10 @@ namespace TaskApp
         {
             if (_viewModel == null) return;
 
-            // Get unchecked dailies from yesterday BEFORE refreshing
-            var uncheckedDailies = _viewModel.GetUncompletedDailiesFromYesterday();
+            // Get unchecked dailies since last active date BEFORE refreshing
+            var lastActiveDate = _viewModel.User.LastActiveDate
+                ?? DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+            var uncheckedDailies = _viewModel.GetUncompletedDailiesSinceLastActive(lastActiveDate);
 
             if (uncheckedDailies.Count > 0)
             {
@@ -228,7 +229,6 @@ namespace TaskApp
             }
 
             // Complete the checked dailies
-            var yesterday = DateTimeOffset.UtcNow.ToLocalTime().AddDays(-1);
             foreach (var item in newDayViewModel.UncompletedDailies.Where(x => x.IsChecked))
             {
                 if (item.Daily == null)
@@ -236,13 +236,14 @@ namespace TaskApp
                     continue;
                 }
 
-                var previousPeriodStart = item.Daily.GetPeriodStartFor(yesterday);
+                var previousPeriodStart = item.Daily.GetPreviousPeriodStart();
                 item.Daily.CompleteForPeriod(previousPeriodStart);
 
                 // Log with timestamp at the last minute of the previous period
                 var currentPeriodStart = item.Daily.GetCurrentPeriodStart();
                 var endOfPreviousPeriod = currentPeriodStart.ToDateTime(new TimeOnly(0, 0)).AddMinutes(-1);
-                var endOfPreviousPeriodOffset = new DateTimeOffset(endOfPreviousPeriod, yesterday.Offset);
+                var localOffset = DateTimeOffset.Now.Offset;
+                var endOfPreviousPeriodOffset = new DateTimeOffset(endOfPreviousPeriod, localOffset);
                 var goldReward = item.Daily.GetGoldRewardWithBonus();
                 _viewModel?.AddGold(goldReward);
                 await _viewModel!.LogDailyCompletedAsync(item.Daily, goldReward, endOfPreviousPeriodOffset);

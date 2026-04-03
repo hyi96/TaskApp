@@ -1026,28 +1026,28 @@ public class MainWindowViewModel : ViewModelBase
         RefreshFilter();
     }
 
-    public List<DailyTask> GetUncompletedDailiesFromYesterday()
+    public List<DailyTask> GetUncompletedDailiesSinceLastActive(DateOnly lastActiveDate)
     {
         var now = DateTimeOffset.UtcNow.ToLocalTime();
-        var yesterday = now.AddDays(-1);
-        
+        var lastActiveTime = new DateTimeOffset(lastActiveDate.ToDateTime(new TimeOnly(12, 0)), now.Offset);
+
         return _allDailies
             .Where(d => 
             {
                 var currentPeriodStart = d.GetCurrentPeriodStart();
-                var yesterdayPeriodStart = d.GetPeriodStartFor(yesterday);
-                
-                // Only check tasks that are in a NEW period (period changed from yesterday to today)
-                if (currentPeriodStart == yesterdayPeriodStart)
+                var lastActivePeriodStart = d.GetPeriodStartFor(lastActiveTime);
+
+                // Only check tasks that are in a NEW period (period changed since last active)
+                if (currentPeriodStart == lastActivePeriodStart)
                 {
                     return false; // Same period, don't show
                 }
-                
-                // Now check if the task was completed in the previous period (yesterday's period)
-                var dateInPreviousPeriod = new DateTimeOffset(yesterdayPeriodStart.ToDateTime(new TimeOnly(12, 0)), now.Offset);
-                
-                // Task should appear if it was NOT completed in the previous period
-                return !d.IsCompleteForPeriod(dateInPreviousPeriod);
+
+                // Now check if the task was completed in the last active period
+                var dateInLastActivePeriod = new DateTimeOffset(lastActivePeriodStart.ToDateTime(new TimeOnly(12, 0)), now.Offset);
+
+                // Task should appear if it was NOT completed in the last active period
+                return !d.IsCompleteForPeriod(dateInLastActivePeriod);
             })
             .ToList();
     }

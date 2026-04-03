@@ -62,4 +62,28 @@ public class DailyChecklistItem : ViewModelBase
     }
 
     public string Title => Daily?.Title ?? string.Empty;
+
+    public string PeriodLabel
+    {
+        get
+        {
+            if (Daily == null) return string.Empty;
+            var periodStart = Daily.GetPreviousPeriodStart();
+            var periodEnd = Daily.GetCurrentPeriodStart().AddDays(-1);
+
+            if (Daily.Cadence == RepeatCadence.Monthly && Daily.RepeatEvery == 1)
+                return periodStart.ToString("MMMM yyyy");
+
+            if (Daily.Cadence == RepeatCadence.Yearly && Daily.RepeatEvery == 1)
+                return periodStart.Year.ToString();
+
+            if (periodStart == periodEnd)
+                return periodStart.ToString("MMM d, yyyy");
+
+            if (periodStart.Year == periodEnd.Year)
+                return $"{periodStart:MMM d} \u2013 {periodEnd:MMM d, yyyy}";
+
+            return $"{periodStart:MMM d, yyyy} \u2013 {periodEnd:MMM d, yyyy}";
+        }
+    }
 }
