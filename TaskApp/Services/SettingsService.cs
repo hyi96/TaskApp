@@ -66,7 +66,9 @@ public class SettingsService
         {
             Directory.CreateDirectory(SettingsFolder);
             var json = JsonSerializer.Serialize(_settings, IndentedJsonOptions);
-            await File.WriteAllTextAsync(SettingsFile, json);
+            var tempPath = SettingsFile + ".tmp";
+            await File.WriteAllTextAsync(tempPath, json);
+            File.Move(tempPath, SettingsFile, overwrite: true);
         }
         catch
         {

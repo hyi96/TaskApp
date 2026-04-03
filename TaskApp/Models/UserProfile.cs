@@ -25,8 +25,11 @@ public class UserProfile : INotifyPropertyChanged
         get => _gold;
         set
         {
-            _gold = value;
-            OnPropertyChanged();
+            if (_gold != value)
+            {
+                _gold = value;
+                OnPropertyChanged();
+            }
         }
     }
 

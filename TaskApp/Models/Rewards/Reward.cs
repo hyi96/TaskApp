@@ -102,13 +102,12 @@ public class Reward : DomainEntity
             return false;
         }
 
-        IsClaimed = true;
         ClaimedAt = claimedAt ?? DateTimeOffset.UtcNow;
         ClaimCount++;
 
-        if (IsRepeatable)
+        if (!IsRepeatable)
         {
-            IsClaimed = false;
+            IsClaimed = true;
         }
 
         return true;

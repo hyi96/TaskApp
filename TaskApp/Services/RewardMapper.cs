@@ -13,7 +13,7 @@ public static class RewardMapper
         var reward = new Reward(data.Title, data.Notes, data.IsRepeatable, data.GoldCost)
         {
             Id = data.Id,
-            CreatedAt = data.CreatedAt == default ? DateTimeOffset.UtcNow : data.CreatedAt
+            CreatedAt = data.CreatedAt
         };
 
         // Properties with internal setters

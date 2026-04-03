@@ -56,7 +56,7 @@ public class RewardMapperRoundTripTests
     }
 
     [Fact]
-    public void Reward_RoundTrip_DefaultCreatedAt_GetsCurrentTime()
+    public void Reward_RoundTrip_DefaultCreatedAt_PreservesDefault()
     {
         var data = new TaskApp.Data.RewardData
         {
@@ -65,10 +65,9 @@ public class RewardMapperRoundTripTests
             CreatedAt = default
         };
 
-        var before = DateTimeOffset.UtcNow;
         var restored = RewardMapper.ToModel(data);
 
-        Assert.True(restored.CreatedAt >= before.AddSeconds(-1));
+        Assert.Equal(default(DateTimeOffset), restored.CreatedAt);
     }
 
     [Fact]

@@ -30,4 +30,8 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TaskApp.Tests" />
+  </ItemGroup>
 </Project>

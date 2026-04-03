@@ -24,6 +24,7 @@ public class StorageService
     private const string TagsFileName = "tags.json";
     private const string UserProfileFileName = "user.json";
     private const string LogsDbFileName = "logs.db";
+    private string? _initializedLogsDbPath;
 
     private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
 
@@ -120,6 +121,7 @@ public class StorageService
     public void RefreshDataDirectory()
     {
         UpdateDataDirectory();
+        _initializedLogsDbPath = null;
     }
 
     public string DataDirectory => _dataDirectory;
@@ -288,6 +290,9 @@ public class StorageService
     private async Task EnsureLogsTableAsync()
     {
         var dbPath = GetLogsDbPath();
+        if (_initializedLogsDbPath == dbPath)
+            return;
+
         await using var connection = new SqliteConnection($"Data Source={dbPath}");
         await connection.OpenAsync();
 
@@ -301,11 +306,16 @@ public class StorageService
 
         // Ensure all schema columns exist (migration for existing databases)
         await EnsureColumnsExistAsync(connection);
+
+        _initializedLogsDbPath = dbPath;
     }
 
     private void EnsureLogsTableSync()
     {
         var dbPath = GetLogsDbPath();
+        if (_initializedLogsDbPath == dbPath)
+            return;
+
         using var connection = new SqliteConnection($"Data Source={dbPath}");
         connection.Open();
 
@@ -316,6 +326,8 @@ public class StorageService
                                     {columns}
                                 );";
         command.ExecuteNonQuery();
+
+        _initializedLogsDbPath = dbPath;
     }
 
     private async Task EnsureColumnsExistAsync(SqliteConnection connection)

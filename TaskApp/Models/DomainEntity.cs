@@ -14,9 +14,9 @@ public abstract class DomainEntity : INotifyPropertyChanged
     protected List<Tag> _tags = new();
     private bool _isHidden;
 
-    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid Id { get; internal set; } = Guid.NewGuid();
 
-    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; internal set; } = DateTimeOffset.UtcNow;
 
     public string Title
     {
