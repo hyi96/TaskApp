@@ -548,6 +548,7 @@ Background="{DynamicResource AppBackgroundBrush}">
             <!-- User, Balance, and Vacation Mode -->
             <Grid Grid.Column="3"
                   RowDefinitions="Auto,*"
+                  VerticalAlignment="Stretch"
                   Margin="6,0,0,0">
                 <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,0,0,8">
                     <Border Grid.Column="0"
