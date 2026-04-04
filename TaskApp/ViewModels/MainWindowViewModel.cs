@@ -272,6 +272,24 @@ public class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _user, value);
     }
 
+    public bool IsVacationMode
+    {
+        get => User.IsVacationMode;
+        set
+        {
+            if (User.IsVacationMode != value)
+            {
+                User.IsVacationMode = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(VacationModeTooltip));
+            }
+        }
+    }
+
+    public string VacationModeTooltip => IsVacationMode
+        ? "Click to disable vacation mode and resume normal streak tracking."
+        : "Click to enable vacation mode. All streaks will be protected while on vacation.";
+
     public MainWindowViewModel(StorageService storageService, UserService userService)
     {
         _storageService = storageService;

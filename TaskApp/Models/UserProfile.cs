@@ -7,6 +7,7 @@ namespace TaskApp.Models;
 public class UserProfile : INotifyPropertyChanged
 {
     private double _gold;
+    private bool _isVacationMode;
     private string _habitsSortMode = "Name (A-Z)";
     private string _dailiesSortMode = "Name (A-Z)";
     private string _todosSortMode = "Name (A-Z)";
@@ -28,6 +29,23 @@ public class UserProfile : INotifyPropertyChanged
             if (_gold != value)
             {
                 _gold = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// When enabled, all daily streaks are automatically protected on new-day
+    /// transitions at no gold cost. The new-day window is not shown.
+    /// </summary>
+    public bool IsVacationMode
+    {
+        get => _isVacationMode;
+        set
+        {
+            if (_isVacationMode != value)
+            {
+                _isVacationMode = value;
                 OnPropertyChanged();
             }
         }

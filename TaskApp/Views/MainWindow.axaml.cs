@@ -314,4 +314,13 @@ public partial class MainWindow : Window
             settingsWindow.ShowDialog(this);
         }
     }
+
+    public void ToggleVacationMode_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel mainVm)
+        {
+            mainVm.IsVacationMode = !mainVm.IsVacationMode;
+            _ = mainVm.SaveDataAsync();
+        }
+    }
 }
