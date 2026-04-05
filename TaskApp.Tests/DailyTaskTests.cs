@@ -712,6 +712,316 @@ public class DailyTaskTests
 
     #endregion
 
+    #region ProtectStreak
+
+    [Fact]
+    public void ProtectStreak_AdvancesLastCompletionPeriod()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        var period = new DateOnly(2026, 3, 10);
+        daily.CompleteForPeriod(period);
+        Assert.Equal(1, daily.CurrentStreak);
+
+        var nextPeriod = new DateOnly(2026, 3, 11);
+        daily.ProtectStreak(nextPeriod);
+
+        Assert.Equal(nextPeriod, daily.LastCompletionPeriod);
+    }
+
+    [Fact]
+    public void ProtectStreak_DoesNotIncrementStreak()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 10));
+        Assert.Equal(1, daily.CurrentStreak);
+
+        daily.ProtectStreak(new DateOnly(2026, 3, 11));
+
+        Assert.Equal(1, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void ProtectStreak_DoesNotUpdateLastCompletedDate()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 10));
+        var originalLastCompleted = daily.LastCompletedDate;
+
+        daily.ProtectStreak(new DateOnly(2026, 3, 11));
+
+        Assert.Equal(originalLastCompleted, daily.LastCompletedDate);
+    }
+
+    [Fact]
+    public void ProtectStreak_SamePeriodTwice_IsIdempotent()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 10));
+
+        daily.ProtectStreak(new DateOnly(2026, 3, 11));
+        daily.ProtectStreak(new DateOnly(2026, 3, 11));
+
+        Assert.Equal(1, daily.CurrentStreak);
+        Assert.Equal(new DateOnly(2026, 3, 11), daily.LastCompletionPeriod);
+    }
+
+    [Fact]
+    public void ProtectStreak_PreservesStreakThroughRefresh()
+    {
+        var anchor = MakeLocal(2026, 3, 8, 0);
+        var daily = CreateDailyWithAnchor(RepeatCadence.Daily, 1, anchor);
+
+        // Build a 3-day streak
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 8));
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 9));
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 10));
+        Assert.Equal(3, daily.CurrentStreak);
+
+        // Protect for the next day (user was away)
+        daily.ProtectStreak(new DateOnly(2026, 3, 11));
+        Assert.Equal(3, daily.CurrentStreak);
+
+        // Refresh at the day after protection — streak should survive
+        var refreshTime = MakeLocal(2026, 3, 12, 12);
+        daily.RefreshForCurrentPeriod(refreshTime);
+
+        Assert.Equal(3, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void ProtectStreak_ThenComplete_ContinuesStreak()
+    {
+        var anchor = MakeLocal(2026, 3, 8, 0);
+        var daily = CreateDailyWithAnchor(RepeatCadence.Daily, 1, anchor);
+
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 8));
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 9));
+        Assert.Equal(2, daily.CurrentStreak);
+
+        // Protect day 10 (skipped)
+        daily.ProtectStreak(new DateOnly(2026, 3, 10));
+        Assert.Equal(2, daily.CurrentStreak);
+
+        // Complete day 11 — should continue from the protected period
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 11));
+        Assert.Equal(3, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void ProtectStreak_WithGap_StreakResetOnNextComplete()
+    {
+        var anchor = MakeLocal(2026, 3, 8, 0);
+        var daily = CreateDailyWithAnchor(RepeatCadence.Daily, 1, anchor);
+
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 8));
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 9));
+        Assert.Equal(2, daily.CurrentStreak);
+
+        // Protect day 10
+        daily.ProtectStreak(new DateOnly(2026, 3, 10));
+
+        // Skip day 11 entirely (no protect, no complete)
+        // Complete day 12 — gap from protected period 10, so streak resets
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 12));
+        Assert.Equal(1, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void ProtectStreak_NoExistingStreak_IsNoOp()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        Assert.Equal(0, daily.CurrentStreak);
+        Assert.Null(daily.LastCompletionPeriod);
+
+        daily.ProtectStreak(new DateOnly(2026, 3, 10));
+
+        Assert.Equal(0, daily.CurrentStreak);
+        Assert.Null(daily.LastCompletionPeriod);
+    }
+
+    [Fact]
+    public void ProtectStreak_DoesNotOverwriteNewerCompletion()
+    {
+        var anchor = MakeLocal(2026, 3, 8, 0);
+        var daily = CreateDailyWithAnchor(RepeatCadence.Daily, 1, anchor);
+
+        // Complete for day 10 (current period)
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 10));
+        Assert.Equal(1, daily.CurrentStreak);
+        Assert.Equal(new DateOnly(2026, 3, 10), daily.LastCompletionPeriod);
+
+        // ProtectStreak with an older period should be a no-op
+        daily.ProtectStreak(new DateOnly(2026, 3, 9));
+
+        Assert.Equal(1, daily.CurrentStreak);
+        Assert.Equal(new DateOnly(2026, 3, 10), daily.LastCompletionPeriod);
+    }
+
+    [Fact]
+    public void ProtectStreak_Weekly_AdvancesWeeklyPeriod()
+    {
+        var anchor = MakeLocal(2026, 3, 2, 0); // Monday
+        var daily = CreateDailyWithAnchor(RepeatCadence.Weekly, 1, anchor);
+
+        var week1 = new DateOnly(2026, 3, 2);
+        daily.CompleteForPeriod(week1);
+        Assert.Equal(1, daily.CurrentStreak);
+
+        var week2 = new DateOnly(2026, 3, 9);
+        daily.ProtectStreak(week2);
+        Assert.Equal(1, daily.CurrentStreak);
+
+        // Complete the following week — streak continues
+        var week3 = new DateOnly(2026, 3, 16);
+        daily.CompleteForPeriod(week3);
+        Assert.Equal(2, daily.CurrentStreak);
+    }
+
+    [Fact]
+    public void ProtectStreak_DoesNotUpdateBestStreak()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 10));
+        Assert.Equal(1, daily.BestStreak);
+
+        daily.ProtectStreak(new DateOnly(2026, 3, 11));
+
+        Assert.Equal(1, daily.BestStreak);
+    }
+
+    #endregion
+
+    #region StreakProtectionCost
+
+    [Fact]
+    public void StreakProtectionCost_DefaultsToOne()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        Assert.Equal(1.0, daily.StreakProtectionCost);
+    }
+
+    [Fact]
+    public void SetStreakProtectionCost_StoresValue()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        daily.SetStreakProtectionCost(5.0);
+        Assert.Equal(5.0, daily.StreakProtectionCost);
+    }
+
+    [Fact]
+    public void SetStreakProtectionCost_NegativeValue_ClampsToZero()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        daily.SetStreakProtectionCost(-3.0);
+        Assert.Equal(0.0, daily.StreakProtectionCost);
+    }
+
+    [Fact]
+    public void SetStreakProtectionCost_Zero_IsAllowed()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        daily.SetStreakProtectionCost(0);
+        Assert.Equal(0.0, daily.StreakProtectionCost);
+    }
+
+    #endregion
+
+    #region GetMissedPeriodCount
+
+    [Fact]
+    public void GetMissedPeriodCount_NoStreak_ReturnsZero()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        Assert.Equal(0, daily.CurrentStreak);
+        Assert.Equal(0, daily.GetMissedPeriodCount());
+    }
+
+    [Fact]
+    public void GetMissedPeriodCount_NullLastCompletionPeriod_ReturnsZero()
+    {
+        var daily = CreateDaily(RepeatCadence.Daily, 1);
+        Assert.Null(daily.LastCompletionPeriod);
+        Assert.Equal(0, daily.GetMissedPeriodCount());
+    }
+
+    [Fact]
+    public void GetMissedPeriodCount_CompletedYesterday_ReturnsZero()
+    {
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var daily = new DailyTask { CreatedAt = now.AddDays(-5) };
+        daily.UpdateTitle("Test");
+        daily.SetCadence(RepeatCadence.Daily);
+        daily.SetRepeatEvery(1);
+
+        // Complete for yesterday — no gap
+        daily.CompleteForPeriod(daily.GetPeriodStartFor(now.AddDays(-1)));
+        Assert.Equal(0, daily.GetMissedPeriodCount());
+    }
+
+    [Fact]
+    public void GetMissedPeriodCount_CompletedTwoDaysAgo_ReturnsOne()
+    {
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var daily = new DailyTask { CreatedAt = now.AddDays(-5) };
+        daily.UpdateTitle("Test");
+        daily.SetCadence(RepeatCadence.Daily);
+        daily.SetRepeatEvery(1);
+
+        // Complete for 2 days ago — 1 missed period (yesterday)
+        daily.CompleteForPeriod(daily.GetPeriodStartFor(now.AddDays(-2)));
+        Assert.Equal(1, daily.GetMissedPeriodCount());
+    }
+
+    [Fact]
+    public void GetMissedPeriodCount_CompletedFiveDaysAgo_ReturnsFour()
+    {
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var daily = new DailyTask { CreatedAt = now.AddDays(-10) };
+        daily.UpdateTitle("Test");
+        daily.SetCadence(RepeatCadence.Daily);
+        daily.SetRepeatEvery(1);
+
+        // Complete for 5 days ago — 4 missed periods (4, 3, 2, yesterday)
+        daily.CompleteForPeriod(daily.GetPeriodStartFor(now.AddDays(-5)));
+        Assert.Equal(4, daily.GetMissedPeriodCount());
+    }
+
+    [Fact]
+    public void GetMissedPeriodCount_CompletedToday_ReturnsZero()
+    {
+        var now = DateTimeOffset.UtcNow.ToLocalTime();
+        var daily = new DailyTask { CreatedAt = now.AddDays(-5) };
+        daily.UpdateTitle("Test");
+        daily.SetCadence(RepeatCadence.Daily);
+        daily.SetRepeatEvery(1);
+
+        // Complete for today — no gap
+        daily.CompleteForPeriod(daily.GetCurrentPeriodStart());
+        Assert.Equal(0, daily.GetMissedPeriodCount());
+    }
+
+    [Fact]
+    public void GetMissedPeriodCount_WeeklyCadence_OneWeekGap()
+    {
+        var anchor = MakeLocal(2026, 3, 2, 0); // Monday
+        var daily = CreateDailyWithAnchor(RepeatCadence.Weekly, 1, anchor);
+
+        // Complete for week of Mar 2
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 2));
+        Assert.Equal(1, daily.CurrentStreak);
+
+        // If previous period is Mar 9 and we completed Mar 2, missed = 1
+        // But this depends on current time, so use known dates
+        // Protect to Mar 9 to set up state, then check from there
+        daily.ProtectStreak(new DateOnly(2026, 3, 9));
+
+        // Now complete Mar 16 — at this point LastCompletionPeriod=Mar 9, previous from Mar 16 is Mar 9
+        daily.CompleteForPeriod(new DateOnly(2026, 3, 16));
+        Assert.Equal(2, daily.CurrentStreak);
+    }
+
+    #endregion
+
     #region Test helpers
 
     private static DailyTask CreateDaily(RepeatCadence cadence, int repeatEvery)

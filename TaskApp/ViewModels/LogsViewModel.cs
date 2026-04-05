@@ -100,6 +100,7 @@ public class LogEntryViewModel
         {
             LogType.HabitIncremented => $"Habit incremented by {FormatCountDelta(entry.CountDelta)}: {entry.TitleSnapshot}",
             LogType.DailyCompleted => $"Daily completed: {entry.TitleSnapshot}",
+            LogType.DailyStreakProtected => $"Streak protected: {entry.TitleSnapshot}",
             LogType.TodoCompleted => $"Todo completed: {entry.TitleSnapshot}",
             LogType.RewardClaimed => $"Reward claimed: {entry.TitleSnapshot}",
             LogType.ActivityDuration => $"Spent {FormatDuration(entry.Duration)} on activity: {entry.TitleSnapshot}",

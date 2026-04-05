@@ -61,7 +61,12 @@ Background="{DynamicResource AppBackgroundBrush}">
                     <TextBlock Text="Best Streak"/>
                     <TextBlock Text="{Binding BestStreak}"/>
                 </StackPanel>
-                
+
+                <StackPanel>
+                    <TextBlock Text="Streak Protection Cost"/>
+                    <NumericUpDown Value="{Binding StreakProtectionCost}" Minimum="0" Increment="0.5" FormatString="F1"/>
+                </StackPanel>
+
                 <Separator Height="1" Background="#E0E0E0"/>
 
                 <StackPanel Spacing="8">

@@ -192,15 +192,23 @@ namespace TaskApp
         {
             if (_viewModel == null) return;
 
-            // Get unchecked dailies since last active date BEFORE refreshing
-            var lastActiveDate = _viewModel.User.LastActiveDate
-                ?? DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
-            var uncheckedDailies = _viewModel.GetUncompletedDailiesSinceLastActive(lastActiveDate);
-
-            if (uncheckedDailies.Count > 0)
+            if (_viewModel.IsVacationMode)
             {
-                // Show the new day window
-                await ShowNewDayWindow(uncheckedDailies);
+                // Vacation mode: silently protect all streaks, no window
+                _viewModel.ProtectAllStreaks();
+            }
+            else
+            {
+                // Get unchecked dailies since last active date BEFORE refreshing
+                var lastActiveDate = _viewModel.User.LastActiveDate
+                    ?? DateOnly.FromDateTime(DateTime.Now).AddDays(-1);
+                var uncheckedDailies = _viewModel.GetUncompletedDailiesSinceLastActive(lastActiveDate);
+
+                if (uncheckedDailies.Count > 0)
+                {
+                    // Show the new day window
+                    await ShowNewDayWindow(uncheckedDailies);
+                }
             }
 
             // Now refresh all tasks for the new day
@@ -217,6 +225,7 @@ namespace TaskApp
 
             var newDayViewModel = new NewDayViewModel();
             newDayViewModel.SetUncompletedDailies(uncheckedDailies);
+            newDayViewModel.UserGold = _viewModel!.User.Gold;
 
             var window = new NewDayWindow
             {
@@ -247,6 +256,29 @@ namespace TaskApp
                 var goldReward = item.Daily.GetGoldRewardWithBonus();
                 _viewModel?.AddGold(goldReward);
                 await _viewModel!.LogDailyCompletedAsync(item.Daily, goldReward, endOfPreviousPeriodOffset);
+            }
+
+            // Protect streaks for items marked as protected
+            foreach (var item in newDayViewModel.UncompletedDailies.Where(x => x.IsProtected))
+            {
+                if (item.Daily == null || item.Daily.CurrentStreak <= 0)
+                {
+                    continue;
+                }
+
+                // Capture state BEFORE ProtectStreak for undo support
+                var previousPeriod = item.Daily.LastCompletionPeriod;
+                var cost = item.Daily.GetMissedPeriodCount() * item.Daily.StreakProtectionCost;
+
+                var previousPeriodStart = item.Daily.GetPreviousPeriodStart();
+                item.Daily.ProtectStreak(previousPeriodStart);
+                _viewModel?.AddGold(-cost);
+
+                var currentPeriodStart = item.Daily.GetCurrentPeriodStart();
+                var endOfPreviousPeriod = currentPeriodStart.ToDateTime(new TimeOnly(0, 0)).AddMinutes(-1);
+                var localOffset = DateTimeOffset.Now.Offset;
+                var endOfPreviousPeriodOffset = new DateTimeOffset(endOfPreviousPeriod, localOffset);
+                await _viewModel!.LogDailyStreakProtectedAsync(item.Daily, cost, endOfPreviousPeriodOffset, previousPeriod);
             }
 
             // Save changes

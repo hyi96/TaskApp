@@ -1505,7 +1505,7 @@ public class NewDayCompletionTests : IDisposable
     }
 
     [Fact]
-    public void MultiDayGap_DailyTask_ExcludedWhenCompletedInLastActivePeriod()
+    public void MultiDayGap_DailyTask_IncludedWhenCompletedInLastActivePeriod_WithGap()
     {
         var vm = CreateViewModel();
         vm.NewDailyTitle = "Daily Exercise";
@@ -1519,8 +1519,11 @@ public class NewDayCompletionTests : IDisposable
 
         var lastActiveDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-3);
 
+        // With gap-based filter, this daily IS included because there's a gap
+        // between LastCompletionPeriod (3 days ago) and the previous period (yesterday)
         var uncompleted = vm.GetUncompletedDailiesSinceLastActive(lastActiveDate);
-        Assert.Empty(uncompleted);
+        Assert.Single(uncompleted);
+        Assert.Equal("Daily Exercise", uncompleted[0].Title);
     }
 
     [Fact]

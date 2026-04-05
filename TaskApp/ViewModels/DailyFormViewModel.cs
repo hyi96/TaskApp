@@ -15,10 +15,17 @@ public class DailyFormViewModel : TaskFormViewModel
     private int _bestStreak;
     private int _newBonusStreakGoal = 1;
     private double _newBonusPercent;
+    private double _streakProtectionCost = 1.0;
     private bool _isAutocompleteEnabled;
     private int _autocompleteHours;
     private int _autocompleteMinutes;
     private int _autocompleteSeconds;
+
+    public double StreakProtectionCost
+    {
+        get => _streakProtectionCost;
+        set => SetProperty(ref _streakProtectionCost, value < 0 ? 0 : value);
+    }
 
     public RepeatCadence Cadence
     {
@@ -99,6 +106,7 @@ public class DailyFormViewModel : TaskFormViewModel
             RepeatEvery = _dailyTask.RepeatEvery;
             CurrentStreak = _dailyTask.CurrentStreak;
             BestStreak = _dailyTask.BestStreak;
+            StreakProtectionCost = _dailyTask.StreakProtectionCost;
             LastCompletedDisplay = _dailyTask.LastCompletedDate?.ToLocalTime().ToString("g") ?? "Never";
 
             if (_dailyTask.AutocompleteTimeThreshold is TimeSpan threshold)
@@ -154,6 +162,7 @@ public class DailyFormViewModel : TaskFormViewModel
             _dailyTask.SetCadence(Cadence);
             _dailyTask.SetRepeatEvery(RepeatEvery);
             _dailyTask.SetCurrentStreak(CurrentStreak);
+            _dailyTask.SetStreakProtectionCost(StreakProtectionCost);
 
             if (IsAutocompleteEnabled)
             {

@@ -19,6 +19,14 @@ public partial class NewDayWindow : Window
         }
     }
 
+    private void ProtectAll_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is NewDayViewModel vm)
+        {
+            vm.ProtectAll();
+        }
+    }
+
     private void UncheckAll_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is NewDayViewModel vm)

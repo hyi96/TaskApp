@@ -21,6 +21,7 @@ public class DailyTask : TaskBase
     private DateOnly? _lastCompletionPeriod;
     private bool _rewardGoalFulfilled;
     private TimeSpan? _autocompleteTimeThreshold;
+    private double _streakProtectionCost = 1.0;
     private readonly List<StreakBonusRule> _streakBonusRules = new() { new(7, 10), new(14, 20), new(30, 30) };
 
     public RepeatCadence Cadence
@@ -125,6 +126,28 @@ public class DailyTask : TaskBase
     public void SetAutocompleteTimeThreshold(TimeSpan? threshold)
     {
         AutocompleteTimeThreshold = threshold;
+    }
+
+    /// <summary>
+    /// The gold cost to protect this daily's streak when skipping in the new day window.
+    /// </summary>
+    public double StreakProtectionCost
+    {
+        get => _streakProtectionCost;
+        internal set
+        {
+            var newValue = value < 0 ? 0 : value;
+            if (_streakProtectionCost != newValue)
+            {
+                _streakProtectionCost = newValue;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public void SetStreakProtectionCost(double cost)
+    {
+        StreakProtectionCost = cost;
     }
     
     public DateOnly CurrentPeriodEndDate
@@ -446,10 +469,56 @@ public class DailyTask : TaskBase
         OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
     }
 
+    /// <summary>
+    /// Advances <see cref="LastCompletionPeriod"/> to the given period without
+    /// incrementing the streak or calling <see cref="TaskBase.Complete"/>.
+    /// This bridges the period gap so <see cref="RefreshForCurrentPeriod"/> will
+    /// not reset the streak.
+    /// </summary>
+    public void ProtectStreak(DateOnly periodStart)
+    {
+        if (CurrentStreak <= 0)
+        {
+            return;
+        }
+
+        if (LastCompletionPeriod is DateOnly lastPeriod && lastPeriod >= periodStart)
+        {
+            return;
+        }
+
+        LastCompletionPeriod = periodStart;
+        OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
+    }
+
     public void NotifyPeriodChanged()
     {
         OnPropertyChanged(nameof(IsCompleteForCurrentPeriod));
         OnPropertyChanged(nameof(CurrentPeriodEndDate));
+    }
+
+    /// <summary>
+    /// Returns the number of missed periods between <see cref="LastCompletionPeriod"/>
+    /// and the previous period (relative to now). Returns 0 if there is no streak to
+    /// protect or no gap exists.
+    /// </summary>
+    public int GetMissedPeriodCount()
+    {
+        if (CurrentStreak <= 0 || LastCompletionPeriod is not DateOnly lastPeriod)
+            return 0;
+
+        var previousPeriod = GetPreviousPeriodStart();
+        if (lastPeriod >= previousPeriod)
+            return 0;
+
+        int missed = 0;
+        var period = previousPeriod;
+        while (period > lastPeriod && missed < 365)
+        {
+            missed++;
+            period = GetPreviousPeriodStart(period, Cadence, RepeatEvery);
+        }
+        return missed;
     }
 
     private static int GetDaysSinceWeekStart(DayOfWeek dayOfWeek)

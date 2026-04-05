@@ -846,6 +846,11 @@ public class MainWindowViewModel : ViewModelBase
     {
         return LogAsync(LogType.DailyCompleted, task: daily, goldDelta: goldDelta, timestamp: timestamp);
     }
+
+    public Task LogDailyStreakProtectedAsync(DailyTask daily, double goldCost, DateTimeOffset timestamp, DateOnly? previousLastCompletionPeriod = null)
+    {
+        return LogAsync(LogType.DailyStreakProtected, task: daily, goldDelta: -Math.Abs(goldCost), timestamp: timestamp, previousLastCompletionPeriod: previousLastCompletionPeriod);
+    }
  
     public Task LogTodoCompletedAsync(TodoTask todo, double goldDelta)
     {
@@ -959,6 +964,24 @@ public class MainWindowViewModel : ViewModelBase
             case LogType.ActivityDuration:
                 // No state to reverse — just delete the log entry
                 break;
+            case LogType.DailyStreakProtected:
+            {
+                if (entry.TaskId is not Guid taskId) return false;
+                var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
+                if (daily == null) return false;
+
+                // Roll back LastCompletionPeriod to the value before protection was applied
+                if (entry.PreviousLastCompletionPeriod is DateOnly prevPeriod)
+                {
+                    daily.LastCompletionPeriod = prevPeriod;
+                }
+                else
+                {
+                    daily.LastCompletionPeriod = null;
+                }
+                daily.NotifyPeriodChanged();
+                break;
+            }
             default:
                 return false;
         }
@@ -972,7 +995,7 @@ public class MainWindowViewModel : ViewModelBase
         return true;
     }
 
-    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null, DateTimeOffset? timestamp = null)
+    private Task LogAsync(LogType type, TaskBase? task = null, Reward? reward = null, double goldDelta = 0, double? countDelta = null, TimeSpan? duration = null, string? title = null, Guid? taskId = null, Guid? rewardId = null, DateTimeOffset? timestamp = null, DateOnly? previousLastCompletionPeriod = null)
     {
         var entry = new LogEntry
         {
@@ -985,7 +1008,8 @@ public class MainWindowViewModel : ViewModelBase
             UserGold = User.Gold, // Capture user's gold after GoldDelta has been applied
             CountDelta = countDelta,
             Duration = duration,
-            TitleSnapshot = title ?? task?.Title ?? reward?.Title ?? string.Empty
+            TitleSnapshot = title ?? task?.Title ?? reward?.Title ?? string.Empty,
+            PreviousLastCompletionPeriod = previousLastCompletionPeriod
         };
  
         return _storageService.AddLogEntryAsync(entry);
@@ -1044,6 +1068,22 @@ public class MainWindowViewModel : ViewModelBase
         RefreshFilter();
     }
 
+    /// <summary>
+    /// Silently protects all daily streaks by advancing their LastCompletionPeriod
+    /// to the previous period. Used during vacation mode transitions.
+    /// </summary>
+    public void ProtectAllStreaks()
+    {
+        foreach (var daily in _allDailies)
+        {
+            if (daily.CurrentStreak > 0)
+            {
+                var previousPeriod = daily.GetPreviousPeriodStart();
+                daily.ProtectStreak(previousPeriod);
+            }
+        }
+    }
+
     public List<DailyTask> GetUncompletedDailiesSinceLastActive(DateOnly lastActiveDate)
     {
         var now = DateTimeOffset.UtcNow.ToLocalTime();
@@ -1061,11 +1101,11 @@ public class MainWindowViewModel : ViewModelBase
                     return false; // Same period, don't show
                 }
 
-                // Now check if the task was completed in the last active period
-                var dateInLastActivePeriod = new DateTimeOffset(lastActivePeriodStart.ToDateTime(new TimeOnly(12, 0)), now.Offset);
-
-                // Task should appear if it was NOT completed in the last active period
-                return !d.IsCompleteForPeriod(dateInLastActivePeriod);
+                // Show if the daily has a gap — not completed for the previous period or later.
+                // This catches both never-completed dailies AND dailies that were completed
+                // on the last active day but have a multi-day gap.
+                var previousPeriod = d.GetPreviousPeriodStart();
+                return d.LastCompletionPeriod is not DateOnly lp || lp < previousPeriod;
             })
             .ToList();
     }

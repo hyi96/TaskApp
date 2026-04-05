@@ -3,83 +3,123 @@ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:vm="using:TaskApp.ViewModels"
-mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+xmlns:conv="using:TaskApp.Converters"
+mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="560"
 x:Class="TaskApp.Views.NewDayWindow"
 x:DataType="vm:NewDayViewModel"
 Icon="/Assets/app-icon.png"
 Title="New Day!"
-Width="400" Height="500"
+Width="480" Height="560"
 WindowStartupLocation="CenterOwner"
 Background="{DynamicResource AppBackgroundBrush}">
+    <Window.Resources>
+        <conv:BooleanNegationConverter x:Key="InverseBooleanConverter" />
+    </Window.Resources>
     <Border Padding="16">
-        <Grid RowDefinitions="Auto,Auto,*">
-            
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+
             <StackPanel Grid.Row="0" Margin="0,0,0,16">
                 <TextBlock Text="New Day!"
                            FontSize="24"
                            FontWeight="Bold"
                            Margin="0,0,0,8"
                            Foreground="{DynamicResource AppTextBrush}"/>
-                <TextBlock Text="You have unchecked dailies from the previous period. Check them off to maintain your streaks!"
+                <TextBlock Text="You have unchecked dailies from the previous period. Check them off to maintain your streaks, or protect individual streaks for a gold cost!"
                            FontSize="14"
                            TextWrapping="Wrap"
                            Foreground="{DynamicResource SecondaryTextBrush}"/>
             </StackPanel>
 
             <!-- Quick Action Buttons -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,0,0,16">
+            <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="8" Margin="0,0,0,16">
                 <Button Grid.Column="0" 
                         Content="Check All"
                         Click="CheckAll_Click"
                         Background="#1E88E5"
                         Foreground="White"/>
                 <Button Grid.Column="1" 
-                        Content="Uncheck All"
+                        Content="Protect All"
+                        Click="ProtectAll_Click"
+                        Background="#FF9800"
+                        Foreground="White"/>
+                <Button Grid.Column="2" 
+                        Content="Clear All"
                         Click="UncheckAll_Click"
                         Background="#999999"
                         Foreground="White"/>
             </Grid>
 
             <!-- Scrollable List of Uncompleted Dailies -->
-            <ScrollViewer Grid.Row="2" Margin="0,0,12,0">
-                <StackPanel>
-                    <ItemsControl ItemsSource="{Binding UncompletedDailies}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:DailyChecklistItem">
-                                <Border Margin="0,8" Padding="8" Background="{DynamicResource ColumnBackgroundBrush}" CornerRadius="4">
-                                    <Grid ColumnDefinitions="Auto,*">
-                                        <CheckBox Grid.Column="0" 
-                                                  IsChecked="{Binding IsChecked}" 
-                                                  VerticalAlignment="Center" 
-                                                  Margin="0,0,12,0"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Title}" 
-                                                       TextWrapping="Wrap"
-                                                       FontSize="14"
-                                                       Foreground="{DynamicResource AppTextBrush}"/>
-                                            <TextBlock Text="{Binding PeriodLabel}" 
-                                                       FontSize="11"
-                                                       Foreground="{DynamicResource SecondaryTextBrush}"
-                                                       Margin="0,2,0,0"/>
+            <ScrollViewer Grid.Row="2" Margin="0,0,0,0">
+                <ItemsControl ItemsSource="{Binding UncompletedDailies}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DailyChecklistItem">
+                            <Border Margin="0,4" Padding="8" Background="{DynamicResource ColumnBackgroundBrush}" CornerRadius="4">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <CheckBox Grid.Column="0" 
+                                              IsChecked="{Binding IsChecked}" 
+                                              VerticalAlignment="Center" 
+                                              Margin="0,0,8,0"/>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" 
+                                                   TextWrapping="Wrap"
+                                                   FontSize="14"
+                                                   Foreground="{DynamicResource AppTextBrush}"/>
+                                        <TextBlock Text="{Binding PeriodLabel}" 
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <ToggleButton Grid.Column="2"
+                                                  IsChecked="{Binding IsProtected}"
+                                                  VerticalAlignment="Center"
+                                                  Padding="8,4"
+                                                  ToolTip.Tip="{Binding ProtectionCost, StringFormat='Protect streak for {0:0.#} G'}"
+                                                  IsVisible="{Binding MissedPeriodCount}">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="&#x1F6E1;&#xFE0F;" FontSize="12" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding ProtectionCost, StringFormat='{}{0:0.#} G'}" 
+                                                       FontSize="12" 
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource GoldTextBrush}"/>
                                         </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    
-                    <!-- Start New Day Button at Bottom -->
-                    <Button Content="Start New Day!"
-                            Click="StartNewDay_Click"
-                            Background="#4CAF50"
-                            Foreground="White"
-                            FontSize="16"
-                            FontWeight="Bold"
-                            Padding="16,12"
-                            Margin="0,24,0,8"
-                            HorizontalAlignment="Stretch"/>
-                </StackPanel>
+                                    </ToggleButton>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </ScrollViewer>
+
+            <!-- Footer: Cost summary + Start button -->
+            <StackPanel Grid.Row="3" Margin="0,12,0,0">
+                <Border Padding="8" 
+                        Background="{DynamicResource ColumnBackgroundBrush}" 
+                        CornerRadius="4"
+                        Margin="0,0,0,8"
+                        IsVisible="{Binding TotalProtectionCost, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Streak protection cost:"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AppTextBrush}"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding TotalProtectionCost, StringFormat='{}{0:0.#} G'}"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource GoldTextBrush}"/>
+                    </Grid>
+                </Border>
+                <Button Content="Start New Day!"
+                        Click="StartNewDay_Click"
+                        Background="#4CAF50"
+                        Foreground="White"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Padding="16,12"
+                        HorizontalAlignment="Stretch"
+                        IsEnabled="{Binding CanAffordProtections}"/>
+            </StackPanel>
         </Grid>
     </Border>
 </Window>

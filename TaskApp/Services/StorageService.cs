@@ -284,7 +284,8 @@ public class StorageService
         { "UserGold", "REAL NOT NULL DEFAULT 0" },
         { "CountDelta", "REAL NULL" },
         { "DurationTicks", "INTEGER NULL" },
-        { "TitleSnapshot", "TEXT NOT NULL" }
+        { "TitleSnapshot", "TEXT NOT NULL" },
+        { "PreviousLastCompletionPeriod", "TEXT NULL" }
     };
 
     private async Task EnsureLogsTableAsync()
@@ -370,8 +371,8 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot)
-                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot);";
+        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod)
+                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot, $prevPeriod);";
         command.Parameters.AddWithValue("$id", entry.Id.ToString());
         command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
         command.Parameters.AddWithValue("$type", (int)entry.Type);
@@ -382,6 +383,7 @@ public class StorageService
         command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
         command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
         command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
+        command.Parameters.AddWithValue("$prevPeriod", (object?)entry.PreviousLastCompletionPeriod?.ToString("o") ?? DBNull.Value);
 
         await command.ExecuteNonQueryAsync();
     }
@@ -398,8 +400,8 @@ public class StorageService
         connection.Open();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot)
-                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot);";
+        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod)
+                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot, $prevPeriod);";
         command.Parameters.AddWithValue("$id", entry.Id.ToString());
         command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
         command.Parameters.AddWithValue("$type", (int)entry.Type);
@@ -410,6 +412,7 @@ public class StorageService
         command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
         command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
         command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
+        command.Parameters.AddWithValue("$prevPeriod", (object?)entry.PreviousLastCompletionPeriod?.ToString("o") ?? DBNull.Value);
 
         command.ExecuteNonQuery();
     }
@@ -466,7 +469,7 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod
                                 FROM LogEntries
                                 WHERE Type = $type AND Id != $excludeId
                                   AND ($taskId IS NULL OR TaskId = $taskId)
@@ -491,7 +494,7 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod
                                 FROM LogEntries
                                 ORDER BY Timestamp DESC
                                 LIMIT $limit;";
@@ -509,7 +512,7 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod
                                 FROM LogEntries
                                 WHERE Timestamp >= $from AND Timestamp <= $to
                                 ORDER BY Timestamp DESC
@@ -530,7 +533,7 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot
+        command.CommandText = @"SELECT Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod
                                 FROM LogEntries
                                 ORDER BY Timestamp ASC;";
 
@@ -578,7 +581,10 @@ public class StorageService
                 UserGold = reader.IsDBNull(6) ? 0 : Convert.ToDouble(reader.GetValue(6)),
                 CountDelta = reader.IsDBNull(7) ? null : Convert.ToDouble(reader.GetValue(7)),
                 Duration = reader.IsDBNull(8) ? null : TimeSpan.FromTicks(reader.GetInt64(8)),
-                TitleSnapshot = reader.IsDBNull(9) ? string.Empty : reader.GetString(9)
+                TitleSnapshot = reader.IsDBNull(9) ? string.Empty : reader.GetString(9),
+                PreviousLastCompletionPeriod = reader.FieldCount > 10 && !reader.IsDBNull(10)
+                    ? DateOnly.Parse(reader.GetString(10))
+                    : null
             };
 
             entries.Add(entry);

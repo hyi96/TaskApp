@@ -319,7 +319,16 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel mainVm)
         {
-            mainVm.IsVacationMode = !mainVm.IsVacationMode;
+            var wasVacation = mainVm.IsVacationMode;
+            mainVm.IsVacationMode = !wasVacation;
+
+            if (wasVacation)
+            {
+                // Switching back to working mode: protect all streaks so
+                // RefreshForCurrentPeriod won't reset them on the next new day.
+                mainVm.ProtectAllStreaks();
+            }
+
             _ = mainVm.SaveDataAsync();
         }
     }

@@ -50,7 +50,8 @@ public static class TaskMapper
                     RewardGoalFulfilled = dailyData.RewardGoalFulfilled,
                     AutocompleteTimeThreshold = dailyData.AutocompleteTimeThresholdTicks.HasValue
                         ? TimeSpan.FromTicks(dailyData.AutocompleteTimeThresholdTicks.Value)
-                        : null
+                        : null,
+                    StreakProtectionCost = dailyData.StreakProtectionCost
                 };
                 break;
             case HabitTaskData habitData:
@@ -125,6 +126,7 @@ public static class TaskMapper
                     LastCompletionPeriod = daily.LastCompletionPeriod,
                     RewardGoalFulfilled = daily.RewardGoalFulfilled,
                     AutocompleteTimeThresholdTicks = daily.AutocompleteTimeThreshold?.Ticks,
+                    StreakProtectionCost = daily.StreakProtectionCost,
                     StreakBonusRules = daily.StreakBonusRules.Select(r => new StreakBonusRuleData
                     {
                         StreakGoal = r.StreakGoal,
