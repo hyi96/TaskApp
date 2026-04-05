@@ -226,7 +226,7 @@ TaskApp detects when the calendar day changes and handles the transition.
 
 1. `DayDetectionService` polls every 60 seconds. When `DateTime.Now.Date` advances, it fires `NewDayDetected`.
 2. The app collects all dailies that were **not completed** in their most recent period.
-3. If any exist, a **New Day Window** is shown listing the missed dailies for review.
+3. If any exist, a **New Day Window** is shown listing the missed dailies for review. Users can check off dailies they actually completed — these are retroactively marked as completed for the previous period and gold is awarded.
 4. All tasks are refreshed:
    - Dailies check their period and update completion status.
    - Habits check their reset cadence and reset counters if due.
@@ -236,6 +236,17 @@ TaskApp detects when the calendar day changes and handles the transition.
 ### Startup Check
 
 The same logic runs at startup if `LastActiveDate` is before today, ensuring the new-day flow fires even if the app was closed overnight.
+
+---
+
+## Vacation Mode
+
+Vacation mode protects all daily streaks during absences.
+
+- **Toggle** — Enabled and disabled from the main window via a toggle button.
+- **Effect** — When enabled, all daily streaks are automatically protected on new-day transitions at no gold cost. The new-day review window is not shown.
+- **Per-User** — The setting is stored in `UserProfile.IsVacationMode` and persisted with the user profile.
+- **Tooltip** — The toggle button displays a tooltip indicating the current state and what clicking will do.
 
 ---
 
@@ -259,4 +270,4 @@ TaskApp uses Windows toast notifications for:
 
 - **Daily Autocomplete** — When a daily's activity timer crosses the autocomplete threshold, a toast notification confirms the completion and shows the gold earned.
 
-Notifications are best-effort and only available on Windows. On other platforms, the notification call is a no-op.
+Notifications are best-effort and **Windows-only** — they use the `Microsoft.Toolkit.Uwp.Notifications` library and are guarded by an `OperatingSystem.IsWindows()` check. On non-Windows platforms the notification call is a silent no-op; all other functionality works normally.

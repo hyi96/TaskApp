@@ -1,6 +1,6 @@
 # TaskApp Documentation
 
-**TaskApp** is a cross-platform desktop productivity application built with [Avalonia UI](https://avaloniaui.net/) and .NET 10. It combines task management with a gamification layer — users earn gold by completing tasks and spend it on custom rewards.
+**TaskApp** is a cross-platform desktop productivity application built with [Avalonia UI](https://avaloniaui.net/) and .NET 10. It combines task management with a gamification layer — users earn gold by completing tasks and spend it on custom rewards. The application currently targets `net10.0-windows10.0.19041.0` due to the `Microsoft.Toolkit.Uwp.Notifications` dependency used for Windows toast notifications, but the core codebase is platform-agnostic and can be built for macOS and Linux by switching to a plain `net10.0` TFM (notifications will be a no-op on non-Windows platforms).
 
 ## Features
 
@@ -17,6 +17,7 @@
 - **New Day Detection** — Automatic detection of day changes with a review window for missed dailies.
 - **Theming** — Light, Dark, and System theme modes.
 - **Data Safety** — Atomic writes with `.tmp` → rename pattern, `.bak` backup rotation, and corruption detection with automatic fallback.
+- **Vacation Mode** — Protects all daily streaks during absences without gold cost.
 - **Notifications** — Windows toast notifications for autocomplete events.
 
 ## Tech Stack
@@ -24,12 +25,15 @@
 | Layer | Technology |
 |---|---|
 | UI Framework | [Avalonia UI 11.3](https://avaloniaui.net/) with Fluent theme |
-| Target Framework | .NET 10 |
+| Target Framework | .NET 10 (`net10.0-windows10.0.19041.0`\*) |
 | Charting | [ScottPlot 5](https://scottplot.net/) (Avalonia integration) |
 | Database | [SQLite](https://www.sqlite.org/) via `Microsoft.Data.Sqlite` |
-| Rendering | SkiaSharp (cross-platform native assets) |
+| Notifications | [Microsoft.Toolkit.Uwp.Notifications](https://www.nuget.org/packages/Microsoft.Toolkit.Uwp.Notifications) |
+| Rendering | SkiaSharp (with Linux and macOS native assets) |
 | Testing | xUnit with Avalonia.Headless, Coverlet |
 | Pattern | MVVM (Model-View-ViewModel) |
+
+\* The Windows-specific TFM is required solely by the `Microsoft.Toolkit.Uwp.Notifications` package. The core codebase is platform-agnostic — switching to `net10.0` enables macOS and Linux builds (notifications become a no-op).
 
 ## Quick Start
 

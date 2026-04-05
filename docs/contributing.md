@@ -38,8 +38,10 @@ dotnet test
 
 | Project | Type | Purpose |
 |---|---|---|
-| `TaskApp` | WinExe (.NET 10) | Main desktop application |
-| `TaskApp.Tests` | Library (.NET 10) | xUnit test suite |
+| `TaskApp` | WinExe (`net10.0-windows10.0.19041.0`\*) | Main desktop application |
+| `TaskApp.Tests` | Library (`net10.0-windows10.0.19041.0`\*) | xUnit test suite |
+
+\* The Windows-specific TFM is required solely by the `Microsoft.Toolkit.Uwp.Notifications` package. Switching to `net10.0` enables macOS and Linux builds (notifications become a no-op).
 
 See [Architecture](architecture.md) for the full directory structure.
 
@@ -49,7 +51,7 @@ See [Architecture](architecture.md) for the full directory structure.
 
 ### General
 
-- **Target:** .NET 10 with `<Nullable>enable</Nullable>`.
+- **Target:** `net10.0-windows10.0.19041.0` with `<Nullable>enable</Nullable>` (the Windows TFM is for `Microsoft.Toolkit.Uwp.Notifications` only; the codebase is otherwise platform-agnostic).
 - **Pattern:** MVVM — domain logic in Models, presentation logic in ViewModels, UI in Views.
 - **No comments** unless explaining complex logic. The code should be self-documenting.
 

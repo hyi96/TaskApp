@@ -15,7 +15,7 @@ TaskApp.sln
 │   │   ├── Tags/             # Tag
 │   │   ├── Logs/             # LogEntry
 │   │   ├── DomainEntity.cs   # Abstract base for all titled/tagged entities
-│   │   ├── UserProfile.cs    # Per-user gold, sort preferences, last active date
+│   │   ├── UserProfile.cs    # Per-user gold, vacation mode, sort preferences, last active date
 │   │   └── User.cs           # User identity + export metadata
 │   ├── ViewModels/           # Presentation logic (binds Models ↔ Views)
 │   │   ├── MainWindowViewModel.cs        # Central orchestrator

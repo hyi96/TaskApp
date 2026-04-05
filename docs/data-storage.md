@@ -58,7 +58,7 @@ An array of `TagData` objects with fields: `Id`, `Name`
 
 #### user.json
 
-A `UserProfile` object with fields: `Id`, `Gold`, `LastActiveDate`, `HabitsSortMode`, `DailiesSortMode`, `TodosSortMode`, `RewardsSortMode`
+A `UserProfile` object with fields: `Id`, `Gold`, `IsVacationMode`, `LastActiveDate`, `HabitsSortMode`, `DailiesSortMode`, `TodosSortMode`, `RewardsSortMode`
 
 ### Serialization
 
@@ -73,7 +73,7 @@ A `UserProfile` object with fields: `Id`, `Gold`, `LastActiveDate`, `HabitsSortM
 
 Stores log entries for completions, reward claims, and activity durations.
 
-#### Table: `logs`
+#### Table: `LogEntries`
 
 | Column | Type | Description |
 |---|---|---|
@@ -85,7 +85,7 @@ Stores log entries for completions, reward claims, and activity durations.
 | `GoldDelta` | REAL | Gold change |
 | `UserGold` | REAL | User's gold balance after the change |
 | `CountDelta` | REAL | Habit counter change (nullable) |
-| `Duration` | TEXT | Activity duration as ticks (nullable) |
+| `DurationTicks` | INTEGER | Activity duration in ticks (nullable) |
 | `TitleSnapshot` | TEXT | Entity title at the time of the action |
 
 ### Schema Evolution

@@ -8,11 +8,13 @@ The `TaskApp.Tests` project contains unit and integration tests using xUnit. It 
 
 | Setting | Value |
 |---|---|
-| Framework | .NET 10 |
+| Framework | .NET 10 (`net10.0-windows10.0.19041.0`\*) |
 | Test Framework | xUnit 2.9.3 |
 | Runner | xunit.runner.visualstudio 3.1.4 |
 | UI Testing | Avalonia.Headless.XUnit 11.3.9 |
 | Coverage | Coverlet 6.0.4 |
+
+\* The Windows-specific TFM is inherited from the main project's dependency on `Microsoft.Toolkit.Uwp.Notifications`. The test code itself is platform-agnostic.
 
 ### Project Reference
 

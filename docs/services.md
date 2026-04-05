@@ -24,7 +24,7 @@ All files are stored in the active user's data directory (`Users/{userId}/`).
 
 ### Write Safety
 
-All JSON writes use an atomic two-step process:
+All JSON writes use an atomic three-step process:
 
 1. If the target file exists, copy it to `{file}.bak` (backup rotation).
 2. Write new content to `{file}.tmp`.
@@ -51,15 +51,18 @@ On read, if the primary file is missing or corrupted (empty, null-byte filled), 
 | `AddLogEntryAsync(LogEntry)` | Inserts a log entry into `logs.db` |
 | `AddLogEntrySync(LogEntry)` | Synchronous variant for emergency shutdown saves |
 | `LoadRecentLogEntriesAsync(int)` | Loads the N most recent log entries |
+| `LoadFilteredLogEntriesAsync(int, DateTimeOffset, DateTimeOffset)` | Loads log entries within a date range |
+| `LoadAllLogEntriesAsync()` | Loads all log entries ordered by timestamp |
 | `FindPreviousLogEntryAsync(...)` | Finds the most recent log of a given type for a task/reward |
 | `DeleteLogEntryAsync(Guid)` | Deletes a log entry by ID |
 | `GetActivityDurationForTaskSinceAsync(Guid, DateTimeOffset)` | Sums logged activity duration for a task since a timestamp |
+| `MergeActivityLogEntriesAsync(string, Guid?, Guid?)` | Reassigns orphaned log entries matching a title to a task/reward |
 | `SaveAllSync(...)` | Synchronous save of all data (used during emergency shutdown) |
 | `RefreshDataDirectory()` | Updates the data directory after a user switch |
 
 ### SQLite Schema
 
-The `logs` table is created on first use with `CREATE TABLE IF NOT EXISTS`. Columns are added via `ALTER TABLE` as the schema evolves (`EnsureColumnsExistAsync`).
+The `LogEntries` table is created on first use with `CREATE TABLE IF NOT EXISTS`. Columns are added via `ALTER TABLE` as the schema evolves (`EnsureColumnsExistAsync`). Table initialization is cached per database path — `EnsureLogsTableAsync` only runs the schema check once per session (or until `RefreshDataDirectory()` is called).
 
 ---
 
@@ -182,11 +185,11 @@ Timer-based service that detects midnight crossings. Implements `IDisposable`.
 
 **File:** `TaskApp/Services/NotificationService.cs`
 
-Static service for showing native OS notifications.
+Static service for showing native Windows toast notifications.
 
 ### Behavior
 
-- **Windows only** — uses PowerShell to invoke the `Windows.UI.Notifications` WinRT API.
+- **Windows only** — uses `Microsoft.Toolkit.Uwp.Notifications` (`ToastContentBuilder`) to show toast notifications.
 - Best-effort — failures are silently caught to never crash the app.
 - Used for daily task autocomplete notifications.
 

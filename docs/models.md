@@ -15,7 +15,7 @@ DomainEntity (abstract)
 
 Other model classes:
 
-- `UserProfile` — per-user gold balance, sort preferences, last active date
+- `UserProfile` — per-user gold balance, vacation mode, sort preferences, last active date
 - `User` — user identity (name, ID, creation timestamp)
 - `Tag` — reusable label attached to tasks and rewards
 - `ChecklistItem` — sub-item within a `TodoTask`
@@ -83,6 +83,19 @@ A counter-based task that can be incremented/decremented.
 | `DecrementEnabled` | `bool` | `false` | Whether the − button is shown |
 | `ResetCadence` | `HabitResetCadence` | `Never` | Auto-reset schedule |
 | `LastResetPeriod` | `DateOnly?` | `null` | Period of last auto-reset |
+| `IsRewardGoalMet` | `bool` | — | Override — always returns `false` |
+
+**Methods:**
+
+| Method | Description |
+|---|---|
+| `Increment()` | Increments the counter by `IncrementAmount` (respects `IncrementEnabled`) |
+| `Decrement()` | Decrements the counter by `IncrementAmount` (clamped to ≥ 0, respects `DecrementEnabled`) |
+| `SetIncrementAmount(double)` | Sets the increment amount (clamped to ≥ 0) |
+| `SetIncrementEnabled(bool)` | Enables or disables incrementing |
+| `SetDecrementEnabled(bool)` | Enables or disables decrementing |
+| `SetResetCadence(HabitResetCadence)` | Sets the auto-reset cadence |
+| `RefreshForCurrentPeriod()` | Resets the counter if the reset period has advanced |
 
 ### HabitResetCadence Enum
 
@@ -110,6 +123,23 @@ A recurring task with streak tracking and configurable repeat schedule.
 | `LastCompletionPeriod` | `DateOnly?` | `null` | Period when last completed |
 | `RewardGoalFulfilled` | `bool` | `false` | Whether the reward goal is met for the current period |
 | `AutocompleteTimeThreshold` | `TimeSpan?` | `null` | If set, auto-completes when logged activity time exceeds this |
+| `IsCompleteForCurrentPeriod` | `bool` | — | Computed — whether the daily is completed for the current period |
+| `CurrentPeriodEndDate` | `DateOnly` | — | Computed — end date of the current repeat period |
+| `IsRewardGoalMet` | `bool` | — | Override — returns `RewardGoalFulfilled` |
+| `StreakBonusRules` | `IReadOnlyList<StreakBonusRule>` | `[7/10, 14/20, 30/30]` | Active streak bonus rules |
+
+**Methods:**
+
+| Method | Description |
+|---|---|
+| `Complete(DateTimeOffset?)` | Override — completes for the current period, updates streak and best streak |
+| `SetCadence(RepeatCadence)` | Changes the repeat cadence |
+| `SetAutocompleteTimeThreshold(TimeSpan?)` | Sets or clears the autocomplete time threshold |
+| `SetStreakBonusRules(IEnumerable<StreakBonusRule>)` | Replaces the streak bonus rules |
+| `GetGoldRewardWithBonus()` | Returns gold reward with the applicable streak bonus applied |
+| `IncrementStreak()` | Alias for `Complete()` |
+| `DecrementStreak()` | Decrements current streak by 1 (minimum 0) |
+| `ResetStreak()` | Resets current streak to 0 |
 
 ### RepeatCadence Enum
 
@@ -180,6 +210,9 @@ A purchasable reward that costs gold. Extends `DomainEntity`.
 | `TryClaim(double availableGold, DateTimeOffset?)` | Attempts to claim; returns `true` on success |
 | `SetGoldCost(double)` | Updates the gold cost |
 | `SetRepeatable(bool)` | Toggles repeatability |
+| `UpdateTitle(string)` | Updates the reward title |
+| `UpdateNotes(string?)` | Updates the reward notes |
+| `UpdateTags(IEnumerable<Tag>)` | Replaces the tag list |
 
 ---
 
@@ -206,6 +239,7 @@ Stores per-user state. Implements `INotifyPropertyChanged`.
 |---|---|---|
 | `Id` | `Guid` | Profile identifier |
 | `Gold` | `double` | Current gold balance |
+| `IsVacationMode` | `bool` | When enabled, protects all daily streaks on new-day transitions |
 | `LastActiveDate` | `DateOnly?` | Last date data was saved (used for new-day detection) |
 | `HabitsSortMode` | `string` | Persisted sort preference for habits |
 | `DailiesSortMode` | `string` | Persisted sort preference for dailies |
