@@ -189,7 +189,8 @@ Static service for showing native Windows toast notifications.
 
 ### Behavior
 
-- **Windows only** — uses `Microsoft.Toolkit.Uwp.Notifications` (`ToastContentBuilder`) to show toast notifications.
+- **Windows only** — uses `Microsoft.Toolkit.Uwp.Notifications` (`ToastContentBuilder`) to show toast notifications. The notification code is conditionally compiled via `#if WINDOWS_NOTIFICATIONS` (defined only for the `net10.0-windows10.0.19041.0` TFM), so non-Windows builds compile without any UWP dependency.
+- A runtime `OperatingSystem.IsWindows()` guard provides an additional safety check.
 - Best-effort — failures are silently caught to never crash the app.
 - Used for daily task autocomplete notifications.
 
@@ -197,7 +198,7 @@ Static service for showing native Windows toast notifications.
 
 | Method | Description |
 |---|---|
-| `Show(string title, string body)` | Displays a toast notification (Windows) or no-ops (other OS) |
+| `Show(string title, string body)` | Displays a toast notification (Windows TFM) or is an empty method (non-Windows TFM) |
 
 ---
 

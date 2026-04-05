@@ -270,4 +270,4 @@ TaskApp uses Windows toast notifications for:
 
 - **Daily Autocomplete** — When a daily's activity timer crosses the autocomplete threshold, a toast notification confirms the completion and shows the gold earned.
 
-Notifications are best-effort and **Windows-only** — they use the `Microsoft.Toolkit.Uwp.Notifications` library and are guarded by an `OperatingSystem.IsWindows()` check. On non-Windows platforms the notification call is a silent no-op; all other functionality works normally.
+Notifications are best-effort and **Windows-only** — they use the `Microsoft.Toolkit.Uwp.Notifications` library, conditionally compiled via the `WINDOWS_NOTIFICATIONS` preprocessor symbol (defined only for the `net10.0-windows10.0.19041.0` TFM). At runtime, a `OperatingSystem.IsWindows()` guard provides an additional safety check. On non-Windows builds the notification code is compiled out entirely; all other functionality works normally.

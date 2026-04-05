@@ -1,6 +1,6 @@
 # TaskApp Documentation
 
-**TaskApp** is a cross-platform desktop productivity application built with [Avalonia UI](https://avaloniaui.net/) and .NET 10. It combines task management with a gamification layer — users earn gold by completing tasks and spend it on custom rewards. The application currently targets `net10.0-windows10.0.19041.0` due to the `Microsoft.Toolkit.Uwp.Notifications` dependency used for Windows toast notifications, but the core codebase is platform-agnostic and can be built for macOS and Linux by switching to a plain `net10.0` TFM (notifications will be a no-op on non-Windows platforms).
+**TaskApp** is a cross-platform desktop productivity application built with [Avalonia UI](https://avaloniaui.net/) and .NET 10. It combines task management with a gamification layer — users earn gold by completing tasks and spend it on custom rewards. The project multi-targets `net10.0` and `net10.0-windows10.0.19041.0` — Windows builds include native toast notifications via `Microsoft.Toolkit.Uwp.Notifications`, while macOS and Linux builds compile without the notification package (the notification call is a silent no-op). The `build-all.ps1` script publishes self-contained binaries for all platforms automatically.
 
 ## Features
 
@@ -25,7 +25,7 @@
 | Layer | Technology |
 |---|---|
 | UI Framework | [Avalonia UI 11.3](https://avaloniaui.net/) with Fluent theme |
-| Target Framework | .NET 10 (`net10.0-windows10.0.19041.0`\*) |
+| Target Framework | .NET 10 (`net10.0` + `net10.0-windows10.0.19041.0`\*) |
 | Charting | [ScottPlot 5](https://scottplot.net/) (Avalonia integration) |
 | Database | [SQLite](https://www.sqlite.org/) via `Microsoft.Data.Sqlite` |
 | Notifications | [Microsoft.Toolkit.Uwp.Notifications](https://www.nuget.org/packages/Microsoft.Toolkit.Uwp.Notifications) |
@@ -33,7 +33,7 @@
 | Testing | xUnit with Avalonia.Headless, Coverlet |
 | Pattern | MVVM (Model-View-ViewModel) |
 
-\* The Windows-specific TFM is required solely by the `Microsoft.Toolkit.Uwp.Notifications` package. The core codebase is platform-agnostic — switching to `net10.0` enables macOS and Linux builds (notifications become a no-op).
+\* The project multi-targets both TFMs. The Windows-specific TFM is needed only by the `Microsoft.Toolkit.Uwp.Notifications` package and is selected automatically for Windows RIDs by `build-all.ps1`. Non-Windows RIDs use the plain `net10.0` TFM — notification code is conditionally compiled out via the `WINDOWS_NOTIFICATIONS` preprocessor symbol.
 
 ## Quick Start
 

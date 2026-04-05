@@ -14,7 +14,7 @@ The `TaskApp.Tests` project contains unit and integration tests using xUnit. It 
 | UI Testing | Avalonia.Headless.XUnit 11.3.9 |
 | Coverage | Coverlet 6.0.4 |
 
-\* The Windows-specific TFM is inherited from the main project's dependency on `Microsoft.Toolkit.Uwp.Notifications`. The test code itself is platform-agnostic.
+\* The test project targets the Windows-specific TFM to reference the full Windows build of the main project (including notification code). The test code itself is platform-agnostic.
 
 ### Project Reference
 
