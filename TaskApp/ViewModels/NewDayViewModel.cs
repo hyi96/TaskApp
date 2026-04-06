@@ -43,6 +43,10 @@ public class NewDayViewModel : ViewModelBase
 
     public bool CanAffordProtections => UserGold + ProjectedGoldEarned >= TotalProtectionCost;
 
+    public double ExpectedCost => Math.Max(0, TotalProtectionCost - ProjectedGoldEarned);
+
+    public bool HasExpectedCost => ExpectedCost > 0;
+
     public void SetUncompletedDailies(List<DailyTask> dailies)
     {
         // Unsubscribe from old items
@@ -67,6 +71,8 @@ public class NewDayViewModel : ViewModelBase
             OnPropertyChanged(nameof(TotalProtectionCost));
             OnPropertyChanged(nameof(ProjectedGoldEarned));
             OnPropertyChanged(nameof(CanAffordProtections));
+            OnPropertyChanged(nameof(ExpectedCost));
+            OnPropertyChanged(nameof(HasExpectedCost));
         }
     }
 

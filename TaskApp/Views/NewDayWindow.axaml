@@ -97,14 +97,14 @@ Background="{DynamicResource AppBackgroundBrush}">
                         Background="{DynamicResource ColumnBackgroundBrush}" 
                         CornerRadius="4"
                         Margin="0,0,0,8"
-                        IsVisible="{Binding TotalProtectionCost, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}">
+                        IsVisible="{Binding HasExpectedCost}">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0"
-                                   Text="Streak protection cost:"
+                                   Text="Expected cost:"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource AppTextBrush}"/>
                         <TextBlock Grid.Column="1"
-                                   Text="{Binding TotalProtectionCost, StringFormat='{}{0:0.#} G'}"
+                                   Text="{Binding ExpectedCost, StringFormat='{}{0:0.#} G'}"
                                    FontWeight="Bold"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource GoldTextBrush}"/>
