@@ -9,12 +9,13 @@
 - **Todos** — One-off tasks with optional due dates and checklists.
 - **Rewards** — Custom rewards purchased with earned gold; supports one-time and repeatable rewards.
 - **Gold Economy** — Earn gold by completing tasks, spend it on rewards. Streak bonuses amplify daily task payouts.
+- **Streak Protection** — Pay a configurable gold cost per missed period to preserve daily streaks instead of losing them.
 - **Activity Timer** — Built-in stopwatch that logs time spent on any task or reward, with daily autocomplete support.
 - **Graphs & Analytics** — Visualize completion history, gold trends, and activity durations over time using ScottPlot.
 - **Tags & Filtering** — Organize tasks and rewards with tags; filter and sort by multiple criteria.
 - **Multi-User Profiles** — Create, switch, rename, delete, import, and export user profiles.
-- **Undo System** — Undo any logged action (completions, claims) with full state reversal.
-- **New Day Detection** — Automatic detection of day changes with a review window for missed dailies.
+- **Undo System** — Undo any logged action (completions, claims, streak protections) with full state reversal.
+- **New Day Detection** — Automatic detection of day changes with a review window to check off or protect missed dailies (supports multi-day gaps).
 - **Theming** — Light, Dark, and System theme modes.
 - **Data Safety** — Atomic writes with `.tmp` → rename pattern, `.bak` backup rotation, and corruption detection with automatic fallback.
 - **Vacation Mode** — Protects all daily streaks during absences without gold cost.

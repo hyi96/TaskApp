@@ -105,10 +105,11 @@ TaskApp.sln
 
 `DayDetectionService` uses a `System.Threading.Timer` polling every 60 seconds. When `DateTime.Now.Date` advances past the last checked date:
 
-1. Uncompleted dailies from the previous period are collected.
-2. If any exist, the **New Day Window** is shown for review.
-3. All tasks are refreshed for the new period (daily cadence checks, habit counter resets, streak updates).
-4. Data is saved.
+1. Uncompleted dailies from the previous period are collected (gap-based filter using `LastCompletionPeriod`).
+2. If vacation mode is enabled, all daily streaks are silently protected at no gold cost.
+3. Otherwise, if any uncompleted dailies exist, the **New Day Window** is shown for review (check or protect each daily).
+4. All tasks are refreshed for the new period (daily cadence checks, habit counter resets, streak updates).
+5. Data is saved.
 
 ## Data Flow: Task Completion Example
 

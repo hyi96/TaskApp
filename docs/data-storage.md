@@ -43,7 +43,7 @@ TaskApp/
 An array of task data objects. Each object includes a discriminator type that maps to the correct subclass:
 
 - `TodoTaskData` — includes `DueDate`, `Checklist`
-- `DailyTaskData` — includes `Cadence`, `RepeatEvery`, `CurrentStreak`, `BestStreak`, `LastCompletionPeriod`, `StreakBonusRules`, `AutocompleteTimeThresholdTicks`
+- `DailyTaskData` — includes `Cadence`, `RepeatEvery`, `CurrentStreak`, `BestStreak`, `LastCompletionPeriod`, `StreakBonusRules`, `AutocompleteTimeThresholdTicks`, `StreakProtectionCost`
 - `HabitTaskData` — includes `Count`, `IncrementAmount`, `IncrementEnabled`, `DecrementEnabled`, `ResetCadence`, `LastResetPeriod`
 
 Common fields: `Id`, `CreatedAt`, `Title`, `Notes`, `Tags`, `LastCompletedDate`, `GoldReward`, `IsHidden`
@@ -87,6 +87,7 @@ Stores log entries for completions, reward claims, and activity durations.
 | `CountDelta` | REAL | Habit counter change (nullable) |
 | `DurationTicks` | INTEGER | Activity duration in ticks (nullable) |
 | `TitleSnapshot` | TEXT | Entity title at the time of the action |
+| `PreviousLastCompletionPeriod` | TEXT | Previous `LastCompletionPeriod` before streak protection (nullable, for undo rollback) |
 
 ### Schema Evolution
 

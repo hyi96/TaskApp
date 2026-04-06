@@ -65,10 +65,40 @@ Gold is the central currency connecting tasks and rewards.
 | Increment a habit | + `GoldReward` |
 | Complete a todo | + `GoldReward` |
 | Claim a reward | − `GoldCost` |
+| Protect a daily streak | − `StreakProtectionCost` × missed periods |
 | Undo a completion | Reverses the original gold change |
 
 - Gold cannot go below zero (clamped with `Math.Max(0, ...)`).
 - The gold balance is displayed in the main window and persisted in the user profile.
+
+---
+
+## Streak Protection
+
+Streak protection lets you pay gold to preserve a daily's streak when you miss one or more periods, instead of losing the streak entirely.
+
+### Configuration
+
+- Each daily has a `StreakProtectionCost` (default 1.0, minimum 0) configurable in the task edit form.
+- The cost applies **per missed period** — if you miss 3 days of a daily task, protecting it costs 3 × `StreakProtectionCost`.
+
+### How It Works
+
+1. When a new day is detected and uncompleted dailies are found, the **New Day Window** appears.
+2. Each missed daily shows a **Check** toggle (mark as retroactively completed) and a **Protect** toggle (pay gold to keep the streak).
+3. Check and Protect are mutually exclusive — enabling one disables the other.
+4. The window displays the total protection cost and the user's available gold (including projected gold earned from checked items).
+5. The **Confirm** button is disabled if the user cannot afford all selected protections after accounting for gold earned from checked dailies.
+
+### Multi-Day Gaps
+
+If the app was closed for multiple days, `GetMissedPeriodCount()` calculates how many periods were missed based on the daily's cadence and `LastCompletionPeriod`. The protection cost scales with the number of missed periods.
+
+### Mechanics
+
+- `ProtectStreak()` advances `LastCompletionPeriod` to the previous period start date, preserving the current streak value.
+- Protection only works if the daily has an existing streak (≥ 1) and is not already completed for the current period.
+- Each protection is logged as `LogType.DailyStreakProtected` with the gold cost and the previous `LastCompletionPeriod` (for undo support).
 
 ---
 
@@ -210,6 +240,7 @@ Any logged action can be undone from the Logs window.
 |---|---|
 | Habit increment | Reverts counter by increment amount, restores `LastCompletedDate` |
 | Daily completion | Unmarks completion, decrements streak, restores `LastCompletionPeriod` |
+| Daily streak protection | Restores `LastCompletionPeriod` to its previous value (stored in `PreviousLastCompletionPeriod`), refunds gold |
 | Todo completion | Clears `LastCompletedDate` |
 | Reward claim | Decrements claim count, restores `IsClaimed` for one-time rewards |
 | Activity duration | Deletes the log entry (no state to reverse) |
@@ -225,13 +256,22 @@ TaskApp detects when the calendar day changes and handles the transition.
 ### Flow
 
 1. `DayDetectionService` polls every 60 seconds. When `DateTime.Now.Date` advances, it fires `NewDayDetected`.
-2. The app collects all dailies that were **not completed** in their most recent period.
-3. If any exist, a **New Day Window** is shown listing the missed dailies for review. Users can check off dailies they actually completed — these are retroactively marked as completed for the previous period and gold is awarded.
-4. All tasks are refreshed:
+2. The app collects all dailies that were **not completed** in their most recent period using a gap-based filter (`LastCompletionPeriod` before the previous period start).
+3. If vacation mode is enabled, all daily streaks are silently protected at no gold cost and no window is shown.
+4. Otherwise, if any uncompleted dailies exist, a **New Day Window** is shown listing them for review:
+   - **Check toggle** — Retroactively marks the daily as completed for the previous period and awards gold (with streak bonus).
+   - **Protect toggle** — Pays gold to protect the streak without completing the daily. Cost is `StreakProtectionCost × missedPeriods`.
+   - Check and Protect are mutually exclusive.
+   - The total protection cost is displayed. The confirm button is disabled if the user cannot afford all selected protections (accounting for **projected gold** earned from checked items).
+5. All tasks are refreshed:
    - Dailies check their period and update completion status.
    - Habits check their reset cadence and reset counters if due.
-   - Streaks are evaluated — missed periods reset the current streak to zero.
-5. All changes are saved.
+   - Unprotected, unchecked dailies have their streaks reset to zero.
+6. All changes are saved.
+
+### Multi-Day Gaps
+
+If the app was closed for multiple days, `GetMissedPeriodCount()` calculates how many periods each daily missed based on its cadence, `RepeatEvery`, and `LastCompletionPeriod`. The protection cost scales accordingly.
 
 ### Startup Check
 
@@ -241,10 +281,11 @@ The same logic runs at startup if `LastActiveDate` is before today, ensuring the
 
 ## Vacation Mode
 
-Vacation mode protects all daily streaks during absences.
+Vacation mode protects all daily streaks during absences without any gold cost.
 
 - **Toggle** — Enabled and disabled from the main window via a toggle button.
-- **Effect** — When enabled, all daily streaks are automatically protected on new-day transitions at no gold cost. The new-day review window is not shown.
+- **Effect** — When enabled, all daily streaks are automatically protected on new-day transitions at no gold cost. The new-day review window is not shown. Each daily's `LastCompletionPeriod` is advanced via `ProtectStreak()` without deducting gold or creating log entries.
+- **Multi-Day Gaps** — Vacation mode handles multi-day absences correctly. `ProtectStreak()` advances `LastCompletionPeriod` to the previous period start regardless of how many days were missed.
 - **Per-User** — The setting is stored in `UserProfile.IsVacationMode` and persisted with the user profile.
 - **Tooltip** — The toggle button displays a tooltip indicating the current state and what clicking will do.
 

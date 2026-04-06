@@ -127,15 +127,21 @@ A recurring task with streak tracking and configurable repeat schedule.
 | `CurrentPeriodEndDate` | `DateOnly` | — | Computed — end date of the current repeat period |
 | `IsRewardGoalMet` | `bool` | — | Override — returns `RewardGoalFulfilled` |
 | `StreakBonusRules` | `IReadOnlyList<StreakBonusRule>` | `[7/10, 14/20, 30/30]` | Active streak bonus rules |
+| `StreakProtectionCost` | `double` | 1.0 | Gold cost per missed period to protect the streak |
 
 **Methods:**
 
 | Method | Description |
 |---|---|
 | `Complete(DateTimeOffset?)` | Override — completes for the current period, updates streak and best streak |
+| `CompleteForPeriod(DateOnly, DateTimeOffset?)` | Completes for a specific period (used for retroactive new-day completions) |
+| `ProtectStreak()` | Advances `LastCompletionPeriod` to the previous period start without incrementing the streak (requires existing streak ≥ 1) |
+| `GetMissedPeriodCount()` | Returns the number of missed periods between `LastCompletionPeriod` and the previous period start |
+| `GetPreviousPeriodStart()` | Returns the start date of the period immediately before the current one |
 | `SetCadence(RepeatCadence)` | Changes the repeat cadence |
 | `SetAutocompleteTimeThreshold(TimeSpan?)` | Sets or clears the autocomplete time threshold |
 | `SetStreakBonusRules(IEnumerable<StreakBonusRule>)` | Replaces the streak bonus rules |
+| `SetStreakProtectionCost(double)` | Sets the gold cost per missed period for streak protection (minimum 0) |
 | `GetGoldRewardWithBonus()` | Returns gold reward with the applicable streak bonus applied |
 | `IncrementStreak()` | Alias for `Complete()` |
 | `DecrementStreak()` | Decrements current streak by 1 (minimum 0) |
@@ -291,6 +297,7 @@ Immutable audit record stored in SQLite.
 | `CountDelta` | `double?` | Counter change for habit increments |
 | `Duration` | `TimeSpan?` | Logged activity duration |
 | `TitleSnapshot` | `string` | Title at the time of the action |
+| `PreviousLastCompletionPeriod` | `DateOnly?` | Previous `LastCompletionPeriod` before a streak protection (used for undo rollback) |
 
 ### LogType Enum
 
@@ -301,6 +308,7 @@ Immutable audit record stored in SQLite.
 | `TodoCompleted` | A todo task was completed |
 | `RewardClaimed` | A reward was claimed |
 | `ActivityDuration` | An activity timer session was logged |
+| `DailyStreakProtected` | A daily's streak was protected by paying gold |
 
 ---
 

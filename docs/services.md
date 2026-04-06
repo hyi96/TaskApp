@@ -20,7 +20,7 @@ All files are stored in the active user's data directory (`Users/{userId}/`).
 | `rewards.json` | JSON | All rewards |
 | `tags.json` | JSON | All tags |
 | `user.json` | JSON | User profile (gold, sort preferences, last active date) |
-| `logs.db` | SQLite | Log entries (completions, claims, activity durations) |
+| `logs.db` | SQLite | Log entries (completions, claims, streak protections, activity durations) |
 
 ### Write Safety
 

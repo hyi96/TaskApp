@@ -65,7 +65,8 @@ The main project grants test access to internals:
 
 | Test Class | Covers |
 |---|---|
-| `NewDayCompletionTests` | New day detection and daily status transitions |
+| `StreakProtectionTests` | Streak protection, vacation mode, multi-day gaps, protection cost |
+| `NewDayCompletionTests` | New day detection, check/protect flow, projected gold affordability |
 | `DailyAutocompleteTests` | Activity timer autocomplete threshold logic |
 | `ManualDurationLoggingTests` | Manual activity duration logging |
 | `MergeActivityTests` | Activity log merging between tasks |

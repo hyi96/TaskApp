@@ -1,8 +1,8 @@
 # TaskApp
 
-A gamified task management desktop application built with **Avalonia UI** and **.NET 8**. Track habits, dailies, and todos while earning gold rewards to stay motivated.
+A gamified task management desktop application built with **Avalonia UI** and **.NET 10**. Track habits, dailies, and todos while earning gold rewards to stay motivated.
 
-![.NET 8](https://img.shields.io/badge/.NET-8.0-purple)
+![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia UI](https://img.shields.io/badge/Avalonia-11.3.9-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
@@ -21,6 +21,8 @@ A gamified task management desktop application built with **Avalonia UI** and **
 ### 🏆 Gamification
 - **Gold System** – Earn gold by completing tasks, spend it on custom rewards
 - **Streak Bonuses** – Earn bonus gold for maintaining daily streaks (configurable milestones)
+- **Streak Protection** – Protect daily streaks by paying a configurable gold cost per missed period instead of losing the streak
+- **Vacation Mode** – Toggle vacation mode to automatically protect all daily streaks at no gold cost during absences
 - **Rewards Shop** – Create custom rewards to purchase with earned gold (one-time or repeatable)
 
 ### ⏱️ Current Activity Timer
@@ -33,7 +35,8 @@ A gamified task management desktop application built with **Avalonia UI** and **
 - **Graphs** – Visualize productivity over time (hourly, daily, weekly, monthly, yearly views)
 - **Activity Logs** – Track all task completions and reward claims with timestamps, gold changes, and activity durations
 - **Log Filtering** – Filter logs by date range and limit count
-- **New Day Detection** – Automatically detects day changes, resets daily tasks and habit counters, and logs dailies checked during the new day prompt
+- **New Day Detection** – Automatically detects day changes with a review window to check off missed dailies or protect their streaks (supports multi-day gaps)
+- **Undo System** – Undo any logged action from the Logs window with full state reversal including streak protection rollback
 
 ### 🎨 Customization
 - **Light/Dark Themes** – Switch between visual themes
@@ -72,7 +75,7 @@ A gamified task management desktop application built with **Avalonia UI** and **
 ## Getting Started
 
 ### Prerequisites
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 ### Build From Source & Run
 
@@ -99,7 +102,7 @@ dotnet test TaskApp.Tests
 ## Project Structure
 
 ```
-TaskApp/                    # Main application (.NET 8)
+TaskApp/                    # Main application (.NET 10)
 ├── Models/
 │   ├── Tasks/              # HabitTask, DailyTask, TodoTask, ChecklistItem, StreakBonusRule
 │   ├── Rewards/            # Reward model
@@ -107,13 +110,13 @@ TaskApp/                    # Main application (.NET 8)
 │   ├── Tags/               # Tag model
 │   ├── DomainEntity.cs     # Base class for tasks and rewards
 │   ├── User.cs             # User and UserExportMetadata
-│   └── UserProfile.cs      # User preferences (gold, sort modes)
+│   └── UserProfile.cs      # User preferences (gold, sort modes, vacation mode)
 ├── ViewModels/             # MVVM ViewModels
 │   ├── MainWindowViewModel.cs      # Core app logic, filtering, sorting, logging
 │   ├── CurrentActivityViewModel.cs # Timer, autocomplete detection
 │   ├── LogsViewModel.cs            # Log display with date filtering
 │   ├── GraphViewModel.cs           # Productivity charts
-│   ├── NewDayViewModel.cs          # Day-change handling
+│   ├── NewDayViewModel.cs          # Day-change handling and streak protection
 │   └── *FormViewModel.cs           # Task and reward edit forms
 ├── Views/                  # Avalonia XAML views
 ├── Services/
@@ -127,6 +130,9 @@ TaskApp/                    # Main application (.NET 8)
 └── Data/                   # Data transfer objects for JSON serialization
 TaskApp.Tests/              # xUnit test project (.NET 10)
 ├── DailyAutocompleteTests.cs       # Autocomplete threshold logic
+├── DailyTaskTests.cs               # Daily task period and completion logic
+├── StreakProtectionTests.cs         # Streak protection and vacation mode
+├── NewDayCompletionTests.cs        # New day window check/protect flow
 ├── MainWindowViewModelTests.cs     # Filtering and sorting
 ├── CurrentActivityViewModelTests.cs # Timer and autocomplete UI tests (Avalonia Headless)
 └── ImportExportTests.cs            # Export/import round-trip tests
@@ -137,7 +143,7 @@ TaskApp.Tests/              # xUnit test project (.NET 10)
 | Component | Technology |
 |-----------|------------|
 | UI Framework | [Avalonia UI 11.3.9](https://avaloniaui.net/) |
-| Runtime | .NET 8 |
+| Runtime | .NET 10 |
 | Database | SQLite (Microsoft.Data.Sqlite) |
 | Charts | [ScottPlot 5](https://scottplot.net/) |
 | Architecture | MVVM |
@@ -152,6 +158,8 @@ TaskApp.Tests/              # xUnit test project (.NET 10)
 - **Search**: Use the search bar to filter tasks across all categories
 - **Verbose Mode**: Toggle "Verbose" checkbox to see detailed information including last-completed times
 - **New Day Detection**: The app automatically detects day changes, resets daily tasks, and resets habit counters based on cadence
+- **Streak Protection**: When the new day window appears, toggle "Protect" to pay gold and keep a daily's streak instead of losing it
+- **Vacation Mode**: Enable vacation mode to automatically protect all daily streaks at no gold cost while you're away
 - **Hide/Unhide**: Archive tasks or rewards you don't need right now and restore them later
 - **Sort Preferences**: Each task category has its own sort mode that persists between sessions
 - **Log Filtering**: Use the date range picker and limit options in the Logs window to narrow down entries
