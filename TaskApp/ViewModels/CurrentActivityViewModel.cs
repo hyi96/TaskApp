@@ -12,16 +12,17 @@ public class CurrentActivityViewModel : ViewModelBase
     private string _title = string.Empty;
     private bool _isRunning;
     private TimeSpan _sessionStartElapsed = TimeSpan.Zero;
+    private DateTimeOffset? _sessionStartedAt;
     private Guid? _taskId;
     private Guid? _rewardId;
     private bool _autocompleteTriggered;
 
     /// <summary>
     /// Delegate that returns the remaining time before autocomplete triggers.
-    /// Parameters: taskId, current session elapsed time.
+    /// Parameters: taskId, session start timestamp, current session elapsed time.
     /// Returns null if autocomplete is not applicable, or remaining time (may be zero/negative when threshold crossed).
     /// </summary>
-    public Func<Guid, TimeSpan, Task<TimeSpan?>>? GetAutocompleteRemainingTime { get; set; }
+    public Func<Guid, DateTimeOffset, TimeSpan, Task<TimeSpan?>>? GetAutocompleteRemainingTime { get; set; }
 
     /// <summary>
     /// Raised when autocomplete threshold is crossed. Parameter is the task ID.
@@ -78,6 +79,7 @@ public class CurrentActivityViewModel : ViewModelBase
 
         _stopwatch.Stop();
         IsRunning = false;
+        _sessionStartedAt = null;
         _timer.Stop();
         UpdateElapsed();
     }
@@ -87,6 +89,7 @@ public class CurrentActivityViewModel : ViewModelBase
         if (IsRunning) return;
 
         _sessionStartElapsed = _stopwatch.Elapsed;
+        _sessionStartedAt = DateTimeOffset.UtcNow;
         _stopwatch.Start();
         IsRunning = true;
         if (!_timer.IsEnabled)
@@ -103,6 +106,7 @@ public class CurrentActivityViewModel : ViewModelBase
         _stopwatch.Stop();
         var sessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
         IsRunning = false;
+        _sessionStartedAt = null;
         _timer.Stop();
         UpdateElapsed();
 
@@ -139,6 +143,7 @@ public class CurrentActivityViewModel : ViewModelBase
 
         _stopwatch.Reset();
         IsRunning = false;
+        _sessionStartedAt = null;
         _timer.Stop();
         UpdateElapsed();
 
@@ -166,11 +171,11 @@ public class CurrentActivityViewModel : ViewModelBase
 
     private async Task CheckAutocompleteAsync()
     {
-        if (_autocompleteTriggered || !IsRunning || _taskId is not Guid taskId || GetAutocompleteRemainingTime == null)
+        if (_autocompleteTriggered || !IsRunning || _taskId is not Guid taskId || _sessionStartedAt is not DateTimeOffset sessionStartedAt || GetAutocompleteRemainingTime == null)
             return;
 
         var currentSessionElapsed = _stopwatch.Elapsed - _sessionStartElapsed;
-        var remaining = await GetAutocompleteRemainingTime(taskId, currentSessionElapsed);
+        var remaining = await GetAutocompleteRemainingTime(taskId, sessionStartedAt, currentSessionElapsed);
 
         if (remaining.HasValue && remaining.Value <= TimeSpan.Zero)
         {

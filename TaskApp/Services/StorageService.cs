@@ -549,18 +549,35 @@ public class StorageService
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT COALESCE(SUM(DurationTicks), 0)
+        command.CommandText = @"SELECT Timestamp, DurationTicks
                                 FROM LogEntries
                                 WHERE TaskId = $taskId
                                   AND Type = $type
-                                  AND Timestamp >= $since
                                   AND DurationTicks IS NOT NULL;";
         command.Parameters.AddWithValue("$taskId", taskId.ToString());
         command.Parameters.AddWithValue("$type", (int)LogType.ActivityDuration);
-        command.Parameters.AddWithValue("$since", since.UtcDateTime.ToString("o"));
 
-        var result = await command.ExecuteScalarAsync();
-        var ticks = result is long l ? l : Convert.ToInt64(result);
+        long ticks = 0;
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var endedAt = DateTimeOffset.Parse(reader.GetString(0), null, DateTimeStyles.RoundtripKind);
+            var duration = TimeSpan.FromTicks(reader.GetInt64(1));
+            var startedAt = endedAt - duration;
+
+            if (endedAt <= since)
+            {
+                continue;
+            }
+
+            var effectiveStart = startedAt > since ? startedAt : since;
+            var overlap = endedAt - effectiveStart;
+            if (overlap > TimeSpan.Zero)
+            {
+                ticks += overlap.Ticks;
+            }
+        }
+
         return TimeSpan.FromTicks(ticks);
     }
 

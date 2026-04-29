@@ -874,7 +874,7 @@ public class MainWindowViewModel : ViewModelBase
             return;
 
         var periodStart = daily.GetCurrentPeriodStart();
-        var periodStartOffset = new DateTimeOffset(periodStart.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var periodStartOffset = GetLocalPeriodStartOffset(periodStart);
         var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartOffset);
 
         if (loggedDuration >= threshold)
@@ -1110,17 +1110,37 @@ public class MainWindowViewModel : ViewModelBase
             .ToList();
     }
 
-    private async Task<TimeSpan?> GetAutocompleteRemainingTimeAsync(Guid taskId, TimeSpan currentSessionElapsed)
+    private async Task<TimeSpan?> GetAutocompleteRemainingTimeAsync(Guid taskId, DateTimeOffset sessionStartedAt, TimeSpan currentSessionElapsed)
     {
         var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
         if (daily == null || daily.AutocompleteTimeThreshold is not TimeSpan threshold || daily.IsCompleteForCurrentPeriod)
             return null;
 
         var periodStart = daily.GetCurrentPeriodStart();
-        var periodStartOffset = new DateTimeOffset(periodStart.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var periodStartOffset = GetLocalPeriodStartOffset(periodStart);
         var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartOffset);
-        var totalTimeSpent = loggedDuration + currentSessionElapsed;
+        var currentPeriodSessionElapsed = GetSessionElapsedSince(sessionStartedAt, currentSessionElapsed, periodStartOffset);
+        var totalTimeSpent = loggedDuration + currentPeriodSessionElapsed;
         return threshold - totalTimeSpent;
+    }
+
+    private static DateTimeOffset GetLocalPeriodStartOffset(DateOnly periodStart)
+    {
+        var localDateTime = periodStart.ToDateTime(TimeOnly.MinValue);
+        return new DateTimeOffset(localDateTime, TimeZoneInfo.Local.GetUtcOffset(localDateTime));
+    }
+
+    private static TimeSpan GetSessionElapsedSince(DateTimeOffset sessionStartedAt, TimeSpan currentSessionElapsed, DateTimeOffset since)
+    {
+        if (currentSessionElapsed <= TimeSpan.Zero)
+            return TimeSpan.Zero;
+
+        var sessionEndedAt = sessionStartedAt + currentSessionElapsed;
+        if (sessionEndedAt <= since)
+            return TimeSpan.Zero;
+
+        var effectiveStart = sessionStartedAt > since ? sessionStartedAt : since;
+        return sessionEndedAt - effectiveStart;
     }
 
     private async void OnAutocompleteTriggered(Guid taskId)
@@ -1141,7 +1161,6 @@ public class MainWindowViewModel : ViewModelBase
             $"\"{daily.Title}\" completed! +{rewardAmount:0.#}g");
     }
 }
-
 
 
 

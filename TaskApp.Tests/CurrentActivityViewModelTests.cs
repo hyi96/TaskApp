@@ -90,7 +90,7 @@ public class CurrentActivityViewModelTests
         var taskId = Guid.NewGuid();
         var triggerCount = 0;
 
-        vm.GetAutocompleteRemainingTime = (_, _) => Task.FromResult<TimeSpan?>(TimeSpan.Zero);
+        vm.GetAutocompleteRemainingTime = (_, _, _) => Task.FromResult<TimeSpan?>(TimeSpan.Zero);
         vm.AutocompleteTriggered += _ => triggerCount++;
 
         vm.SetTitleAndReset("Focus", taskId, null);
@@ -108,7 +108,7 @@ public class CurrentActivityViewModelTests
         var vm = new CurrentActivityViewModel();
         var queried = false;
 
-        vm.GetAutocompleteRemainingTime = (_, _) =>
+        vm.GetAutocompleteRemainingTime = (_, _, _) =>
         {
             queried = true;
             return Task.FromResult<TimeSpan?>(TimeSpan.Zero);
@@ -122,6 +122,34 @@ public class CurrentActivityViewModelTests
         Assert.False(queried);
     }
 
+    [AvaloniaFact]
+    public async Task Autocomplete_CheckPassesSessionStartAndElapsedToRemainingTimeProvider()
+    {
+        var vm = new CurrentActivityViewModel();
+        var taskId = Guid.NewGuid();
+        DateTimeOffset? capturedSessionStartedAt = null;
+        var capturedSessionElapsed = TimeSpan.Zero;
+        var triggered = false;
+
+        vm.GetAutocompleteRemainingTime = (_, sessionStartedAt, currentSessionElapsed) =>
+        {
+            capturedSessionStartedAt = sessionStartedAt;
+            capturedSessionElapsed = currentSessionElapsed;
+            return Task.FromResult<TimeSpan?>(TimeSpan.FromMinutes(30) - currentSessionElapsed);
+        };
+        vm.AutocompleteTriggered += _ => triggered = true;
+
+        vm.SetTitleAndReset("Focus", taskId, null);
+        vm.Start();
+        SetSessionStartElapsed(vm, TimeSpan.FromHours(-2));
+
+        await InvokeCheckAutocompleteAsync(vm);
+
+        Assert.NotNull(capturedSessionStartedAt);
+        Assert.True(capturedSessionElapsed >= TimeSpan.FromHours(2));
+        Assert.True(triggered);
+    }
+
     private static async Task InvokeCheckAutocompleteAsync(CurrentActivityViewModel vm)
     {
         var method = typeof(CurrentActivityViewModel).GetMethod("CheckAutocompleteAsync", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -129,5 +157,12 @@ public class CurrentActivityViewModelTests
         var task = method!.Invoke(vm, null) as Task;
         Assert.NotNull(task);
         await task!;
+    }
+
+    private static void SetSessionStartElapsed(CurrentActivityViewModel vm, TimeSpan value)
+    {
+        var field = typeof(CurrentActivityViewModel).GetField("_sessionStartElapsed", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field!.SetValue(vm, value);
     }
 }

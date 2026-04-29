@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
+using TaskApp.Models.Logs;
 using TaskApp.Models.Tasks;
 using TaskApp.Services;
 using TaskApp.ViewModels;
@@ -281,6 +283,89 @@ public class ManualDurationLoggingTests : IDisposable
         Assert.True(daily.IsCompleteForCurrentPeriod);
     }
 
+    [Fact]
+    public async Task TryAutocomplete_DoesNotCountPreviousLocalEveningDuration()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var previousLateLocalDateTime = today.AddDays(-1).ToDateTime(new TimeOnly(22, 30));
+        var previousLateLocalOffset = TimeZoneInfo.Local.GetUtcOffset(previousLateLocalDateTime);
+        var previousLateUtc = new DateTimeOffset(previousLateLocalDateTime, previousLateLocalOffset).ToUniversalTime();
+        var appUtcMidnightBoundary = new DateTimeOffset(today.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+
+        if (previousLateUtc < appUtcMidnightBoundary)
+        {
+            return;
+        }
+
+        var vm = CreateMainViewModel();
+        vm.NewDailyTitle = "Study";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetAutocompleteTimeThreshold(TimeSpan.FromMinutes(30));
+
+        await vm.StorageService.AddLogEntryAsync(new LogEntry
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = previousLateUtc,
+            Type = LogType.ActivityDuration,
+            TaskId = daily.Id,
+            GoldDelta = 0,
+            UserGold = vm.User.Gold,
+            Duration = TimeSpan.FromMinutes(35),
+            TitleSnapshot = daily.Title
+        });
+
+        await vm.TryAutocompleteFromLoggedDurationAsync(daily.Id);
+
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+    }
+
+    [Fact]
+    public async Task TryAutocomplete_CountsOnlyCurrentPeriodPortionOfOverlappingLog()
+    {
+        var vm = CreateMainViewModel();
+        vm.NewDailyTitle = "Study";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetAutocompleteTimeThreshold(TimeSpan.FromMinutes(45));
+
+        var periodStart = ToLocalPeriodStartOffset(daily.GetCurrentPeriodStart());
+        await vm.StorageService.AddLogEntryAsync(new LogEntry
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = periodStart.AddMinutes(30),
+            Type = LogType.ActivityDuration,
+            TaskId = daily.Id,
+            GoldDelta = 0,
+            UserGold = vm.User.Gold,
+            Duration = TimeSpan.FromHours(1),
+            TitleSnapshot = daily.Title
+        });
+
+        await vm.TryAutocompleteFromLoggedDurationAsync(daily.Id);
+
+        Assert.False(daily.IsCompleteForCurrentPeriod);
+    }
+
+    [Fact]
+    public async Task AutocompleteRemainingTime_CountsOnlyCurrentPeriodPortionOfRunningSession()
+    {
+        var vm = CreateMainViewModel();
+        vm.NewDailyTitle = "Study";
+        vm.AddDaily();
+        var daily = vm.Dailies[0];
+        daily.SetAutocompleteTimeThreshold(TimeSpan.FromMinutes(90));
+
+        var periodStart = ToLocalPeriodStartOffset(daily.GetCurrentPeriodStart());
+        var remaining = await InvokeGetAutocompleteRemainingTimeAsync(
+            vm,
+            daily.Id,
+            periodStart.AddMinutes(-60),
+            TimeSpan.FromMinutes(90));
+
+        Assert.Equal(TimeSpan.FromMinutes(60), remaining);
+    }
+
     #endregion
 
     private MainWindowViewModel CreateMainViewModel()
@@ -289,5 +374,24 @@ public class ManualDurationLoggingTests : IDisposable
         userService.LoadSync();
         var storageService = new StorageService(userService);
         return new MainWindowViewModel(storageService, userService);
+    }
+
+    private static DateTimeOffset ToLocalPeriodStartOffset(DateOnly periodStart)
+    {
+        var localDateTime = periodStart.ToDateTime(TimeOnly.MinValue);
+        return new DateTimeOffset(localDateTime, TimeZoneInfo.Local.GetUtcOffset(localDateTime));
+    }
+
+    private static async Task<TimeSpan?> InvokeGetAutocompleteRemainingTimeAsync(
+        MainWindowViewModel vm,
+        Guid taskId,
+        DateTimeOffset sessionStartedAt,
+        TimeSpan currentSessionElapsed)
+    {
+        var method = typeof(MainWindowViewModel).GetMethod("GetAutocompleteRemainingTimeAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+        var task = method!.Invoke(vm, new object[] { taskId, sessionStartedAt, currentSessionElapsed }) as Task<TimeSpan?>;
+        Assert.NotNull(task);
+        return await task!;
     }
 }
