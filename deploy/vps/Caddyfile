@@ -1,5 +1,5 @@
 {$TASKAPP_DOMAIN} {
-    encode zstd gzip
+	encode zstd gzip
 
-    reverse_proxy taskapp-api:8080
+	reverse_proxy taskapp-api:8080
 }
