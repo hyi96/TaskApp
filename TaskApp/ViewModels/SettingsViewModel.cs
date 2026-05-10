@@ -321,10 +321,13 @@ public class SettingsViewModel : ViewModelBase
             if (!string.IsNullOrWhiteSpace(account.LoginSecret))
             {
                 CloudAccountSecret = account.LoginSecret;
+                MarkCloudLoginVerified(account);
+                CloudStatus = $"Created account {account.Id}. Account secret saved. You are logged in.";
+                return;
             }
 
-            MarkCloudLoginVerified(account);
-            CloudStatus = $"Created account {account.Id}. Account secret saved. You are logged in.";
+            InvalidateCloudLogin();
+            CloudStatus = "Cloud account was created, but the API did not return an account secret. Redeploy the latest API and create a new account.";
         }
         catch (Exception ex)
         {

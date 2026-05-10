@@ -99,11 +99,14 @@ public sealed class MainActivity : Activity
             if (!string.IsNullOrWhiteSpace(account.LoginSecret))
             {
                 _accountSecret!.Text = account.LoginSecret;
+                SaveSettings();
+                MarkLoginVerified(account);
+                return $"Created account {account.Id}. Account secret saved.";
             }
 
             SaveSettings();
-            MarkLoginVerified(account);
-            return $"Created account {account.Id}. Account secret saved.";
+            UpdateLoginStatus();
+            return "Account was created, but the API did not return an account secret. Redeploy the latest API and create a new account.";
         });
     }
 
