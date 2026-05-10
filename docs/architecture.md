@@ -10,6 +10,7 @@ TaskApp.slnx
 |   |-- Models/                # Task, reward, tag, user, profile, and log models
 |   |-- Data/                  # Serialization DTOs
 |   `-- Services/              # Mappers, store interfaces, snapshot contract
+|-- TaskApp.Api/               # ASP.NET Core API for account/profile snapshot storage
 |-- TaskApp/                   # Avalonia desktop application
 |   |-- App.axaml(.cs)         # Application entry, lifecycle, day detection
 |   |-- ViewModels/            # Presentation logic and commands
@@ -30,6 +31,7 @@ Views (TaskApp)
         -> Local JSON + SQLite files
 
 Models, DTOs, mappers, and snapshot contracts live in TaskApp.Core.
+TaskApp.Api consumes the same Core contracts and stores profile snapshots in SQLite.
 ```
 
 ## Application Lifecycle

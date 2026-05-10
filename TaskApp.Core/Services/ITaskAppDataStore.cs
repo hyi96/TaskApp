@@ -24,6 +24,7 @@ public interface ITaskAppDataStore
 
     Task AddLogEntryAsync(LogEntry entry);
     void AddLogEntrySync(LogEntry entry);
+    Task ReplaceLogEntriesAsync(IEnumerable<LogEntry> entries);
     Task DeleteLogEntryAsync(Guid entryId);
     Task<int> MergeActivityLogEntriesAsync(string activityTitle, Guid? targetTaskId, Guid? targetRewardId);
     Task<LogEntry?> FindPreviousLogEntryAsync(LogType type, Guid? taskId, Guid? rewardId, Guid excludeEntryId);

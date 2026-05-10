@@ -105,6 +105,7 @@ For the current cloud-ready solution layout, see [docs/architecture.md](docs/arc
 
 ```text
 TaskApp.Core/               # Shared domain, DTOs, mappers, and service contracts
+TaskApp.Api/                # ASP.NET Core API for desktop cloud-sync testing
 TaskApp/                    # Avalonia desktop app and local infrastructure
 TaskApp.Tests/              # xUnit test project (.NET 10)
 docs/                       # Architecture, service, storage, and cloud foundation docs

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Controls;
@@ -13,10 +14,15 @@ namespace TaskApp.ViewModels;
 public class SettingsViewModel : ViewModelBase
 {
     private readonly ILocalUserCatalog _userService;
+    private readonly ITaskAppDataStore _dataStore;
+    private readonly MainWindowViewModel _mainViewModel;
     private readonly Window _parentWindow;
     private ThemeMode _selectedTheme;
     private string _newUserName = string.Empty;
     private string _renameUserName = string.Empty;
+    private string _cloudApiUrl = string.Empty;
+    private string _cloudAccountId = string.Empty;
+    private string _cloudStatus = string.Empty;
     private User? _selectedUser;
 
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } = new[]
@@ -71,6 +77,36 @@ public class SettingsViewModel : ViewModelBase
         set => SetProperty(ref _renameUserName, value);
     }
 
+    public string CloudApiUrl
+    {
+        get => _cloudApiUrl;
+        set
+        {
+            if (SetProperty(ref _cloudApiUrl, value))
+            {
+                SettingsService.Instance.CloudApiUrl = value;
+            }
+        }
+    }
+
+    public string CloudAccountId
+    {
+        get => _cloudAccountId;
+        set
+        {
+            if (SetProperty(ref _cloudAccountId, value))
+            {
+                SettingsService.Instance.CloudAccountId = value;
+            }
+        }
+    }
+
+    public string CloudStatus
+    {
+        get => _cloudStatus;
+        private set => SetProperty(ref _cloudStatus, value);
+    }
+
     // Commands
     public ICommand SwitchUserCommand { get; }
     public ICommand CreateUserCommand { get; }
@@ -78,12 +114,23 @@ public class SettingsViewModel : ViewModelBase
     public ICommand RenameUserCommand { get; }
     public ICommand ExportUserCommand { get; }
     public ICommand ImportUserCommand { get; }
+    public ICommand CreateCloudAccountCommand { get; }
+    public ICommand UploadCurrentProfileCommand { get; }
+    public ICommand DownloadCurrentProfileCommand { get; }
 
-    public SettingsViewModel(ILocalUserCatalog userService, Window parentWindow)
+    public SettingsViewModel(
+        ILocalUserCatalog userService,
+        ITaskAppDataStore dataStore,
+        MainWindowViewModel mainViewModel,
+        Window parentWindow)
     {
         _userService = userService;
+        _dataStore = dataStore;
+        _mainViewModel = mainViewModel;
         _parentWindow = parentWindow;
         _selectedTheme = SettingsService.Instance.ThemeMode;
+        _cloudApiUrl = SettingsService.Instance.CloudApiUrl;
+        _cloudAccountId = SettingsService.Instance.CloudAccountId;
 
         RefreshUsers();
 
@@ -93,6 +140,9 @@ public class SettingsViewModel : ViewModelBase
         RenameUserCommand = new AsyncRelayCommand(RenameUserAsync);
         ExportUserCommand = new AsyncRelayCommand(ExportUserAsync);
         ImportUserCommand = new AsyncRelayCommand(ImportUserAsync);
+        CreateCloudAccountCommand = new AsyncRelayCommand(CreateCloudAccountAsync);
+        UploadCurrentProfileCommand = new AsyncRelayCommand(UploadCurrentProfileAsync);
+        DownloadCurrentProfileCommand = new AsyncRelayCommand(DownloadCurrentProfileAsync);
     }
 
     private async Task SwitchUserAsync()
@@ -196,6 +246,85 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    private async Task CreateCloudAccountAsync()
+    {
+        if (!TryCreateCloudClient(out var client))
+        {
+            return;
+        }
+
+        try
+        {
+            var account = await client.CreateAccountAsync("Desktop account");
+            CloudAccountId = account.Id.ToString();
+            CloudStatus = $"Created account {account.Id}.";
+        }
+        catch (Exception ex)
+        {
+            CloudStatus = $"Cloud account creation failed: {ex.Message}";
+        }
+    }
+
+    private async Task UploadCurrentProfileAsync()
+    {
+        if (!TryCreateCloudClient(out var client) || !TryGetCloudAccountId(out var accountId))
+        {
+            return;
+        }
+
+        var currentUser = _userService.CurrentUser;
+        if (currentUser == null)
+        {
+            CloudStatus = "No current profile selected.";
+            return;
+        }
+
+        try
+        {
+            await _mainViewModel.SaveDataAsync();
+            var snapshot = await _dataStore.LoadSnapshotAsync();
+            var result = await client.UploadProfileSnapshotAsync(accountId, currentUser.Id, currentUser.Name, snapshot);
+            CloudStatus = $"Uploaded {result.ProfileName} at {result.UpdatedAt.LocalDateTime:g}.";
+        }
+        catch (Exception ex)
+        {
+            CloudStatus = $"Cloud upload failed: {ex.Message}";
+        }
+    }
+
+    private async Task DownloadCurrentProfileAsync()
+    {
+        if (!TryCreateCloudClient(out var client) || !TryGetCloudAccountId(out var accountId))
+        {
+            return;
+        }
+
+        var currentUser = _userService.CurrentUser;
+        if (currentUser == null)
+        {
+            CloudStatus = "No current profile selected.";
+            return;
+        }
+
+        try
+        {
+            var result = await client.DownloadProfileSnapshotAsync(accountId, currentUser.Id);
+            if (result == null)
+            {
+                CloudStatus = "No cloud snapshot exists for the current profile.";
+                return;
+            }
+
+            await _dataStore.SaveSnapshotAsync(result.Snapshot);
+            await _mainViewModel.LoadDataAsync();
+            CloudStatus = $"Downloaded {result.ProfileName} from {result.UpdatedAt.LocalDateTime:g}.";
+        }
+        catch (Exception ex)
+        {
+            CloudStatus = $"Cloud download failed: {ex.Message}";
+        }
+    }
+
     private void RefreshUsers()
     {
         Users.Clear();
@@ -252,6 +381,31 @@ public class SettingsViewModel : ViewModelBase
 
         await dialog.ShowDialog(_parentWindow);
         return result;
+    }
+
+    private bool TryCreateCloudClient(out TaskAppCloudClient client)
+    {
+        client = null!;
+
+        if (!Uri.TryCreate(CloudApiUrl, UriKind.Absolute, out var baseUri))
+        {
+            CloudStatus = "Cloud API URL is invalid.";
+            return false;
+        }
+
+        client = new TaskAppCloudClient(new HttpClient { BaseAddress = baseUri });
+        return true;
+    }
+
+    private bool TryGetCloudAccountId(out Guid accountId)
+    {
+        if (Guid.TryParse(CloudAccountId, out accountId))
+        {
+            return true;
+        }
+
+        CloudStatus = "Cloud account ID is invalid.";
+        return false;
     }
 }
 

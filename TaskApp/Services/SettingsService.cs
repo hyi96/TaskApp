@@ -15,6 +15,8 @@ public enum ThemeMode
 public class AppSettings
 {
     public ThemeMode ThemeMode { get; set; } = ThemeMode.System;
+    public string CloudApiUrl { get; set; } = "http://localhost:5080";
+    public string CloudAccountId { get; set; } = string.Empty;
 }
 
 public class SettingsService
@@ -43,6 +45,26 @@ public class SettingsService
     }
     
     public event Action<ThemeMode>? ThemeChanged;
+
+    public string CloudApiUrl
+    {
+        get => _settings.CloudApiUrl;
+        set
+        {
+            _settings.CloudApiUrl = value;
+            _ = SaveAsync();
+        }
+    }
+
+    public string CloudAccountId
+    {
+        get => _settings.CloudAccountId;
+        set
+        {
+            _settings.CloudAccountId = value;
+            _ = SaveAsync();
+        }
+    }
     
     public async Task LoadAsync()
     {

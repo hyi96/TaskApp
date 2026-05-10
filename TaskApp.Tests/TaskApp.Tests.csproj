@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TaskApp.Api\TaskApp.Api.csproj" />
     <ProjectReference Include="..\TaskApp.Core\TaskApp.Core.csproj" />
     <ProjectReference Include="..\TaskApp\TaskApp.csproj" />
   </ItemGroup>

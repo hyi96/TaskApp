@@ -18,4 +18,4 @@ This branch establishes the first cloud/mobile boundary without changing desktop
 
 ## Next Milestone
 
-The next branch should add `TaskApp.Api` and map `TaskAppDataSnapshot` plus the existing DTOs into a server-side database model. Keep desktop behavior unchanged until the API can import a snapshot and return it losslessly.
+The next milestone is to harden desktop cloud sync: add clearer account/profile setup, improve pull safety, and then replace the temporary account ID flow with login/logout.

@@ -42,4 +42,13 @@ public static class TaskAppDataStoreSnapshotExtensions
             userProfile,
             logEntries);
     }
+
+    public static async Task SaveSnapshotAsync(this ITaskAppDataStore dataStore, TaskAppDataSnapshot snapshot)
+    {
+        await dataStore.SaveTasksAsync(snapshot.Tasks.Select(TaskMapper.ToModel));
+        await dataStore.SaveRewardsAsync(snapshot.Rewards.Select(RewardMapper.ToModel));
+        await dataStore.SaveTagsAsync(snapshot.Tags.Select(tag => new Tag(tag.Name, tag.Id)));
+        await dataStore.SaveUserProfileAsync(snapshot.UserProfile);
+        await dataStore.ReplaceLogEntriesAsync(snapshot.LogEntries);
+    }
 }

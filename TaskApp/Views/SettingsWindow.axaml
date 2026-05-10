@@ -114,6 +114,40 @@ Background="{DynamicResource AppBackgroundBrush}">
                                 </StackPanel>
                             </StackPanel>
                         </Border>
+
+                        <!-- Cloud Sync Section -->
+                        <Border BorderBrush="{DynamicResource SecondaryTextBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="0,12,0,0"
+                                Margin="0,8,0,0">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Cloud Sync" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource AppTextBrush}"/>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="API URL" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <TextBox Text="{Binding CloudApiUrl}" HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Account ID" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <TextBox Text="{Binding CloudAccountId}" HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                    <Button Content="Create Account"
+                                            Command="{Binding CreateCloudAccountCommand}"/>
+                                    <Button Content="Upload Profile"
+                                            Command="{Binding UploadCurrentProfileCommand}"/>
+                                    <Button Content="Download Profile"
+                                            Command="{Binding DownloadCurrentProfileCommand}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding CloudStatus}"
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

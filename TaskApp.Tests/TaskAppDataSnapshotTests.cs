@@ -71,4 +71,67 @@ public class TaskAppDataSnapshotTests : IDisposable
         Assert.Equal(12.5, snapshot.UserProfile.Gold);
         Assert.Equal(log.Id, snapshot.LogEntries.Single().Id);
     }
+
+    [Fact]
+    public async Task SaveSnapshotAsync_ReplacesLocalStorePayload()
+    {
+        var userService = new UserService(_tempDir);
+        userService.LoadSync();
+        var storage = new StorageService(userService);
+
+        var oldTask = new TodoTask();
+        oldTask.UpdateTitle("Old");
+        await storage.SaveTasksAsync(new TaskBase[] { oldTask });
+        await storage.AddLogEntryAsync(new LogEntry
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = DateTimeOffset.UtcNow,
+            Type = LogType.TodoCompleted,
+            TaskId = oldTask.Id,
+            TitleSnapshot = oldTask.Title
+        });
+
+        var newTask = new TodoTask();
+        newTask.UpdateTitle("New");
+        var newReward = new Reward("New reward", goldCost: 4);
+        var newTag = new Tag("Imported");
+        var newProfile = new UserProfile { Gold = 99 };
+        var newLog = new LogEntry
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = DateTimeOffset.UtcNow,
+            Type = LogType.RewardClaimed,
+            RewardId = newReward.Id,
+            GoldDelta = -newReward.GoldCost,
+            UserGold = newProfile.Gold,
+            TitleSnapshot = newReward.Title
+        };
+
+        var snapshot = new TaskAppDataSnapshot(
+            TaskAppDataSnapshot.CurrentSchemaVersion,
+            DateTimeOffset.UtcNow,
+            new[] { TaskMapper.ToData(newTask) },
+            new[] { RewardMapper.ToData(newReward) },
+            new[] { new TaskApp.Data.TagData { Id = newTag.Id, Name = newTag.Name } },
+            newProfile,
+            new[] { newLog });
+
+        await storage.SaveSnapshotAsync(snapshot);
+
+        var loadedTasks = await storage.LoadTasksAsync();
+        var loadedRewards = await storage.LoadRewardsAsync();
+        var loadedTags = await storage.LoadTagsAsync();
+        var loadedProfile = await storage.LoadUserProfileAsync();
+        var loadedLogs = await storage.LoadAllLogEntriesAsync();
+
+        Assert.Single(loadedTasks);
+        Assert.Equal("New", loadedTasks.Single().Title);
+        Assert.Single(loadedRewards);
+        Assert.Equal("New reward", loadedRewards.Single().Title);
+        Assert.Single(loadedTags);
+        Assert.Equal("Imported", loadedTags.Single().Name);
+        Assert.Equal(99, loadedProfile.Gold);
+        Assert.Single(loadedLogs);
+        Assert.Equal(newLog.Id, loadedLogs.Single().Id);
+    }
 }

@@ -288,6 +288,9 @@ public class StorageService : ILocalTaskAppDataStore
         { "PreviousLastCompletionPeriod", "TEXT NULL" }
     };
 
+    private const string InsertLogEntrySql = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod)
+                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot, $prevPeriod);";
+
     private async Task EnsureLogsTableAsync()
     {
         var dbPath = GetLogsDbPath();
@@ -371,19 +374,8 @@ public class StorageService : ILocalTaskAppDataStore
         await connection.OpenAsync();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod)
-                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot, $prevPeriod);";
-        command.Parameters.AddWithValue("$id", entry.Id.ToString());
-        command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
-        command.Parameters.AddWithValue("$type", (int)entry.Type);
-        command.Parameters.AddWithValue("$taskId", (object?)entry.TaskId?.ToString() ?? DBNull.Value);
-        command.Parameters.AddWithValue("$rewardId", (object?)entry.RewardId?.ToString() ?? DBNull.Value);
-        command.Parameters.AddWithValue("$goldDelta", entry.GoldDelta);
-        command.Parameters.AddWithValue("$userGold", entry.UserGold);
-        command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
-        command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
-        command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
-        command.Parameters.AddWithValue("$prevPeriod", (object?)entry.PreviousLastCompletionPeriod?.ToString("o") ?? DBNull.Value);
+        command.CommandText = InsertLogEntrySql;
+        BindLogEntryParameters(command, entry);
 
         await command.ExecuteNonQueryAsync();
     }
@@ -400,21 +392,36 @@ public class StorageService : ILocalTaskAppDataStore
         connection.Open();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"INSERT INTO LogEntries (Id, Timestamp, Type, TaskId, RewardId, GoldDelta, UserGold, CountDelta, DurationTicks, TitleSnapshot, PreviousLastCompletionPeriod)
-                                VALUES ($id, $timestamp, $type, $taskId, $rewardId, $goldDelta, $userGold, $countDelta, $durationTicks, $titleSnapshot, $prevPeriod);";
-        command.Parameters.AddWithValue("$id", entry.Id.ToString());
-        command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
-        command.Parameters.AddWithValue("$type", (int)entry.Type);
-        command.Parameters.AddWithValue("$taskId", (object?)entry.TaskId?.ToString() ?? DBNull.Value);
-        command.Parameters.AddWithValue("$rewardId", (object?)entry.RewardId?.ToString() ?? DBNull.Value);
-        command.Parameters.AddWithValue("$goldDelta", entry.GoldDelta);
-        command.Parameters.AddWithValue("$userGold", entry.UserGold);
-        command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
-        command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
-        command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
-        command.Parameters.AddWithValue("$prevPeriod", (object?)entry.PreviousLastCompletionPeriod?.ToString("o") ?? DBNull.Value);
+        command.CommandText = InsertLogEntrySql;
+        BindLogEntryParameters(command, entry);
 
         command.ExecuteNonQuery();
+    }
+
+    public async Task ReplaceLogEntriesAsync(IEnumerable<LogEntry> entries)
+    {
+        await EnsureLogsTableAsync();
+
+        var dbPath = GetLogsDbPath();
+        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await connection.OpenAsync();
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
+
+        var deleteCommand = connection.CreateCommand();
+        deleteCommand.Transaction = transaction;
+        deleteCommand.CommandText = "DELETE FROM LogEntries;";
+        await deleteCommand.ExecuteNonQueryAsync();
+
+        foreach (var entry in entries)
+        {
+            var insertCommand = connection.CreateCommand();
+            insertCommand.Transaction = transaction;
+            insertCommand.CommandText = InsertLogEntrySql;
+            BindLogEntryParameters(insertCommand, entry);
+            await insertCommand.ExecuteNonQueryAsync();
+        }
+
+        await transaction.CommitAsync();
     }
 
     public async Task DeleteLogEntryAsync(Guid entryId)
@@ -608,5 +615,20 @@ public class StorageService : ILocalTaskAppDataStore
         }
 
         return entries;
+    }
+
+    private static void BindLogEntryParameters(SqliteCommand command, LogEntry entry)
+    {
+        command.Parameters.AddWithValue("$id", entry.Id.ToString());
+        command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("o"));
+        command.Parameters.AddWithValue("$type", (int)entry.Type);
+        command.Parameters.AddWithValue("$taskId", (object?)entry.TaskId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$rewardId", (object?)entry.RewardId?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$goldDelta", entry.GoldDelta);
+        command.Parameters.AddWithValue("$userGold", entry.UserGold);
+        command.Parameters.AddWithValue("$countDelta", (object?)entry.CountDelta ?? DBNull.Value);
+        command.Parameters.AddWithValue("$durationTicks", (object?)entry.Duration?.Ticks ?? DBNull.Value);
+        command.Parameters.AddWithValue("$titleSnapshot", entry.TitleSnapshot ?? string.Empty);
+        command.Parameters.AddWithValue("$prevPeriod", (object?)entry.PreviousLastCompletionPeriod?.ToString("o") ?? DBNull.Value);
     }
 }

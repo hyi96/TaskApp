@@ -69,6 +69,7 @@ For the current exact layout, see [Architecture](architecture.md). The shared do
 
 ```text
 TaskApp.Core/               # Shared domain, DTOs, mappers, and service contracts
+TaskApp.Api/                # ASP.NET Core API for desktop cloud-sync testing
 TaskApp/                    # Avalonia desktop app and local infrastructure
 TaskApp.Tests/              # xUnit test project
 docs/                       # Documentation (you are here)
@@ -80,6 +81,7 @@ docs/                       # Documentation (you are here)
 |---|---|
 | [Architecture](architecture.md) | Solution structure, layers, and data flow |
 | [Cloud Foundation](cloud-foundation.md) | Shared-core and store-interface plan for cloud/API/Android work |
+| [Cloud API](cloud-api.md) | Local API run instructions and profile snapshot endpoints |
 | [Domain Models](models.md) | Entity reference — tasks, rewards, tags, logs |
 | [Services](services.md) | Service layer — storage, users, settings, mappers |
 | [Features](features.md) | Detailed feature guide with usage details |
