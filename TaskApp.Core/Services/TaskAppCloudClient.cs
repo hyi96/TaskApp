@@ -7,13 +7,19 @@ public sealed class TaskAppCloudClient
 {
     private readonly HttpClient _httpClient;
 
-    public TaskAppCloudClient(HttpClient httpClient, string? apiKey = null)
+    public TaskAppCloudClient(HttpClient httpClient, string? apiKey = null, string? accountSecret = null)
     {
         _httpClient = httpClient;
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
             _httpClient.DefaultRequestHeaders.Remove(TaskAppCloudHeaders.ApiKey);
             _httpClient.DefaultRequestHeaders.Add(TaskAppCloudHeaders.ApiKey, apiKey);
+        }
+
+        if (!string.IsNullOrWhiteSpace(accountSecret))
+        {
+            _httpClient.DefaultRequestHeaders.Remove(TaskAppCloudHeaders.AccountSecret);
+            _httpClient.DefaultRequestHeaders.Add(TaskAppCloudHeaders.AccountSecret, accountSecret);
         }
     }
 
@@ -22,6 +28,21 @@ public sealed class TaskAppCloudClient
         using var response = await _httpClient.PostAsJsonAsync(
             "/api/accounts",
             new CreateAccountRequest(displayName),
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AccountResponse>(cancellationToken)
+            ?? throw new InvalidOperationException("Cloud API returned an empty account response.");
+    }
+
+    public async Task<AccountResponse> LoginAccountAsync(
+        Guid accountId,
+        string loginSecret,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "/api/accounts/login",
+            new LoginAccountRequest(accountId, loginSecret),
             cancellationToken);
 
         response.EnsureSuccessStatusCode();

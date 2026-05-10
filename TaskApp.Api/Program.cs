@@ -34,31 +34,31 @@ app.MapGet("/health", async (TaskAppCloudDatabase database) =>
 });
 
 var api = app.MapGroup("/api");
-api.AddEndpointFilter(async (context, next) =>
-{
-    if (string.IsNullOrWhiteSpace(apiKey))
-    {
-        return await next(context);
-    }
 
-    var request = context.HttpContext.Request;
-    if (!request.Headers.TryGetValue(TaskAppCloudHeaders.ApiKey, out var providedApiKey) ||
-        !string.Equals(providedApiKey.ToString(), apiKey, StringComparison.Ordinal))
+api.MapPost("/accounts", async (CreateAccountRequest request, TaskAppCloudDatabase database, HttpContext httpContext) =>
+{
+    if (!HasServerApiKey(httpContext.Request, apiKey))
     {
         return Results.Unauthorized();
     }
 
-    return await next(context);
-});
-
-api.MapPost("/accounts", async (CreateAccountRequest request, TaskAppCloudDatabase database) =>
-{
     var account = await database.CreateAccountAsync(request.DisplayName);
     return Results.Created($"/api/accounts/{account.Id}", account);
 });
 
-api.MapGet("/accounts/{accountId:guid}/profiles", async (Guid accountId, TaskAppCloudDatabase database) =>
+api.MapPost("/accounts/login", async (LoginAccountRequest request, TaskAppCloudDatabase database) =>
 {
+    var account = await database.LoginAccountAsync(request.AccountId, request.LoginSecret);
+    return account == null ? Results.Unauthorized() : Results.Ok(account);
+});
+
+api.MapGet("/accounts/{accountId:guid}/profiles", async (Guid accountId, TaskAppCloudDatabase database, HttpContext httpContext) =>
+{
+    if (!await IsAuthorizedForAccountAsync(httpContext.Request, database, accountId, apiKey))
+    {
+        return Results.Unauthorized();
+    }
+
     if (!await database.AccountExistsAsync(accountId))
     {
         return Results.NotFound();
@@ -69,19 +69,55 @@ api.MapGet("/accounts/{accountId:guid}/profiles", async (Guid accountId, TaskApp
 });
 
 api.MapPut("/accounts/{accountId:guid}/profiles/{profileId:guid}/snapshot",
-    async (Guid accountId, Guid profileId, UpsertProfileSnapshotRequest request, TaskAppCloudDatabase database) =>
+    async (Guid accountId, Guid profileId, UpsertProfileSnapshotRequest request, TaskAppCloudDatabase database, HttpContext httpContext) =>
     {
+        if (!await IsAuthorizedForAccountAsync(httpContext.Request, database, accountId, apiKey))
+        {
+            return Results.Unauthorized();
+        }
+
         var snapshot = await database.UpsertProfileSnapshotAsync(accountId, profileId, request);
         return snapshot == null ? Results.NotFound() : Results.Ok(snapshot);
     });
 
 api.MapGet("/accounts/{accountId:guid}/profiles/{profileId:guid}/snapshot",
-    async (Guid accountId, Guid profileId, TaskAppCloudDatabase database) =>
+    async (Guid accountId, Guid profileId, TaskAppCloudDatabase database, HttpContext httpContext) =>
     {
+        if (!await IsAuthorizedForAccountAsync(httpContext.Request, database, accountId, apiKey))
+        {
+            return Results.Unauthorized();
+        }
+
         var snapshot = await database.GetProfileSnapshotAsync(accountId, profileId);
         return snapshot == null ? Results.NotFound() : Results.Ok(snapshot);
     });
 
 app.Run();
+
+static bool HasServerApiKey(HttpRequest request, string? apiKey)
+{
+    if (string.IsNullOrWhiteSpace(apiKey))
+    {
+        return true;
+    }
+
+    return request.Headers.TryGetValue(TaskAppCloudHeaders.ApiKey, out var providedApiKey) &&
+        string.Equals(providedApiKey.ToString(), apiKey, StringComparison.Ordinal);
+}
+
+static async Task<bool> IsAuthorizedForAccountAsync(
+    HttpRequest request,
+    TaskAppCloudDatabase database,
+    Guid accountId,
+    string? apiKey)
+{
+    if (HasServerApiKey(request, apiKey))
+    {
+        return true;
+    }
+
+    return request.Headers.TryGetValue(TaskAppCloudHeaders.AccountSecret, out var providedSecret) &&
+        await database.IsAccountSecretValidAsync(accountId, providedSecret.ToString());
+}
 
 public partial class Program;

@@ -15,9 +15,10 @@ public enum ThemeMode
 public class AppSettings
 {
     public ThemeMode ThemeMode { get; set; } = ThemeMode.System;
-    public string CloudApiUrl { get; set; } = "http://localhost:5080";
+    public string CloudApiUrl { get; set; } = "https://taskapp-api.hyi96.dev";
     public string CloudAccountId { get; set; } = string.Empty;
     public string CloudApiKey { get; set; } = string.Empty;
+    public string CloudAccountSecret { get; set; } = string.Empty;
 }
 
 public class SettingsService
@@ -73,6 +74,16 @@ public class SettingsService
         set
         {
             _settings.CloudApiKey = value;
+            _ = SaveAsync();
+        }
+    }
+
+    public string CloudAccountSecret
+    {
+        get => _settings.CloudAccountSecret;
+        set
+        {
+            _settings.CloudAccountSecret = value;
             _ = SaveAsync();
         }
     }

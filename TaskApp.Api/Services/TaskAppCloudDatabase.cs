@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using TaskApp.Data;
@@ -38,6 +40,7 @@ public sealed class TaskAppCloudDatabase
 
     public static TaskAppCloudDatabase FromConnectionString(string connectionString)
     {
+        EnsureSqliteDataDirectoryExists(connectionString);
         return new TaskAppCloudDatabase(connectionString);
     }
 
@@ -50,10 +53,12 @@ public sealed class TaskAppCloudDatabase
             CREATE TABLE IF NOT EXISTS Accounts (
                 Id TEXT PRIMARY KEY,
                 DisplayName TEXT NOT NULL,
-                CreatedAt TEXT NOT NULL
+                CreatedAt TEXT NOT NULL,
+                LoginSecretHash TEXT NULL
             );
             """;
         await accountCommand.ExecuteNonQueryAsync();
+        await EnsureAccountColumnsExistAsync(connection);
 
         var profileCommand = connection.CreateCommand();
         profileCommand.CommandText = """
@@ -94,23 +99,66 @@ public sealed class TaskAppCloudDatabase
 
     public async Task<AccountResponse> CreateAccountAsync(string? displayName)
     {
+        var loginSecret = GenerateLoginSecret();
         var account = new AccountResponse(
             Guid.NewGuid(),
             string.IsNullOrWhiteSpace(displayName) ? "Desktop account" : displayName.Trim(),
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            loginSecret);
 
         await using var connection = await OpenConnectionAsync();
         var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO Accounts (Id, DisplayName, CreatedAt)
-            VALUES ($id, $displayName, $createdAt);
+            INSERT INTO Accounts (Id, DisplayName, CreatedAt, LoginSecretHash)
+            VALUES ($id, $displayName, $createdAt, $loginSecretHash);
             """;
         command.Parameters.AddWithValue("$id", account.Id.ToString());
         command.Parameters.AddWithValue("$displayName", account.DisplayName);
         command.Parameters.AddWithValue("$createdAt", ToStore(account.CreatedAt));
+        command.Parameters.AddWithValue("$loginSecretHash", HashLoginSecret(loginSecret));
         await command.ExecuteNonQueryAsync();
 
         return account;
+    }
+
+    public async Task<AccountResponse?> LoginAccountAsync(Guid accountId, string loginSecret)
+    {
+        if (string.IsNullOrWhiteSpace(loginSecret))
+        {
+            return null;
+        }
+
+        await using var connection = await OpenConnectionAsync();
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT Id, DisplayName, CreatedAt, LoginSecretHash
+            FROM Accounts
+            WHERE Id = $id
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("$id", accountId.ToString());
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        var secretHash = reader.IsDBNull(3) ? null : reader.GetString(3);
+        if (string.IsNullOrWhiteSpace(secretHash) || !VerifyLoginSecret(loginSecret, secretHash))
+        {
+            return null;
+        }
+
+        return new AccountResponse(
+            Guid.Parse(reader.GetString(0)),
+            reader.GetString(1),
+            ParseDateTimeOffset(reader.GetString(2)));
+    }
+
+    public async Task<bool> IsAccountSecretValidAsync(Guid accountId, string? loginSecret)
+    {
+        return await LoginAccountAsync(accountId, loginSecret ?? string.Empty) != null;
     }
 
     public async Task<bool> AccountExistsAsync(Guid accountId)
@@ -305,6 +353,26 @@ public sealed class TaskAppCloudDatabase
         return value is string createdAt ? ParseDateTimeOffset(createdAt) : null;
     }
 
+    private static async Task EnsureAccountColumnsExistAsync(SqliteConnection connection)
+    {
+        var checkCommand = connection.CreateCommand();
+        checkCommand.CommandText = "PRAGMA table_info(Accounts);";
+        var existingColumns = new HashSet<string>();
+
+        await using var reader = await checkCommand.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            existingColumns.Add(reader.GetString(1));
+        }
+
+        if (!existingColumns.Contains("LoginSecretHash"))
+        {
+            var alterCommand = connection.CreateCommand();
+            alterCommand.CommandText = "ALTER TABLE Accounts ADD COLUMN LoginSecretHash TEXT NULL;";
+            await alterCommand.ExecuteNonQueryAsync();
+        }
+    }
+
     private async Task<SqliteConnection> OpenConnectionAsync()
     {
         var connection = new SqliteConnection(_connectionString);
@@ -320,5 +388,50 @@ public sealed class TaskAppCloudDatabase
     private static DateTimeOffset ParseDateTimeOffset(string value)
     {
         return DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+    }
+
+    private static void EnsureSqliteDataDirectoryExists(string connectionString)
+    {
+        var builder = new SqliteConnectionStringBuilder(connectionString);
+        var dataSource = builder.DataSource;
+        if (string.IsNullOrWhiteSpace(dataSource) || dataSource == ":memory:")
+        {
+            return;
+        }
+
+        var directory = Path.GetDirectoryName(dataSource);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+    }
+
+    private static string GenerateLoginSecret()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(bytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+
+    private static string HashLoginSecret(string loginSecret)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(loginSecret));
+        return Convert.ToHexString(hash);
+    }
+
+    private static bool VerifyLoginSecret(string loginSecret, string expectedHash)
+    {
+        try
+        {
+            var providedHash = SHA256.HashData(Encoding.UTF8.GetBytes(loginSecret));
+            var expectedBytes = Convert.FromHexString(expectedHash);
+            return CryptographicOperations.FixedTimeEquals(providedHash, expectedBytes);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 }

@@ -19,14 +19,16 @@ public sealed class MainActivity : Activity
     private const string PreferencesName = "taskapp-cloud";
     private const string ApiUrlKey = "api-url";
     private const string ApiKeyKey = "api-key";
+    private const string AccountSecretKey = "account-secret";
     private const string AccountIdKey = "account-id";
     private const string ProfileIdKey = "profile-id";
 
     private ISharedPreferences? _preferences;
     private EditText? _apiUrl;
     private EditText? _apiKey;
+    private EditText? _accountSecret;
     private EditText? _accountId;
-    private TextView? _profileId;
+    private EditText? _profileId;
     private TextView? _status;
 
     protected override void OnCreate(Bundle? savedInstanceState)
@@ -53,19 +55,25 @@ public sealed class MainActivity : Activity
         _apiUrl.InputType = InputTypes.ClassText | InputTypes.TextVariationUri;
         content.AddView(_apiUrl);
 
-        _apiKey = Input("API key", _preferences?.GetString(ApiKeyKey, string.Empty) ?? string.Empty);
+        _apiKey = Input("Server API key", _preferences?.GetString(ApiKeyKey, string.Empty) ?? string.Empty);
         _apiKey.InputType = InputTypes.ClassText | InputTypes.TextVariationPassword;
         content.AddView(_apiKey);
+
+        _accountSecret = Input("Account secret", _preferences?.GetString(AccountSecretKey, string.Empty) ?? string.Empty);
+        _accountSecret.InputType = InputTypes.ClassText | InputTypes.TextVariationPassword;
+        content.AddView(_accountSecret);
 
         _accountId = Input("Account ID", _preferences?.GetString(AccountIdKey, string.Empty) ?? string.Empty);
         _accountId.InputType = InputTypes.ClassText | InputTypes.TextVariationNormal;
         content.AddView(_accountId);
 
-        _profileId = Body(ProfileIdText());
+        _profileId = Input("Profile ID", _preferences?.GetString(ProfileIdKey, string.Empty) ?? string.Empty);
+        _profileId.InputType = InputTypes.ClassText | InputTypes.TextVariationNormal;
         content.AddView(_profileId);
 
         content.AddView(Button("Save settings", SaveSettings));
         content.AddView(Button("Create account", async () => await CreateAccountAsync()));
+        content.AddView(Button("Login", async () => await LoginAsync()));
         content.AddView(Button("Upload starter profile", async () => await UploadStarterProfileAsync()));
         content.AddView(Button("List profiles", async () => await ListProfilesAsync()));
         content.AddView(Button("Download profile", async () => await DownloadProfileAsync()));
@@ -79,20 +87,36 @@ public sealed class MainActivity : Activity
 
     private async Task CreateAccountAsync()
     {
-        await RunCloudActionAsync("Creating account...", async client =>
+        await RunCloudActionAsync("Creating account...", includeServerApiKey: true, action: async client =>
         {
             var account = await client.CreateAccountAsync("Android bootstrap");
             _accountId!.Text = account.Id.ToString();
+            if (!string.IsNullOrWhiteSpace(account.LoginSecret))
+            {
+                _accountSecret!.Text = account.LoginSecret;
+            }
+
             SaveSettings();
-            return $"Created account {account.Id}.";
+            return $"Created account {account.Id}. Account secret saved.";
+        });
+    }
+
+    private async Task LoginAsync()
+    {
+        await RunCloudActionAsync("Logging in...", includeServerApiKey: false, action: async client =>
+        {
+            var account = await client.LoginAccountAsync(ReadAccountId(), ReadAccountSecret());
+            SaveSettings();
+            return $"Logged in to {account.DisplayName}.";
         });
     }
 
     private async Task UploadStarterProfileAsync()
     {
-        await RunCloudActionAsync("Uploading starter profile...", async client =>
+        await RunCloudActionAsync("Uploading starter profile...", includeServerApiKey: false, action: async client =>
         {
             var accountId = ReadAccountId();
+            _ = ReadAccountSecret();
             var profileId = GetOrCreateProfileId();
             var response = await client.UploadProfileSnapshotAsync(
                 accountId,
@@ -107,13 +131,20 @@ public sealed class MainActivity : Activity
 
     private async Task ListProfilesAsync()
     {
-        await RunCloudActionAsync("Loading profiles...", async client =>
+        await RunCloudActionAsync("Loading profiles...", includeServerApiKey: false, action: async client =>
         {
             var accountId = ReadAccountId();
+            _ = ReadAccountSecret();
             var profiles = await client.ListProfilesAsync(accountId);
             if (profiles.Count == 0)
             {
                 return "No profiles found for this account.";
+            }
+
+            if (!Guid.TryParse(_profileId?.Text, out _))
+            {
+                _profileId!.Text = profiles[0].ProfileId.ToString();
+                SaveSettings();
             }
 
             return string.Join(
@@ -125,10 +156,11 @@ public sealed class MainActivity : Activity
 
     private async Task DownloadProfileAsync()
     {
-        await RunCloudActionAsync("Downloading profile...", async client =>
+        await RunCloudActionAsync("Downloading profile...", includeServerApiKey: false, action: async client =>
         {
             var accountId = ReadAccountId();
-            var profileId = GetOrCreateProfileId();
+            _ = ReadAccountSecret();
+            var profileId = ReadProfileId();
             var response = await client.DownloadProfileSnapshotAsync(accountId, profileId);
             if (response is null)
             {
@@ -140,7 +172,10 @@ public sealed class MainActivity : Activity
         });
     }
 
-    private async Task RunCloudActionAsync(string pendingMessage, Func<TaskAppCloudClient, Task<string>> action)
+    private async Task RunCloudActionAsync(
+        string pendingMessage,
+        bool includeServerApiKey,
+        Func<TaskAppCloudClient, Task<string>> action)
     {
         SaveSettings();
         HideKeyboard();
@@ -154,7 +189,10 @@ public sealed class MainActivity : Activity
                 Timeout = TimeSpan.FromSeconds(20)
             };
 
-            var client = new TaskAppCloudClient(httpClient, _apiKey?.Text);
+            var client = new TaskAppCloudClient(
+                httpClient,
+                includeServerApiKey ? _apiKey?.Text : null,
+                includeServerApiKey ? null : _accountSecret?.Text);
             var result = await action(client);
             SetStatus(result);
         }
@@ -174,17 +212,37 @@ public sealed class MainActivity : Activity
         throw new InvalidOperationException("Enter an account ID or create a new account first.");
     }
 
+    private string ReadAccountSecret()
+    {
+        var accountSecret = _accountSecret?.Text?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(accountSecret))
+        {
+            return accountSecret;
+        }
+
+        throw new InvalidOperationException("Enter the account secret from desktop cloud settings.");
+    }
+
+    private Guid ReadProfileId()
+    {
+        if (Guid.TryParse(_profileId?.Text, out var profileId))
+        {
+            return profileId;
+        }
+
+        throw new InvalidOperationException("Enter a profile ID or list profiles first.");
+    }
+
     private Guid GetOrCreateProfileId()
     {
-        var stored = _preferences?.GetString(ProfileIdKey, string.Empty);
-        if (Guid.TryParse(stored, out var profileId))
+        if (Guid.TryParse(_profileId?.Text, out var profileId))
         {
             return profileId;
         }
 
         profileId = Guid.NewGuid();
-        _preferences?.Edit()?.PutString(ProfileIdKey, profileId.ToString())?.Apply();
-        _profileId!.Text = ProfileIdText(profileId);
+        _profileId!.Text = profileId.ToString();
+        SaveSettings();
         return profileId;
     }
 
@@ -240,7 +298,9 @@ public sealed class MainActivity : Activity
         _preferences?.Edit()
             ?.PutString(ApiUrlKey, NormalizeApiUrl(_apiUrl?.Text))
             ?.PutString(ApiKeyKey, _apiKey?.Text ?? string.Empty)
+            ?.PutString(AccountSecretKey, _accountSecret?.Text?.Trim() ?? string.Empty)
             ?.PutString(AccountIdKey, _accountId?.Text?.Trim() ?? string.Empty)
+            ?.PutString(ProfileIdKey, _profileId?.Text?.Trim() ?? string.Empty)
             ?.Apply();
 
         SetStatus("Settings saved.");
@@ -314,16 +374,6 @@ public sealed class MainActivity : Activity
         layout.SetMargins(0, Dp(5), 0, Dp(5));
         return layout;
     }
-
-    private string ProfileIdText()
-    {
-        var stored = _preferences?.GetString(ProfileIdKey, string.Empty);
-        return Guid.TryParse(stored, out var profileId)
-            ? ProfileIdText(profileId)
-            : "Profile ID will be generated on first upload.";
-    }
-
-    private static string ProfileIdText(Guid profileId) => $"Profile ID: {profileId}";
 
     private static string NormalizeApiUrl(string? value)
     {

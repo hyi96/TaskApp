@@ -38,6 +38,8 @@ public class CloudApiStorageTests : IDisposable
         var profileId = Guid.NewGuid();
         var snapshot = CreateSnapshot();
 
+        Assert.False(string.IsNullOrWhiteSpace(account.LoginSecret));
+
         var saved = await database.UpsertProfileSnapshotAsync(
             account.Id,
             profileId,
@@ -60,6 +62,24 @@ public class CloudApiStorageTests : IDisposable
         Assert.Equal("Cloud", loaded.Snapshot.Tags.Single().Name);
         Assert.Equal(42, loaded.Snapshot.UserProfile.Gold);
         Assert.Equal(LogType.TodoCompleted, loaded.Snapshot.LogEntries.Single().Type);
+    }
+
+    [Fact]
+    public async Task AccountLogin_ValidatesGeneratedSecret()
+    {
+        var database = TaskAppCloudDatabase.FromFile(Path.Combine(_tempDir, "taskapp-cloud.db"));
+        await database.InitializeAsync();
+
+        var account = await database.CreateAccountAsync("Desktop login test");
+
+        var loggedIn = await database.LoginAccountAsync(account.Id, account.LoginSecret!);
+        var invalid = await database.LoginAccountAsync(account.Id, "wrong-secret");
+
+        Assert.NotNull(loggedIn);
+        Assert.Equal(account.Id, loggedIn.Id);
+        Assert.Equal("Desktop login test", loggedIn.DisplayName);
+        Assert.Null(loggedIn.LoginSecret);
+        Assert.Null(invalid);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ namespace TaskApp.Services;
 public static class TaskAppCloudHeaders
 {
     public const string ApiKey = "X-TaskApp-Api-Key";
+    public const string AccountSecret = "X-TaskApp-Account-Secret";
 }
 
 public sealed record CreateAccountRequest(string? DisplayName);
@@ -10,7 +11,12 @@ public sealed record CreateAccountRequest(string? DisplayName);
 public sealed record AccountResponse(
     Guid Id,
     string DisplayName,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? LoginSecret = null);
+
+public sealed record LoginAccountRequest(
+    Guid AccountId,
+    string LoginSecret);
 
 public sealed record UpsertProfileSnapshotRequest(
     string ProfileName,

@@ -23,6 +23,7 @@ public class SettingsViewModel : ViewModelBase
     private string _cloudApiUrl = string.Empty;
     private string _cloudAccountId = string.Empty;
     private string _cloudApiKey = string.Empty;
+    private string _cloudAccountSecret = string.Empty;
     private string _cloudStatus = string.Empty;
     private User? _selectedUser;
 
@@ -114,6 +115,18 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    public string CloudAccountSecret
+    {
+        get => _cloudAccountSecret;
+        set
+        {
+            if (SetProperty(ref _cloudAccountSecret, value))
+            {
+                SettingsService.Instance.CloudAccountSecret = value;
+            }
+        }
+    }
+
     public string CloudStatus
     {
         get => _cloudStatus;
@@ -128,7 +141,9 @@ public class SettingsViewModel : ViewModelBase
     public ICommand ExportUserCommand { get; }
     public ICommand ImportUserCommand { get; }
     public ICommand CreateCloudAccountCommand { get; }
+    public ICommand LoginCloudAccountCommand { get; }
     public ICommand UploadCurrentProfileCommand { get; }
+    public ICommand UploadAllProfilesCommand { get; }
     public ICommand DownloadCurrentProfileCommand { get; }
 
     public SettingsViewModel(
@@ -145,6 +160,7 @@ public class SettingsViewModel : ViewModelBase
         _cloudApiUrl = SettingsService.Instance.CloudApiUrl;
         _cloudAccountId = SettingsService.Instance.CloudAccountId;
         _cloudApiKey = SettingsService.Instance.CloudApiKey;
+        _cloudAccountSecret = SettingsService.Instance.CloudAccountSecret;
 
         RefreshUsers();
 
@@ -155,7 +171,9 @@ public class SettingsViewModel : ViewModelBase
         ExportUserCommand = new AsyncRelayCommand(ExportUserAsync);
         ImportUserCommand = new AsyncRelayCommand(ImportUserAsync);
         CreateCloudAccountCommand = new AsyncRelayCommand(CreateCloudAccountAsync);
+        LoginCloudAccountCommand = new AsyncRelayCommand(LoginCloudAccountAsync);
         UploadCurrentProfileCommand = new AsyncRelayCommand(UploadCurrentProfileAsync);
+        UploadAllProfilesCommand = new AsyncRelayCommand(UploadAllProfilesAsync);
         DownloadCurrentProfileCommand = new AsyncRelayCommand(DownloadCurrentProfileAsync);
     }
 
@@ -262,7 +280,7 @@ public class SettingsViewModel : ViewModelBase
 
     private async Task CreateCloudAccountAsync()
     {
-        if (!TryCreateCloudClient(out var client))
+        if (!TryCreateCloudClient(out var client, includeServerApiKey: true))
         {
             return;
         }
@@ -271,7 +289,12 @@ public class SettingsViewModel : ViewModelBase
         {
             var account = await client.CreateAccountAsync("Desktop account");
             CloudAccountId = account.Id.ToString();
-            CloudStatus = $"Created account {account.Id}.";
+            if (!string.IsNullOrWhiteSpace(account.LoginSecret))
+            {
+                CloudAccountSecret = account.LoginSecret;
+            }
+
+            CloudStatus = $"Created account {account.Id}. Account secret saved.";
         }
         catch (Exception ex)
         {
@@ -279,9 +302,31 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    private async Task LoginCloudAccountAsync()
+    {
+        if (!TryCreateCloudClient(out var client) ||
+            !TryGetCloudAccountId(out var accountId) ||
+            !TryGetCloudAccountSecret(out var accountSecret))
+        {
+            return;
+        }
+
+        try
+        {
+            var account = await client.LoginAccountAsync(accountId, accountSecret);
+            CloudStatus = $"Logged in to {account.DisplayName} ({account.Id}).";
+        }
+        catch (Exception ex)
+        {
+            CloudStatus = $"Cloud login failed: {ex.Message}";
+        }
+    }
+
     private async Task UploadCurrentProfileAsync()
     {
-        if (!TryCreateCloudClient(out var client) || !TryGetCloudAccountId(out var accountId))
+        if (!TryCreateCloudClient(out var client) ||
+            !TryGetCloudAccountId(out var accountId) ||
+            !TryGetCloudAccountSecret(out _))
         {
             return;
         }
@@ -306,9 +351,41 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    private async Task UploadAllProfilesAsync()
+    {
+        if (!TryCreateCloudClient(out var client) ||
+            !TryGetCloudAccountId(out var accountId) ||
+            !TryGetCloudAccountSecret(out _))
+        {
+            return;
+        }
+
+        try
+        {
+            await _mainViewModel.SaveDataAsync();
+
+            var uploadedCount = 0;
+            foreach (var user in _userService.Users)
+            {
+                var userStore = CreateDataStoreForUser(user);
+                var snapshot = await userStore.LoadSnapshotAsync();
+                await client.UploadProfileSnapshotAsync(accountId, user.Id, user.Name, snapshot);
+                uploadedCount++;
+            }
+
+            CloudStatus = $"Uploaded {uploadedCount} local profile(s).";
+        }
+        catch (Exception ex)
+        {
+            CloudStatus = $"Cloud upload failed: {ex.Message}";
+        }
+    }
+
     private async Task DownloadCurrentProfileAsync()
     {
-        if (!TryCreateCloudClient(out var client) || !TryGetCloudAccountId(out var accountId))
+        if (!TryCreateCloudClient(out var client) ||
+            !TryGetCloudAccountId(out var accountId) ||
+            !TryGetCloudAccountSecret(out _))
         {
             return;
         }
@@ -406,7 +483,7 @@ public class SettingsViewModel : ViewModelBase
         return result;
     }
 
-    private bool TryCreateCloudClient(out TaskAppCloudClient client)
+    private bool TryCreateCloudClient(out TaskAppCloudClient client, bool includeServerApiKey = false)
     {
         client = null!;
 
@@ -416,7 +493,10 @@ public class SettingsViewModel : ViewModelBase
             return false;
         }
 
-        client = new TaskAppCloudClient(new HttpClient { BaseAddress = baseUri }, CloudApiKey);
+        client = new TaskAppCloudClient(
+            new HttpClient { BaseAddress = baseUri },
+            includeServerApiKey ? CloudApiKey : null,
+            includeServerApiKey ? null : CloudAccountSecret);
         return true;
     }
 
@@ -429,6 +509,50 @@ public class SettingsViewModel : ViewModelBase
 
         CloudStatus = "Cloud account ID is invalid.";
         return false;
+    }
+
+    private bool TryGetCloudAccountSecret(out string accountSecret)
+    {
+        accountSecret = CloudAccountSecret.Trim();
+        if (!string.IsNullOrWhiteSpace(accountSecret))
+        {
+            return true;
+        }
+
+        CloudStatus = "Cloud account secret is required. Create an account or paste the secret and log in.";
+        return false;
+    }
+
+    private StorageService CreateDataStoreForUser(User user)
+    {
+        return new StorageService(new SingleUserCatalog(user, _userService.GetUserDataDirectory(user.Id)));
+    }
+
+    private sealed class SingleUserCatalog : ILocalUserCatalog
+    {
+        private readonly User _user;
+        private readonly string _dataDirectory;
+
+        public SingleUserCatalog(User user, string dataDirectory)
+        {
+            _user = user;
+            _dataDirectory = dataDirectory;
+        }
+
+        public IReadOnlyList<User> Users => new[] { _user };
+        public User? CurrentUser => _user;
+        public event Action? CurrentUserChanged { add { } remove { } }
+        public void LoadSync() { }
+        public Task LoadAsync() => Task.CompletedTask;
+        public Task<User> CreateUserAsync(string name) => throw new NotSupportedException();
+        public Task DeleteUserAsync(Guid userId) => throw new NotSupportedException();
+        public Task SwitchUserAsync(Guid userId) => Task.CompletedTask;
+        public Task RenameUserAsync(Guid userId, string newName) => throw new NotSupportedException();
+        public Task ExportUserAsync(Guid userId, string exportFilePath) => throw new NotSupportedException();
+        public Task<User> ImportUserAsync(string importFilePath, string? newUserName = null) => throw new NotSupportedException();
+        public string GetUserDataDirectory(Guid userId) => _dataDirectory;
+        public string GetCurrentUserDataDirectory() => _dataDirectory;
+        public string GetDataLocationDiagnostics(Guid userId) => _dataDirectory;
     }
 }
 

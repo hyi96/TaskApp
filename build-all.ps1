@@ -1,5 +1,6 @@
 # build-all.ps1
-# Publishes .NET app for all major platforms and zips the output
+# Publishes TaskApp desktop clients for all major desktop platforms and zips the output.
+# Android APKs are built separately with build-android.ps1 because they need Android SDK/JDK paths.
 
 param (
     [string]$Configuration = "Release",

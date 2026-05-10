@@ -1,10 +1,10 @@
 # Android APK
 
-`TaskApp.Android` is the first Android slice. It is a small native Android bootstrap client that proves the APK build and the live cloud round trip before the full desktop UI is ported.
+`TaskApp.Android` is the first Android slice. It is a small native Android bootstrap client that proves login and profile download before the full desktop UI is ported.
 
-The app defaults to `https://taskapp-api.hyi96.dev`. It does not embed an API key. Enter the VPS API key on the device, then create or paste an account ID. The app can upload a starter profile snapshot and download it back from the API.
+The app defaults to `https://taskapp-api.hyi96.dev`. It does not embed secrets. First create/login/upload from desktop, then enter the same account ID and account secret in Android. `List profiles` fills the first profile ID when the field is empty, and `Download profile` confirms the phone can read the desktop-uploaded snapshot.
 
-This still matches the current cloud model: one account contains one or more TaskApp profiles. Login/logout can come later.
+This matches the current cloud model: one account contains one or more TaskApp profiles. Desktop user switching remains profile switching under the same account.
 
 ## Setup
 
