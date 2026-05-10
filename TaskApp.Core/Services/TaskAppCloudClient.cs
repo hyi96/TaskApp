@@ -7,9 +7,14 @@ public sealed class TaskAppCloudClient
 {
     private readonly HttpClient _httpClient;
 
-    public TaskAppCloudClient(HttpClient httpClient)
+    public TaskAppCloudClient(HttpClient httpClient, string? apiKey = null)
     {
         _httpClient = httpClient;
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            _httpClient.DefaultRequestHeaders.Remove(TaskAppCloudHeaders.ApiKey);
+            _httpClient.DefaultRequestHeaders.Add(TaskAppCloudHeaders.ApiKey, apiKey);
+        }
     }
 
     public async Task<AccountResponse> CreateAccountAsync(string? displayName, CancellationToken cancellationToken = default)

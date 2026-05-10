@@ -1,5 +1,10 @@
 namespace TaskApp.Services;
 
+public static class TaskAppCloudHeaders
+{
+    public const string ApiKey = "X-TaskApp-Api-Key";
+}
+
 public sealed record CreateAccountRequest(string? DisplayName);
 
 public sealed record AccountResponse(

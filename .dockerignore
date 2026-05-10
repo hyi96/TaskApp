@@ -1,0 +1,12 @@
+.git
+.vs
+.vscode
+**/bin
+**/obj
+dist
+TaskApp.Api/App_Data
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3

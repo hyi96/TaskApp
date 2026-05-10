@@ -22,6 +22,7 @@ public class SettingsViewModel : ViewModelBase
     private string _renameUserName = string.Empty;
     private string _cloudApiUrl = string.Empty;
     private string _cloudAccountId = string.Empty;
+    private string _cloudApiKey = string.Empty;
     private string _cloudStatus = string.Empty;
     private User? _selectedUser;
 
@@ -101,6 +102,18 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    public string CloudApiKey
+    {
+        get => _cloudApiKey;
+        set
+        {
+            if (SetProperty(ref _cloudApiKey, value))
+            {
+                SettingsService.Instance.CloudApiKey = value;
+            }
+        }
+    }
+
     public string CloudStatus
     {
         get => _cloudStatus;
@@ -131,6 +144,7 @@ public class SettingsViewModel : ViewModelBase
         _selectedTheme = SettingsService.Instance.ThemeMode;
         _cloudApiUrl = SettingsService.Instance.CloudApiUrl;
         _cloudAccountId = SettingsService.Instance.CloudAccountId;
+        _cloudApiKey = SettingsService.Instance.CloudApiKey;
 
         RefreshUsers();
 
@@ -402,7 +416,7 @@ public class SettingsViewModel : ViewModelBase
             return false;
         }
 
-        client = new TaskAppCloudClient(new HttpClient { BaseAddress = baseUri });
+        client = new TaskAppCloudClient(new HttpClient { BaseAddress = baseUri }, CloudApiKey);
         return true;
     }
 

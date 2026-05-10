@@ -1,0 +1,40 @@
+services:
+  taskapp-api:
+    build:
+      context: ../..
+      dockerfile: TaskApp.Api/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      TASKAPP_API_KEY: ${TASKAPP_API_KEY:?Set TASKAPP_API_KEY in .env}
+      ConnectionStrings__TaskAppCloud: "Data Source=${TASKAPP_DB_PATH:-/data/taskapp-cloud.db};Foreign Keys=True"
+    volumes:
+      - taskapp-data:/data
+    networks:
+      - taskapp
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - taskapp-api
+    environment:
+      TASKAPP_DOMAIN: ${TASKAPP_DOMAIN:?Set TASKAPP_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - taskapp
+
+volumes:
+  taskapp-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  taskapp:

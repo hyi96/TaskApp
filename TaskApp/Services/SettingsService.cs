@@ -17,6 +17,7 @@ public class AppSettings
     public ThemeMode ThemeMode { get; set; } = ThemeMode.System;
     public string CloudApiUrl { get; set; } = "http://localhost:5080";
     public string CloudAccountId { get; set; } = string.Empty;
+    public string CloudApiKey { get; set; } = string.Empty;
 }
 
 public class SettingsService
@@ -62,6 +63,16 @@ public class SettingsService
         set
         {
             _settings.CloudAccountId = value;
+            _ = SaveAsync();
+        }
+    }
+
+    public string CloudApiKey
+    {
+        get => _settings.CloudApiKey;
+        set
+        {
+            _settings.CloudApiKey = value;
             _ = SaveAsync();
         }
     }

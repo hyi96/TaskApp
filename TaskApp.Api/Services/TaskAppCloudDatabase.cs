@@ -77,6 +77,21 @@ public sealed class TaskAppCloudDatabase
         await profileCommand.ExecuteNonQueryAsync();
     }
 
+    public async Task<bool> CanConnectAsync()
+    {
+        try
+        {
+            await using var connection = await OpenConnectionAsync();
+            var command = connection.CreateCommand();
+            command.CommandText = "SELECT 1;";
+            return Convert.ToInt32(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture) == 1;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<AccountResponse> CreateAccountAsync(string? displayName)
     {
         var account = new AccountResponse(
