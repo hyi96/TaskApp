@@ -32,8 +32,8 @@ public class MainWindowViewModel : ViewModelBase
     private const string SortTodoDueDateEarly = "Due date (earliest to latest)";
     private const string SortTodoDueDateLate = "Due date (latest to earliest)";
 
-    private readonly StorageService _storageService;
-    private readonly UserService _userService;
+    private readonly ITaskAppDataStore _storageService;
+    private readonly ILocalUserCatalog _userService;
 
     private UserProfile _user = new();
     private string _newHabitTitle = string.Empty;
@@ -125,8 +125,8 @@ public class MainWindowViewModel : ViewModelBase
  
     public CurrentActivityViewModel CurrentActivity { get; } = new();
  
-    public StorageService StorageService => _storageService;
-    public UserService UserService => _userService;
+    public ITaskAppDataStore StorageService => _storageService;
+    public ILocalUserCatalog UserService => _userService;
 
     // Internal full lists
     private readonly List<HabitTask> _allHabits = new();
@@ -290,7 +290,7 @@ public class MainWindowViewModel : ViewModelBase
         ? "Click to disable vacation mode and resume normal streak tracking."
         : "Click to enable vacation mode. All streaks will be protected while on vacation.";
 
-    public MainWindowViewModel(StorageService storageService, UserService userService)
+    public MainWindowViewModel(ITaskAppDataStore storageService, ILocalUserCatalog userService)
     {
         _storageService = storageService;
         _userService = userService;
@@ -1161,8 +1161,6 @@ public class MainWindowViewModel : ViewModelBase
             $"\"{daily.Title}\" completed! +{rewardAmount:0.#}g");
     }
 }
-
-
 
 
 

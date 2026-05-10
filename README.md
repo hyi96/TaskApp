@@ -101,47 +101,20 @@ dotnet test TaskApp.Tests
 
 ## Project Structure
 
-```
-TaskApp/                    # Main application (.NET 10)
-├── Models/
-│   ├── Tasks/              # HabitTask, DailyTask, TodoTask, ChecklistItem, StreakBonusRule
-│   ├── Rewards/            # Reward model
-│   ├── Logs/               # LogEntry for activity tracking
-│   ├── Tags/               # Tag model
-│   ├── DomainEntity.cs     # Base class for tasks and rewards
-│   ├── User.cs             # User and UserExportMetadata
-│   └── UserProfile.cs      # User preferences (gold, sort modes, vacation mode)
-├── ViewModels/             # MVVM ViewModels
-│   ├── MainWindowViewModel.cs      # Core app logic, filtering, sorting, logging
-│   ├── CurrentActivityViewModel.cs # Timer, autocomplete detection
-│   ├── LogsViewModel.cs            # Log display with date filtering
-│   ├── GraphViewModel.cs           # Productivity charts
-│   ├── NewDayViewModel.cs          # Day-change handling and streak protection
-│   └── *FormViewModel.cs           # Task and reward edit forms
-├── Views/                  # Avalonia XAML views
-├── Services/
-│   ├── StorageService.cs   # JSON + SQLite persistence
-│   ├── UserService.cs      # Multi-user, export/import
-│   ├── SettingsService.cs  # Theme and app settings
-│   ├── DayDetectionService.cs # Day-change detection
-│   ├── TaskMapper.cs       # Model ↔ Data mapping
-│   └── RewardMapper.cs     # Model ↔ Data mapping
-├── Converters/             # XAML value converters
-└── Data/                   # Data transfer objects for JSON serialization
+For the current cloud-ready solution layout, see [docs/architecture.md](docs/architecture.md). The shared domain/data layer now lives in `TaskApp.Core`, while `TaskApp` contains the Avalonia desktop app and local infrastructure.
+
+```text
+TaskApp.Core/               # Shared domain, DTOs, mappers, and service contracts
+TaskApp/                    # Avalonia desktop app and local infrastructure
 TaskApp.Tests/              # xUnit test project (.NET 10)
-├── DailyAutocompleteTests.cs       # Autocomplete threshold logic
-├── DailyTaskTests.cs               # Daily task period and completion logic
-├── StreakProtectionTests.cs         # Streak protection and vacation mode
-├── NewDayCompletionTests.cs        # New day window check/protect flow
-├── MainWindowViewModelTests.cs     # Filtering and sorting
-├── CurrentActivityViewModelTests.cs # Timer and autocomplete UI tests (Avalonia Headless)
-└── ImportExportTests.cs            # Export/import round-trip tests
+docs/                       # Architecture, service, storage, and cloud foundation docs
 ```
 
 ## Technology Stack
 
 | Component | Technology |
 |-----------|------------|
+| Shared Core | TaskApp.Core (.NET 10 class library) |
 | UI Framework | [Avalonia UI 11.3.9](https://avaloniaui.net/) |
 | Runtime | .NET 10 |
 | Database | SQLite (Microsoft.Data.Sqlite) |

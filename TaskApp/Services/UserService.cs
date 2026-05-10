@@ -10,7 +10,7 @@ using TaskApp.Models;
 
 namespace TaskApp.Services;
 
-public class UserService
+public class UserService : ILocalUserCatalog
 {
     private static readonly string DefaultAppDataFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),

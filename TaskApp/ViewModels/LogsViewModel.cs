@@ -9,7 +9,7 @@ namespace TaskApp.ViewModels;
 
 public class LogsViewModel : ViewModelBase
 {
-    private readonly StorageService _storageService;
+    private readonly ITaskAppDataStore _storageService;
     private int _selectedLimit = 50;
     private DateTimeOffset _fromDate;
     private DateTimeOffset _toDate;
@@ -45,7 +45,7 @@ public class LogsViewModel : ViewModelBase
 
     public event Func<LogEntry, Task<bool>>? RequestUndo;
 
-    public LogsViewModel(StorageService storageService)
+    public LogsViewModel(ITaskAppDataStore storageService)
     {
         _storageService = storageService;
         _fromDate = DateTimeOffset.Now.AddDays(-7);

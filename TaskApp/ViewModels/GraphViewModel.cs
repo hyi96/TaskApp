@@ -13,7 +13,7 @@ namespace TaskApp.ViewModels;
 
 public partial class GraphViewModel : ViewModelBase, IDisposable
 {
-    private readonly StorageService _storageService;
+    private readonly ITaskAppDataStore _storageService;
     private readonly List<LogEntry> _logEntries = new();
     private readonly List<TaskBase> _tasks = new();
     private readonly List<Reward> _rewards = new();
@@ -33,7 +33,7 @@ public partial class GraphViewModel : ViewModelBase, IDisposable
     private SearchResultOption? _mergeTarget;
     private string? _mergeActivityTitle;
 
-    public GraphViewModel(StorageService storageService)
+    public GraphViewModel(ITaskAppDataStore storageService)
     {
         _storageService = storageService;
         TargetTypes = new ObservableCollection<TargetTypeOption>(

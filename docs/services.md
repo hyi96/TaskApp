@@ -1,6 +1,18 @@
 # Services
 
-The service layer lives in `TaskApp/Services/` and handles persistence, user management, settings, day detection, notifications, and data mapping.
+Service code is split between `TaskApp.Core/Services/` and `TaskApp/Services/`. Core contains shared contracts, mappers, and snapshot helpers. The desktop app contains local JSON/SQLite persistence, local user management, settings, day detection, and notifications.
+
+---
+
+## Core Service Contracts
+
+**Files:** `TaskApp.Core/Services/ITaskAppDataStore.cs`, `TaskApp.Core/Services/IUserCatalog.cs`, `TaskApp.Core/Services/TaskAppDataSnapshot.cs`
+
+`ITaskAppDataStore` is the shared persistence boundary used by view models. `StorageService` implements it today with local JSON and SQLite files; future cloud or Android implementations can satisfy the same contract with an API-backed store or offline cache.
+
+`ILocalUserCatalog` captures the current desktop multi-user behavior, including import/export and local data directories. The smaller `IUserCatalog` surface is the cloud-ready user/account boundary.
+
+`TaskAppDataSnapshot` is a canonical full-user-data payload for future bootstrap sync, cloud upload, and import/export work.
 
 ---
 
@@ -204,7 +216,7 @@ Static service for showing native Windows toast notifications.
 
 ## TaskMapper
 
-**File:** `TaskApp/Services/TaskMapper.cs`
+**File:** `TaskApp.Core/Services/TaskMapper.cs`
 
 Static mapper that converts between `TaskData` DTOs and `TaskBase` domain models.
 
@@ -219,7 +231,7 @@ Handles all three task types (`TodoTaskData`, `DailyTaskData`, `HabitTaskData`) 
 
 ## RewardMapper
 
-**File:** `TaskApp/Services/RewardMapper.cs`
+**File:** `TaskApp.Core/Services/RewardMapper.cs`
 
 Static mapper that converts between `RewardData` DTOs and `Reward` domain models.
 

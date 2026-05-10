@@ -12,7 +12,7 @@ namespace TaskApp.ViewModels;
 
 public class SettingsViewModel : ViewModelBase
 {
-    private readonly UserService _userService;
+    private readonly ILocalUserCatalog _userService;
     private readonly Window _parentWindow;
     private ThemeMode _selectedTheme;
     private string _newUserName = string.Empty;
@@ -79,7 +79,7 @@ public class SettingsViewModel : ViewModelBase
     public ICommand ExportUserCommand { get; }
     public ICommand ImportUserCommand { get; }
 
-    public SettingsViewModel(UserService userService, Window parentWindow)
+    public SettingsViewModel(ILocalUserCatalog userService, Window parentWindow)
     {
         _userService = userService;
         _parentWindow = parentWindow;

@@ -15,9 +15,9 @@ using TaskApp.Models.Tasks;
 
 namespace TaskApp.Services;
 
-public class StorageService
+public class StorageService : ILocalTaskAppDataStore
 {
-    private readonly UserService _userService;
+    private readonly ILocalUserCatalog _userService;
     private string _dataDirectory = string.Empty;
     private const string TasksFileName = "tasks.json";
     private const string RewardsFileName = "rewards.json";
@@ -102,7 +102,7 @@ public class StorageService
         return null;
     }
 
-    public StorageService(UserService userService)
+    public StorageService(ILocalUserCatalog userService)
     {
         _userService = userService;
         UpdateDataDirectory();

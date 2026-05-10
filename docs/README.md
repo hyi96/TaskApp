@@ -65,18 +65,13 @@ dotnet test
 
 ## Project Structure
 
-```
-TaskApp/
-├── TaskApp/                  # Main application project
-│   ├── Models/               # Domain entities (tasks, rewards, tags, logs)
-│   ├── ViewModels/           # MVVM view models
-│   ├── Views/                # Avalonia XAML views and code-behind
-│   ├── Services/             # Storage, user management, settings, mappers
-│   ├── Converters/           # Avalonia value converters
-│   ├── Data/                 # Serialization DTOs (data transfer objects)
-│   └── Assets/               # Application resources
-├── TaskApp.Tests/            # xUnit test project
-└── docs/                     # Documentation (you are here)
+For the current exact layout, see [Architecture](architecture.md). The shared domain/data layer lives in `TaskApp.Core`, while `TaskApp` contains the Avalonia desktop app and local infrastructure.
+
+```text
+TaskApp.Core/               # Shared domain, DTOs, mappers, and service contracts
+TaskApp/                    # Avalonia desktop app and local infrastructure
+TaskApp.Tests/              # xUnit test project
+docs/                       # Documentation (you are here)
 ```
 
 ## Documentation Index
@@ -84,6 +79,7 @@ TaskApp/
 | Document | Description |
 |---|---|
 | [Architecture](architecture.md) | Solution structure, layers, and data flow |
+| [Cloud Foundation](cloud-foundation.md) | Shared-core and store-interface plan for cloud/API/Android work |
 | [Domain Models](models.md) | Entity reference — tasks, rewards, tags, logs |
 | [Services](services.md) | Service layer — storage, users, settings, mappers |
 | [Features](features.md) | Detailed feature guide with usage details |
