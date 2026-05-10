@@ -8,8 +8,8 @@
     <AssemblyName>TaskApp.Android</AssemblyName>
     <ApplicationId>dev.hyi96.taskapp</ApplicationId>
     <ApplicationTitle>TaskApp</ApplicationTitle>
-    <ApplicationVersion>1</ApplicationVersion>
-    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>2</ApplicationVersion>
+    <ApplicationDisplayVersion>0.2.0</ApplicationDisplayVersion>
     <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
   </PropertyGroup>
 

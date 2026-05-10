@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using TaskApp.Data;
 using TaskApp.Models;
 using TaskApp.Models.Logs;
 using TaskApp.Models.Rewards;
@@ -133,5 +135,50 @@ public class TaskAppDataSnapshotTests : IDisposable
         Assert.Equal(99, loadedProfile.Gold);
         Assert.Single(loadedLogs);
         Assert.Equal(newLog.Id, loadedLogs.Single().Id);
+    }
+
+    [Fact]
+    public void SnapshotJson_RoundTripsDerivedTaskTypes()
+    {
+        var todo = new TodoTaskData
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            Title = "Phone todo",
+            DueDate = DateTimeOffset.UtcNow.AddDays(1)
+        };
+        var daily = new DailyTaskData
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            Title = "Phone daily",
+            Cadence = RepeatCadence.Daily,
+            RepeatEvery = 1
+        };
+        var habit = new HabitTaskData
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            Title = "Phone habit",
+            IncrementAmount = 1,
+            IncrementEnabled = true
+        };
+        var snapshot = new TaskAppDataSnapshot(
+            TaskAppDataSnapshot.CurrentSchemaVersion,
+            DateTimeOffset.UtcNow,
+            new TaskData[] { todo, daily, habit },
+            Array.Empty<RewardData>(),
+            Array.Empty<TagData>(),
+            new UserProfile { Gold = 3 },
+            Array.Empty<LogEntry>());
+
+        var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var restored = JsonSerializer.Deserialize<TaskAppDataSnapshot>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.NotNull(restored);
+        Assert.IsType<TodoTaskData>(restored.Tasks[0]);
+        Assert.IsType<DailyTaskData>(restored.Tasks[1]);
+        Assert.IsType<HabitTaskData>(restored.Tasks[2]);
+        Assert.Equal(3, restored.UserProfile.Gold);
     }
 }
