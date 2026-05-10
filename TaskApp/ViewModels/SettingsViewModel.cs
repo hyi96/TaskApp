@@ -315,6 +315,15 @@ public class SettingsViewModel : ViewModelBase
                 return;
             }
 
+            var confirmed = await ShowConfirmationAsync(
+                "Download Profile",
+                "Replace the current local profile with the cloud snapshot?");
+            if (!confirmed)
+            {
+                CloudStatus = "Cloud download canceled.";
+                return;
+            }
+
             await _dataStore.SaveSnapshotAsync(result.Snapshot);
             await _mainViewModel.LoadDataAsync();
             CloudStatus = $"Downloaded {result.ProfileName} from {result.UpdatedAt.LocalDateTime:g}.";
