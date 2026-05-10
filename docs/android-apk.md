@@ -33,20 +33,20 @@ C:\Users\hao\.codex\android-build-tools\jdk-17.0.19+10
 
 ## Build
 
-Publish a side-loadable APK:
+Publish all release builds, including a side-loadable APK:
 
 ```powershell
-.\build-android.ps1 -Configuration Release
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build-all.ps1 -Configuration Release
 ```
 
-The signed APK is emitted under:
+The signed APK is copied to:
 
 ```text
-TaskApp.Android\bin\Release\net10.0-android\publish\dev.hyi96.taskapp-Signed.apk
+dist\Android\dev.hyi96.taskapp-Signed.apk
 ```
 
-For a quick compile without publishing:
+For an Android-only publish:
 
 ```powershell
-.\build-android.ps1 -Configuration Debug -BuildOnly
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build-all.ps1 -Configuration Release -SkipDesktop
 ```
