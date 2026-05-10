@@ -171,6 +171,7 @@ public class SettingsViewModel : ViewModelBase
     public ICommand ImportUserCommand { get; }
     public ICommand CreateCloudAccountCommand { get; }
     public ICommand LoginCloudAccountCommand { get; }
+    public ICommand CopyCloudAccountSecretCommand { get; }
     public ICommand UploadCurrentProfileCommand { get; }
     public ICommand UploadAllProfilesCommand { get; }
     public ICommand DownloadCurrentProfileCommand { get; }
@@ -201,6 +202,7 @@ public class SettingsViewModel : ViewModelBase
         ImportUserCommand = new AsyncRelayCommand(ImportUserAsync);
         CreateCloudAccountCommand = new AsyncRelayCommand(CreateCloudAccountAsync);
         LoginCloudAccountCommand = new AsyncRelayCommand(LoginCloudAccountAsync);
+        CopyCloudAccountSecretCommand = new AsyncRelayCommand(CopyCloudAccountSecretAsync);
         UploadCurrentProfileCommand = new AsyncRelayCommand(UploadCurrentProfileAsync);
         UploadAllProfilesCommand = new AsyncRelayCommand(UploadAllProfilesAsync);
         DownloadCurrentProfileCommand = new AsyncRelayCommand(DownloadCurrentProfileAsync);
@@ -322,7 +324,7 @@ public class SettingsViewModel : ViewModelBase
             {
                 CloudAccountSecret = account.LoginSecret;
                 MarkCloudLoginVerified(account);
-                CloudStatus = $"Created account {account.Id}. Account secret saved. You are logged in.";
+                CloudStatus = $"Created account {account.Id}. Account secret saved. Use Copy Secret for Android login.";
                 return;
             }
 
@@ -356,6 +358,25 @@ public class SettingsViewModel : ViewModelBase
             InvalidateCloudLogin();
             CloudStatus = $"Cloud login failed: {ex.Message}";
         }
+    }
+
+    private async Task CopyCloudAccountSecretAsync()
+    {
+        var accountSecret = CloudAccountSecret.Trim();
+        if (string.IsNullOrWhiteSpace(accountSecret))
+        {
+            CloudStatus = "No account secret is saved. Create a new account first.";
+            return;
+        }
+
+        if (_parentWindow.Clipboard == null)
+        {
+            CloudStatus = "Clipboard is unavailable. Select and copy the Account Secret field manually.";
+            return;
+        }
+
+        await _parentWindow.Clipboard.SetTextAsync(accountSecret);
+        CloudStatus = "Account secret copied. Paste it into the Android Account Secret field.";
     }
 
     private async Task UploadCurrentProfileAsync()

@@ -149,8 +149,16 @@ Background="{DynamicResource AppBackgroundBrush}">
                                 </StackPanel>
 
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Account Secret" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                    <TextBox Text="{Binding CloudAccountSecret}" PasswordChar="*" HorizontalAlignment="Stretch"/>
+                                    <TextBlock Text="Account Secret (copy into Android)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding CloudAccountSecret}"
+                                                 PasswordChar="*"
+                                                 HorizontalAlignment="Stretch"/>
+                                        <Button Grid.Column="1"
+                                                Content="Copy"
+                                                Command="{Binding CopyCloudAccountSecretCommand}"/>
+                                    </Grid>
                                 </StackPanel>
 
                                 <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">

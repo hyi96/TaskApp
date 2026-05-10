@@ -60,7 +60,7 @@ public sealed class MainActivity : Activity
         _apiKey.InputType = InputTypes.ClassText | InputTypes.TextVariationPassword;
         content.AddView(_apiKey);
 
-        _accountSecret = Input("Account secret", _preferences?.GetString(AccountSecretKey, string.Empty) ?? string.Empty);
+        _accountSecret = Input("Account secret from desktop", _preferences?.GetString(AccountSecretKey, string.Empty) ?? string.Empty);
         _accountSecret.InputType = InputTypes.ClassText | InputTypes.TextVariationPassword;
         content.AddView(_accountSecret);
 
