@@ -172,8 +172,9 @@ public class ManualDurationLoggingTests : IDisposable
         daily.SetAutocompleteTimeThreshold(TimeSpan.FromMinutes(30));
         var initialGold = vm.User.Gold;
 
-        // Log enough duration to meet the threshold
-        await vm.LogActivityDurationAsync(TimeSpan.FromMinutes(35), "Study", daily.Id);
+        // Seed a log wholly inside the current period so the assertion is not
+        // sensitive to running just after local midnight.
+        await AddCurrentPeriodActivityDurationLogAsync(vm, daily, TimeSpan.FromMinutes(35));
         await vm.TryAutocompleteFromLoggedDurationAsync(daily.Id);
 
         Assert.True(daily.IsCompleteForCurrentPeriod);
@@ -259,11 +260,11 @@ public class ManualDurationLoggingTests : IDisposable
         daily.SetAutocompleteTimeThreshold(TimeSpan.FromMinutes(60));
 
         // Two separate logs that together exceed the threshold
-        await vm.LogActivityDurationAsync(TimeSpan.FromMinutes(35), "Study", daily.Id);
+        await AddCurrentPeriodActivityDurationLogAsync(vm, daily, TimeSpan.FromMinutes(35));
         await vm.TryAutocompleteFromLoggedDurationAsync(daily.Id);
         Assert.False(daily.IsCompleteForCurrentPeriod);
 
-        await vm.LogActivityDurationAsync(TimeSpan.FromMinutes(30), "Study", daily.Id);
+        await AddCurrentPeriodActivityDurationLogAsync(vm, daily, TimeSpan.FromMinutes(30));
         await vm.TryAutocompleteFromLoggedDurationAsync(daily.Id);
         Assert.True(daily.IsCompleteForCurrentPeriod);
     }
@@ -277,7 +278,7 @@ public class ManualDurationLoggingTests : IDisposable
         var daily = vm.Dailies[0];
         daily.SetAutocompleteTimeThreshold(TimeSpan.FromMinutes(30));
 
-        await vm.LogActivityDurationAsync(TimeSpan.FromMinutes(30), "Study", daily.Id);
+        await AddCurrentPeriodActivityDurationLogAsync(vm, daily, TimeSpan.FromMinutes(30));
         await vm.TryAutocompleteFromLoggedDurationAsync(daily.Id);
 
         Assert.True(daily.IsCompleteForCurrentPeriod);
@@ -380,6 +381,30 @@ public class ManualDurationLoggingTests : IDisposable
     {
         var localDateTime = periodStart.ToDateTime(TimeOnly.MinValue);
         return new DateTimeOffset(localDateTime, TimeZoneInfo.Local.GetUtcOffset(localDateTime));
+    }
+
+    private static async Task AddCurrentPeriodActivityDurationLogAsync(
+        MainWindowViewModel vm,
+        DailyTask daily,
+        TimeSpan duration)
+    {
+        var periodStart = ToLocalPeriodStartOffset(daily.GetCurrentPeriodStart());
+        var minimumEnd = periodStart.Add(duration).AddSeconds(1);
+        var endedAt = DateTimeOffset.UtcNow > minimumEnd
+            ? DateTimeOffset.UtcNow
+            : minimumEnd;
+
+        await vm.StorageService.AddLogEntryAsync(new LogEntry
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = endedAt,
+            Type = LogType.ActivityDuration,
+            TaskId = daily.Id,
+            GoldDelta = 0,
+            UserGold = vm.User.Gold,
+            Duration = duration,
+            TitleSnapshot = daily.Title
+        });
     }
 
     private static async Task<TimeSpan?> InvokeGetAutocompleteRemainingTimeAsync(

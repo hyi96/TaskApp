@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>TaskApp.AndroidClient</RootNamespace>
+    <AssemblyName>TaskApp.Android</AssemblyName>
+    <ApplicationId>dev.hyi96.taskapp</ApplicationId>
+    <ApplicationTitle>TaskApp</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaskApp.Core\TaskApp.Core.csproj" />
+  </ItemGroup>
+</Project>

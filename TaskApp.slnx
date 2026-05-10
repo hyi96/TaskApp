@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="TaskApp.Api/TaskApp.Api.csproj" />
+  <Project Path="TaskApp.Android/TaskApp.Android.csproj" />
   <Project Path="TaskApp.Core/TaskApp.Core.csproj" />
   <Project Path="TaskApp.Tests/TaskApp.Tests.csproj" />
   <Project Path="TaskApp/TaskApp.csproj" />
