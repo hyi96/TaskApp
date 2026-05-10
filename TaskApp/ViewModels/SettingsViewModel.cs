@@ -25,6 +25,9 @@ public class SettingsViewModel : ViewModelBase
     private string _cloudApiKey = string.Empty;
     private string _cloudAccountSecret = string.Empty;
     private string _cloudStatus = string.Empty;
+    private bool _isCloudLoginVerified;
+    private Guid? _verifiedCloudAccountId;
+    private string _verifiedCloudDisplayName = string.Empty;
     private User? _selectedUser;
 
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } = new[]
@@ -87,6 +90,7 @@ public class SettingsViewModel : ViewModelBase
             if (SetProperty(ref _cloudApiUrl, value))
             {
                 SettingsService.Instance.CloudApiUrl = value;
+                InvalidateCloudLogin();
             }
         }
     }
@@ -99,6 +103,7 @@ public class SettingsViewModel : ViewModelBase
             if (SetProperty(ref _cloudAccountId, value))
             {
                 SettingsService.Instance.CloudAccountId = value;
+                InvalidateCloudLogin();
             }
         }
     }
@@ -123,9 +128,33 @@ public class SettingsViewModel : ViewModelBase
             if (SetProperty(ref _cloudAccountSecret, value))
             {
                 SettingsService.Instance.CloudAccountSecret = value;
+                InvalidateCloudLogin();
             }
         }
     }
+
+    public string CloudLoginStatus
+    {
+        get
+        {
+            if (_isCloudLoginVerified && _verifiedCloudAccountId is Guid accountId)
+            {
+                var displayName = string.IsNullOrWhiteSpace(_verifiedCloudDisplayName)
+                    ? "cloud account"
+                    : _verifiedCloudDisplayName.Trim();
+                return $"Cloud login: verified as {displayName} ({ShortAccountId(accountId)}).";
+            }
+
+            if (HasSavedCloudCredentials)
+            {
+                return "Cloud login: saved credentials are not verified. Click Login.";
+            }
+
+            return "Cloud login: not logged in.";
+        }
+    }
+
+    public bool IsCloudLoginVerified => _isCloudLoginVerified;
 
     public string CloudStatus
     {
@@ -294,10 +323,12 @@ public class SettingsViewModel : ViewModelBase
                 CloudAccountSecret = account.LoginSecret;
             }
 
-            CloudStatus = $"Created account {account.Id}. Account secret saved.";
+            MarkCloudLoginVerified(account);
+            CloudStatus = $"Created account {account.Id}. Account secret saved. You are logged in.";
         }
         catch (Exception ex)
         {
+            InvalidateCloudLogin();
             CloudStatus = $"Cloud account creation failed: {ex.Message}";
         }
     }
@@ -314,10 +345,12 @@ public class SettingsViewModel : ViewModelBase
         try
         {
             var account = await client.LoginAccountAsync(accountId, accountSecret);
+            MarkCloudLoginVerified(account);
             CloudStatus = $"Logged in to {account.DisplayName} ({account.Id}).";
         }
         catch (Exception ex)
         {
+            InvalidateCloudLogin();
             CloudStatus = $"Cloud login failed: {ex.Message}";
         }
     }
@@ -343,10 +376,12 @@ public class SettingsViewModel : ViewModelBase
             await _mainViewModel.SaveDataAsync();
             var snapshot = await _dataStore.LoadSnapshotAsync();
             var result = await client.UploadProfileSnapshotAsync(accountId, currentUser.Id, currentUser.Name, snapshot);
+            MarkCloudLoginVerified(accountId);
             CloudStatus = $"Uploaded {result.ProfileName} at {result.UpdatedAt.LocalDateTime:g}.";
         }
         catch (Exception ex)
         {
+            InvalidateCloudLogin();
             CloudStatus = $"Cloud upload failed: {ex.Message}";
         }
     }
@@ -373,10 +408,12 @@ public class SettingsViewModel : ViewModelBase
                 uploadedCount++;
             }
 
+            MarkCloudLoginVerified(accountId);
             CloudStatus = $"Uploaded {uploadedCount} local profile(s).";
         }
         catch (Exception ex)
         {
+            InvalidateCloudLogin();
             CloudStatus = $"Cloud upload failed: {ex.Message}";
         }
     }
@@ -400,6 +437,7 @@ public class SettingsViewModel : ViewModelBase
         try
         {
             var result = await client.DownloadProfileSnapshotAsync(accountId, currentUser.Id);
+            MarkCloudLoginVerified(accountId);
             if (result == null)
             {
                 CloudStatus = "No cloud snapshot exists for the current profile.";
@@ -421,8 +459,47 @@ public class SettingsViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            InvalidateCloudLogin();
             CloudStatus = $"Cloud download failed: {ex.Message}";
         }
+    }
+
+    private bool HasSavedCloudCredentials =>
+        Uri.TryCreate(CloudApiUrl, UriKind.Absolute, out _) &&
+        Guid.TryParse(CloudAccountId, out _) &&
+        !string.IsNullOrWhiteSpace(CloudAccountSecret);
+
+    private void MarkCloudLoginVerified(AccountResponse account)
+    {
+        MarkCloudLoginVerified(account.Id, account.DisplayName);
+    }
+
+    private void MarkCloudLoginVerified(Guid accountId, string displayName = "")
+    {
+        _isCloudLoginVerified = true;
+        _verifiedCloudAccountId = accountId;
+        _verifiedCloudDisplayName = displayName;
+        RefreshCloudLoginStatus();
+    }
+
+    private void InvalidateCloudLogin()
+    {
+        _isCloudLoginVerified = false;
+        _verifiedCloudAccountId = null;
+        _verifiedCloudDisplayName = string.Empty;
+        RefreshCloudLoginStatus();
+    }
+
+    private void RefreshCloudLoginStatus()
+    {
+        OnPropertyChanged(nameof(CloudLoginStatus));
+        OnPropertyChanged(nameof(IsCloudLoginVerified));
+    }
+
+    private static string ShortAccountId(Guid accountId)
+    {
+        var value = accountId.ToString();
+        return value[..8];
     }
 
     private void RefreshUsers()

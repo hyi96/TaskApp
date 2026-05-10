@@ -29,6 +29,7 @@ public sealed class MainActivity : Activity
     private EditText? _accountSecret;
     private EditText? _accountId;
     private EditText? _profileId;
+    private TextView? _loginStatus;
     private TextView? _status;
 
     protected override void OnCreate(Bundle? savedInstanceState)
@@ -71,6 +72,10 @@ public sealed class MainActivity : Activity
         _profileId.InputType = InputTypes.ClassText | InputTypes.TextVariationNormal;
         content.AddView(_profileId);
 
+        _loginStatus = Body(BuildLoginStatus());
+        _loginStatus.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
+        content.AddView(_loginStatus);
+
         content.AddView(Button("Save settings", SaveSettings));
         content.AddView(Button("Create account", async () => await CreateAccountAsync()));
         content.AddView(Button("Login", async () => await LoginAsync()));
@@ -97,6 +102,7 @@ public sealed class MainActivity : Activity
             }
 
             SaveSettings();
+            MarkLoginVerified(account);
             return $"Created account {account.Id}. Account secret saved.";
         });
     }
@@ -107,6 +113,7 @@ public sealed class MainActivity : Activity
         {
             var account = await client.LoginAccountAsync(ReadAccountId(), ReadAccountSecret());
             SaveSettings();
+            MarkLoginVerified(account);
             return $"Logged in to {account.DisplayName}.";
         });
     }
@@ -125,6 +132,7 @@ public sealed class MainActivity : Activity
                 CreateStarterSnapshot());
 
             SaveSettings();
+            MarkLoginVerified(accountId);
             return $"Uploaded profile {response.ProfileId}. Updated {response.UpdatedAt:O}.";
         });
     }
@@ -138,6 +146,7 @@ public sealed class MainActivity : Activity
             var profiles = await client.ListProfilesAsync(accountId);
             if (profiles.Count == 0)
             {
+                MarkLoginVerified(accountId);
                 return "No profiles found for this account.";
             }
 
@@ -147,6 +156,7 @@ public sealed class MainActivity : Activity
                 SaveSettings();
             }
 
+            MarkLoginVerified(accountId);
             return string.Join(
                 "\n",
                 profiles.Select(profile =>
@@ -162,6 +172,7 @@ public sealed class MainActivity : Activity
             _ = ReadAccountSecret();
             var profileId = ReadProfileId();
             var response = await client.DownloadProfileSnapshotAsync(accountId, profileId);
+            MarkLoginVerified(accountId);
             if (response is null)
             {
                 return $"Profile {profileId} does not exist yet.";
@@ -198,6 +209,7 @@ public sealed class MainActivity : Activity
         }
         catch (Exception ex)
         {
+            UpdateLoginStatus();
             SetStatus(ex.Message);
         }
     }
@@ -303,7 +315,51 @@ public sealed class MainActivity : Activity
             ?.PutString(ProfileIdKey, _profileId?.Text?.Trim() ?? string.Empty)
             ?.Apply();
 
+        UpdateLoginStatus();
         SetStatus("Settings saved.");
+    }
+
+    private void MarkLoginVerified(AccountResponse account)
+    {
+        MarkLoginVerified(account.Id, account.DisplayName);
+    }
+
+    private void MarkLoginVerified(Guid accountId, string displayName = "")
+    {
+        UpdateLoginStatus(true, accountId, displayName);
+    }
+
+    private void UpdateLoginStatus(bool verified = false, Guid? accountId = null, string displayName = "")
+    {
+        if (_loginStatus is not null)
+        {
+            _loginStatus.Text = BuildLoginStatus(verified, accountId, displayName);
+        }
+    }
+
+    private string BuildLoginStatus(bool verified = false, Guid? accountId = null, string displayName = "")
+    {
+        if (verified && accountId is Guid verifiedAccountId)
+        {
+            var name = string.IsNullOrWhiteSpace(displayName)
+                ? "cloud account"
+                : displayName.Trim();
+            return $"Cloud login: verified as {name} ({ShortAccountId(verifiedAccountId)}).";
+        }
+
+        if (HasSavedAccountCredentials())
+        {
+            return "Cloud login: saved credentials are not verified. Tap Login.";
+        }
+
+        return "Cloud login: not logged in.";
+    }
+
+    private bool HasSavedAccountCredentials()
+    {
+        return Uri.TryCreate(NormalizeApiUrl(_apiUrl?.Text), UriKind.Absolute, out _) &&
+            Guid.TryParse(_accountId?.Text, out _) &&
+            !string.IsNullOrWhiteSpace(_accountSecret?.Text);
     }
 
     private Button Button(string text, Func<Task> action)
@@ -379,6 +435,12 @@ public sealed class MainActivity : Activity
     {
         var trimmed = value?.Trim().TrimEnd('/');
         return string.IsNullOrWhiteSpace(trimmed) ? DefaultApiUrl : trimmed;
+    }
+
+    private static string ShortAccountId(Guid accountId)
+    {
+        var value = accountId.ToString();
+        return value[..8];
     }
 
     private void SetStatus(string message)

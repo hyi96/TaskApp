@@ -122,6 +122,16 @@ Background="{DynamicResource AppBackgroundBrush}">
                                 Margin="0,8,0,0">
                             <StackPanel Spacing="8">
                                 <TextBlock Text="Cloud Sync" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource AppTextBrush}"/>
+                                <Border BorderBrush="{DynamicResource ActivityBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="8">
+                                    <TextBlock Text="{Binding CloudLoginStatus}"
+                                               TextWrapping="Wrap"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AppTextBrush}"/>
+                                </Border>
 
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="API URL" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
