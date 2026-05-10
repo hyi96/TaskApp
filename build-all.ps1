@@ -7,6 +7,8 @@ param (
     [string]$ProjectPath = "TaskApp/TaskApp.csproj"
 )
 
+$ErrorActionPreference = "Stop"
+
 # Define platforms and output folders
 $targets = @{
     "win-x64"        = "Windows"
@@ -31,6 +33,7 @@ New-Item -ItemType Directory -Path dist | Out-Null
 foreach ($rid in $targets.Keys) {
     $platformFolder = $targets[$rid]
     $outputPath = Join-Path -Path "dist/$platformFolder/$rid" -ChildPath ""
+    New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 
     if ($rid.StartsWith("win")) { $tfm = $windowsTfm } else { $tfm = $crossPlatTfm }
 
@@ -40,6 +43,10 @@ foreach ($rid in $targets.Keys) {
         --self-contained true /p:PublishSingleFile=true `
         /p:TargetFramework=$tfm `
         -o $outputPath
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed for $rid."
+    }
 
     # Zip the output
     $zipName = "$platformFolder-$rid.zip"
