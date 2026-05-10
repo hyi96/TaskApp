@@ -32,6 +32,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+!TaskApp.Core/Models/Logs/
+!TaskApp.Core/Models/Logs/LogEntry.cs
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
