@@ -9,7 +9,8 @@ public enum ThemeMode
 {
     Light,
     Dark,
-    System
+    System,
+    Forest
 }
 
 public class AppSettings

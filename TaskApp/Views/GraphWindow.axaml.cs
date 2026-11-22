@@ -3,10 +3,9 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Styling;
+using Avalonia.Media;
 using ScottPlot;
 using ScottPlot.Avalonia;
-using TaskApp.Services;
 using TaskApp.ViewModels;
 
 namespace TaskApp.Views;
@@ -25,14 +24,12 @@ public partial class GraphWindow : Window
         // Apply initial theme
         ApplyPlotTheme();
         
-        // Listen for theme changes
-        SettingsService.Instance.ThemeChanged += OnThemeChanged;
+        ActualThemeVariantChanged += OnThemeVariantChanged;
     }
 
     protected override void OnClosed(EventArgs e)
     {
-        // Unsubscribe from theme changes
-        SettingsService.Instance.ThemeChanged -= OnThemeChanged;
+        ActualThemeVariantChanged -= OnThemeVariantChanged;
         
         // Unsubscribe from ViewModel events and dispose
         if (_viewModel != null)
@@ -62,13 +59,10 @@ public partial class GraphWindow : Window
         GC.Collect(2, GCCollectionMode.Optimized, false);
     }
 
-    private void OnThemeChanged(ThemeMode mode)
+    private void OnThemeVariantChanged(object? sender, EventArgs e)
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            ApplyPlotTheme();
-            _graphPlot?.Refresh();
-        });
+        ApplyPlotTheme();
+        _graphPlot?.Refresh();
     }
 
     private void ApplyPlotTheme()
@@ -76,12 +70,11 @@ public partial class GraphWindow : Window
         if (_graphPlot == null) return;
 
         var plot = _graphPlot.Plot;
-        var isDark = IsDarkTheme();
-
-        var bgColor = isDark ? new ScottPlot.Color(30, 30, 30) : new ScottPlot.Color(255, 255, 255);
-        var dataBgColor = isDark ? new ScottPlot.Color(45, 45, 45) : new ScottPlot.Color(250, 250, 250);
-        var fgColor = isDark ? new ScottPlot.Color(220, 220, 220) : new ScottPlot.Color(30, 30, 30);
-        var gridColor = isDark ? new ScottPlot.Color(60, 60, 60) : new ScottPlot.Color(200, 200, 200);
+        var bgColor = GetPlotColor("AppBackgroundBrush", ScottPlot.Colors.White);
+        var dataBgColor = GetPlotColor("GraphSurfaceBrush", ScottPlot.Colors.White);
+        var fgColor = GetPlotColor("AppTextBrush", ScottPlot.Colors.Black);
+        var gridColor = GetPlotColor("GraphGridBrush", ScottPlot.Colors.LightGray);
+        var lineColor = GetPlotColor("GraphSeriesBrush", ScottPlot.Colors.Blue);
 
         plot.FigureBackground.Color = bgColor;
         plot.DataBackground.Color = dataBgColor;
@@ -98,10 +91,20 @@ public partial class GraphWindow : Window
 
         plot.Axes.Top.FrameLineStyle.Color = gridColor;
         plot.Axes.Right.FrameLineStyle.Color = gridColor;
+        plot.Axes.Title.Label.ForeColor = fgColor;
         plot.Grid.MajorLineColor = gridColor;
+
+        foreach (var scatter in plot.GetPlottables<ScottPlot.Plottables.Scatter>())
+            scatter.Color = lineColor;
     }
 
-    private bool IsDarkTheme() => Application.Current?.ActualThemeVariant == ThemeVariant.Dark;
+    private ScottPlot.Color GetPlotColor(string resourceKey, ScottPlot.Color fallback)
+    {
+        if (this.TryFindResource(resourceKey, ActualThemeVariant, out var value) && value is ISolidColorBrush brush)
+            return new ScottPlot.Color(brush.Color.R, brush.Color.G, brush.Color.B, brush.Color.A);
+
+        return fallback;
+    }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
@@ -128,30 +131,17 @@ public partial class GraphWindow : Window
         var plot = _graphPlot.Plot;
         plot.Clear();
         
-        // Re-apply theme after clearing (clear resets some styles)
-        ApplyPlotTheme();
-
         var xs = Enumerable.Range(0, data.Values.Length).Select(i => (double)i).ToArray();
         var scatter = plot.Add.Scatter(xs, data.Values);
         scatter.MarkerSize = 6;
         scatter.LineWidth = 2;
         
-        // Use theme-aware line color
-        var isDark = IsDarkTheme();
-        scatter.Color = isDark 
-            ? new ScottPlot.Color(100, 180, 255)  // Bright blue for dark mode
-            : new ScottPlot.Color(30, 100, 180);  // Darker blue for light mode
-
         plot.Axes.Bottom.SetTicks(xs, data.Labels);
         plot.Axes.Bottom.TickLabelStyle.Rotation = 45;
         plot.Axes.Left.Label.Text = data.TargetValueName;
         
-        // Set title with theme-aware color
         plot.Title($"{data.TargetType} - {data.TargetValueName}");
-        plot.Axes.Title.Label.ForeColor = isDark 
-            ? new ScottPlot.Color(220, 220, 220)  // Light text for dark mode
-            : new ScottPlot.Color(30, 30, 30);    // Dark text for light mode
-            
+        ApplyPlotTheme();
         plot.Axes.AutoScale();
 
         _graphPlot.Refresh();

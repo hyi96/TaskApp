@@ -16,6 +16,8 @@ namespace TaskApp
 {
     public partial class App : Application
     {
+        public static readonly ThemeVariant ForestTheme = new("Forest", ThemeVariant.Dark);
+
         private DayDetectionService? _dayDetectionService;
         private MainWindowViewModel? _viewModel;
         private UserService? _userService;
@@ -34,6 +36,7 @@ namespace TaskApp
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+                WindowsWindowFrame.Register();
                 try
                 {
                     _userService = new UserService();
@@ -164,14 +167,16 @@ namespace TaskApp
         
         private void ApplyTheme(ThemeMode mode)
         {
-            RequestedThemeVariant = mode switch
-            {
-                ThemeMode.Light => ThemeVariant.Light,
-                ThemeMode.Dark => ThemeVariant.Dark,
-                ThemeMode.System => ThemeVariant.Default,
-                _ => ThemeVariant.Default
-            };
+            RequestedThemeVariant = GetThemeVariant(mode);
         }
+
+        internal static ThemeVariant GetThemeVariant(ThemeMode mode) => mode switch
+        {
+            ThemeMode.Light => ThemeVariant.Light,
+            ThemeMode.Dark => ThemeVariant.Dark,
+            ThemeMode.Forest => ForestTheme,
+            _ => ThemeVariant.Default
+        };
 
         private void InitializeDayDetection()
         {

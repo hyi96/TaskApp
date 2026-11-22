@@ -67,10 +67,29 @@ Background="{DynamicResource AppBackgroundBrush}">
             Click="OpenLogsWindow_Click"
             VerticalAlignment="Center"/>
 
-    <Button Grid.Column="5"
-            Content="Settings"
+    <Button x:Name="SettingsButton"
+            Grid.Column="5"
+            Width="36"
+            Padding="8,6"
+            AutomationProperties.Name="Settings"
+            ToolTip.Tip="Settings"
             Click="OpenSettingsWindow_Click"
-            VerticalAlignment="Center"/>
+            HorizontalContentAlignment="Center"
+            VerticalAlignment="Center">
+        <Viewbox Width="18" Height="18">
+            <Canvas Width="24" Height="24">
+                <!-- Lucide Settings icon. See ThirdPartyNotices.txt. -->
+                <Path Data="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915Z"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="2"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round"/>
+                <Ellipse Canvas.Left="8" Canvas.Top="8" Width="8" Height="8"
+                         Stroke="{Binding $parent[Button].Foreground}"
+                         StrokeThickness="2"/>
+            </Canvas>
+        </Viewbox>
+    </Button>
 </Grid>
 
 <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*">

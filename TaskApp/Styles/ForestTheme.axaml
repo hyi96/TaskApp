@@ -1,0 +1,37 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#101914"/>
+    <SolidColorBrush x:Key="ColumnBackgroundBrush" Color="#1A2720"/>
+    <SolidColorBrush x:Key="ActivityBackgroundBrush" Color="#1D2C24"/>
+    <SolidColorBrush x:Key="ActivityBorderBrush" Color="#40554A"/>
+    <SolidColorBrush x:Key="GoldBackgroundBrush" Color="#2D281D"/>
+    <SolidColorBrush x:Key="GoldBorderBrush" Color="#534732"/>
+    <SolidColorBrush x:Key="GoldTextBrush" Color="#F0C979"/>
+    <SolidColorBrush x:Key="AppTextBrush" Color="#F0F5F0"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#B5C9BA"/>
+    <SolidColorBrush x:Key="TodoDueSoonBrush" Color="#F1C779"/>
+    <SolidColorBrush x:Key="TodoOverdueBrush" Color="#FFA39A"/>
+    <SolidColorBrush x:Key="LogBorderBrush" Color="#40554A"/>
+    <SolidColorBrush x:Key="GraphSurfaceBrush" Color="#17241D"/>
+    <SolidColorBrush x:Key="GraphGridBrush" Color="#40554A"/>
+    <SolidColorBrush x:Key="GraphSeriesBrush" Color="#79D6B1"/>
+    <SolidColorBrush x:Key="WindowCaptionBrush" Color="#22352B"/>
+    <SolidColorBrush x:Key="WindowActiveBorderBrush" Color="#587565"/>
+    <SolidColorBrush x:Key="WindowInactiveBorderBrush" Color="#33483D"/>
+
+    <Color x:Key="SystemAccentColor">#79D6B1</Color>
+    <SolidColorBrush x:Key="TabItemHeaderSelectedPipeFill" Color="#79D6B1"/>
+    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#79D6B1"/>
+    <SolidColorBrush x:Key="ButtonBackground" Color="#293B31"/>
+    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#354D3F"/>
+    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#203329"/>
+    <SolidColorBrush x:Key="TextControlBackground" Color="#142219"/>
+    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1B2B23"/>
+    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#203329"/>
+    <SolidColorBrush x:Key="ComboBoxBackground" Color="#1B2B23"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#293B31"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#203329"/>
+    <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#22352B"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBackgroundColor" Color="#567568"/>
+    <SolidColorBrush x:Key="ScrollBarThumbFillPointerOver" Color="#7FA693"/>
+</ResourceDictionary>

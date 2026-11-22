@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="using:TaskApp"
              x:Class="TaskApp.App"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
@@ -25,6 +26,9 @@
                     <SolidColorBrush x:Key="TodoDueSoonBrush" Color="#895600"/>
                     <SolidColorBrush x:Key="TodoOverdueBrush" Color="#AF2430"/>
                     <SolidColorBrush x:Key="LogBorderBrush" Color="#E0E0E0"/>
+                    <SolidColorBrush x:Key="GraphSurfaceBrush" Color="#FAFAFA"/>
+                    <SolidColorBrush x:Key="GraphGridBrush" Color="#C8C8C8"/>
+                    <SolidColorBrush x:Key="GraphSeriesBrush" Color="#1E64B4"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E"/>
@@ -39,7 +43,11 @@
                     <SolidColorBrush x:Key="TodoDueSoonBrush" Color="#FFD166"/>
                     <SolidColorBrush x:Key="TodoOverdueBrush" Color="#FF8989"/>
                     <SolidColorBrush x:Key="LogBorderBrush" Color="#3D3D3D"/>
+                    <SolidColorBrush x:Key="GraphSurfaceBrush" Color="#2D2D2D"/>
+                    <SolidColorBrush x:Key="GraphGridBrush" Color="#3C3C3C"/>
+                    <SolidColorBrush x:Key="GraphSeriesBrush" Color="#64B4FF"/>
                 </ResourceDictionary>
+                <ResourceInclude x:Key="{x:Static app:App.ForestTheme}" Source="avares://TaskApp/Styles/ForestTheme.axaml"/>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
     </Application.Resources>

@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <None Update="ThirdPartyNotices.txt" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
   <ItemGroup>

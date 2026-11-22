@@ -23,171 +23,171 @@ Background="{DynamicResource AppBackgroundBrush}">
                        Margin="0,0,0,24"
                        Foreground="{DynamicResource AppTextBrush}"/>
             
-            <ScrollViewer Grid.Row="1">
-                <StackPanel Spacing="24">
-                    <!-- Theme Section -->
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Theme" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
-                        <ComboBox ItemsSource="{Binding ThemeOptions}"
-                                  SelectedValue="{Binding SelectedTheme}"
-                                  SelectedValueBinding="{Binding Value}"
-                                  DisplayMemberBinding="{Binding DisplayName}"
-                                  MinWidth="200"
-                                  HorizontalAlignment="Left"/>
-                    </StackPanel>
-
-                    <!-- User Management Section -->
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="User Management" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
-
-                        <!-- Current User -->
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="Current User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                            <TextBlock Text="{Binding CurrentUserName}" FontWeight="Bold" Foreground="{DynamicResource AppTextBrush}"/>
-                        </StackPanel>
-
-                        <!-- Switch User -->
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="Switch User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <ComboBox Grid.Column="0"
-                                          ItemsSource="{Binding Users}"
-                                          SelectedItem="{Binding SelectedUser}"
-                                          HorizontalAlignment="Stretch">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate x:DataType="models:User">
-                                            <TextBlock Text="{Binding Name}"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <Button Grid.Column="1" Content="Switch" Command="{Binding SwitchUserCommand}"/>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Rename User -->
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="Rename Selected User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0"
-                                         Watermark="New name..."
-                                         Text="{Binding RenameUserName}"
-                                         HorizontalAlignment="Stretch"/>
-                                <Button Grid.Column="1" Content="Rename" Command="{Binding RenameUserCommand}"/>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Create User -->
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="Create New User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0"
-                                         Watermark="Enter username..."
-                                         Text="{Binding NewUserName}"
-                                         HorizontalAlignment="Stretch"/>
-                                <Button Grid.Column="1" Content="Create" Command="{Binding CreateUserCommand}"/>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Delete User -->
-                        <Button Content="Delete Selected User"
-                                Command="{Binding DeleteUserCommand}"
-                                IsEnabled="{Binding CanDeleteUser}"
-                                HorizontalAlignment="Left"/>
-
-                        <!-- Import/Export Section -->
-                        <Border BorderBrush="{DynamicResource SecondaryTextBrush}"
-                                BorderThickness="0,1,0,0"
-                                Padding="0,12,0,0"
-                                Margin="0,8,0,0">
+            <TabControl x:Name="SettingsTabs" Grid.Row="1">
+                <TabItem Header="General">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                        <StackPanel Spacing="24">
+                            <!-- Theme Section -->
                             <StackPanel Spacing="8">
-                                <TextBlock Text="Import / Export" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource AppTextBrush}"/>
-                                <TextBlock Text="Export selected user's data to a backup file, or import data to create a new user."
-                                           TextWrapping="Wrap"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                    <Button Content="Export User..."
-                                            Command="{Binding ExportUserCommand}"
-                                            IsEnabled="{Binding CanExportUser}"/>
-                                    <Button Content="Import User..."
-                                            Command="{Binding ImportUserCommand}"/>
-                                </StackPanel>
+                                <TextBlock Text="Theme" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
+                                <ComboBox ItemsSource="{Binding ThemeOptions}"
+                                          SelectedValue="{Binding SelectedTheme}"
+                                          SelectedValueBinding="{Binding Value}"
+                                          DisplayMemberBinding="{Binding DisplayName}"
+                                          MinWidth="200"
+                                          HorizontalAlignment="Left"/>
                             </StackPanel>
-                        </Border>
 
-                        <!-- Cloud Sync Section -->
-                        <Border BorderBrush="{DynamicResource SecondaryTextBrush}"
-                                BorderThickness="0,1,0,0"
-                                Padding="0,12,0,0"
-                                Margin="0,8,0,0">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Cloud Sync" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource AppTextBrush}"/>
-                                <Border BorderBrush="{DynamicResource ActivityBorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="4"
-                                        Padding="8">
-                                    <TextBlock Text="{Binding CloudLoginStatus}"
-                                               TextWrapping="Wrap"
-                                               FontSize="12"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource AppTextBrush}"/>
-                                </Border>
+                            <!-- User Management Section -->
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="User Management" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource AppTextBrush}"/>
 
+                                <!-- Current User -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="API URL" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                    <TextBox Text="{Binding CloudApiUrl}" HorizontalAlignment="Stretch"/>
+                                    <TextBlock Text="Current User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <TextBlock Text="{Binding CurrentUserName}" FontWeight="Bold" Foreground="{DynamicResource AppTextBrush}"/>
                                 </StackPanel>
 
+                                <!-- Switch User -->
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Account ID" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                    <TextBox Text="{Binding CloudAccountId}" HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Server API Key (create account only)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                    <TextBox Text="{Binding CloudApiKey}" PasswordChar="*" HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Account Secret (copy into Android)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <TextBlock Text="Switch User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <TextBox Grid.Column="0"
-                                                 Text="{Binding CloudAccountSecret}"
-                                                 PasswordChar="*"
-                                                 HorizontalAlignment="Stretch"/>
-                                        <Button Grid.Column="1"
-                                                Content="Copy"
-                                                Command="{Binding CopyCloudAccountSecretCommand}"/>
+                                        <ComboBox Grid.Column="0"
+                                                  ItemsSource="{Binding Users}"
+                                                  SelectedItem="{Binding SelectedUser}"
+                                                  HorizontalAlignment="Stretch">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="models:User">
+                                                    <TextBlock Text="{Binding Name}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <Button Grid.Column="1" Content="Switch" Command="{Binding SwitchUserCommand}"/>
                                     </Grid>
                                 </StackPanel>
 
-                                <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                    <Button Content="Create Account"
-                                            Command="{Binding CreateCloudAccountCommand}"
-                                            Margin="0,0,8,8"/>
-                                    <Button Content="Login"
-                                            Command="{Binding LoginCloudAccountCommand}"
-                                            Margin="0,0,8,8"/>
-                                    <Button Content="Upload Profile"
-                                            Command="{Binding UploadCurrentProfileCommand}"
-                                            Margin="0,0,8,8"/>
-                                    <Button Content="Upload All Profiles"
-                                            Command="{Binding UploadAllProfilesCommand}"
-                                            Margin="0,0,8,8"/>
-                                    <Button Content="Download Profile"
-                                            Command="{Binding DownloadCurrentProfileCommand}"
-                                            Margin="0,0,8,8"/>
-                                </WrapPanel>
+                                <!-- Rename User -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Rename Selected User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0"
+                                                 Watermark="New name..."
+                                                 Text="{Binding RenameUserName}"
+                                                 HorizontalAlignment="Stretch"/>
+                                        <Button Grid.Column="1" Content="Rename" Command="{Binding RenameUserCommand}"/>
+                                    </Grid>
+                                </StackPanel>
 
-                                <TextBlock Text="{Binding CloudStatus}"
+                                <!-- Create User -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Create New User:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0"
+                                                 Watermark="Enter username..."
+                                                 Text="{Binding NewUserName}"
+                                                 HorizontalAlignment="Stretch"/>
+                                        <Button Grid.Column="1" Content="Create" Command="{Binding CreateUserCommand}"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Delete User -->
+                                <Button Content="Delete Selected User"
+                                        Command="{Binding DeleteUserCommand}"
+                                        IsEnabled="{Binding CanDeleteUser}"
+                                        HorizontalAlignment="Left"/>
+
+                                <!-- Import/Export Section -->
+                                <Border BorderBrush="{DynamicResource SecondaryTextBrush}"
+                                        BorderThickness="0,1,0,0"
+                                        Padding="0,12,0,0"
+                                        Margin="0,8,0,0">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Import / Export" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource AppTextBrush}"/>
+                                        <TextBlock Text="Export selected user's data to a backup file, or import data to create a new user."
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                            <Button Content="Export User..."
+                                                    Command="{Binding ExportUserCommand}"
+                                                    IsEnabled="{Binding CanExportUser}"/>
+                                            <Button Content="Import User..."
+                                                    Command="{Binding ImportUserCommand}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="Cloud Sync">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                        <StackPanel Spacing="8">
+                            <Border BorderBrush="{DynamicResource ActivityBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <TextBlock Text="{Binding CloudLoginStatus}"
                                            TextWrapping="Wrap"
                                            FontSize="12"
-                                           Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AppTextBrush}"/>
+                            </Border>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="API URL" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBox Text="{Binding CloudApiUrl}" HorizontalAlignment="Stretch"/>
                             </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Account ID" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBox Text="{Binding CloudAccountId}" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Server API Key (create account only)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBox Text="{Binding CloudApiKey}" PasswordChar="*" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Account Secret (copy into Android)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBox Grid.Column="0"
+                                             Text="{Binding CloudAccountSecret}"
+                                             PasswordChar="*"
+                                             HorizontalAlignment="Stretch"/>
+                                    <Button Grid.Column="1"
+                                            Content="Copy"
+                                            Command="{Binding CopyCloudAccountSecretCommand}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <Button Content="Create Account"
+                                        Command="{Binding CreateCloudAccountCommand}"
+                                        Margin="0,0,8,8"/>
+                                <Button Content="Login"
+                                        Command="{Binding LoginCloudAccountCommand}"
+                                        Margin="0,0,8,8"/>
+                                <Button Content="Upload Profile"
+                                        Command="{Binding UploadCurrentProfileCommand}"
+                                        Margin="0,0,8,8"/>
+                                <Button Content="Upload All Profiles"
+                                        Command="{Binding UploadAllProfilesCommand}"
+                                        Margin="0,0,8,8"/>
+                                <Button Content="Download Profile"
+                                        Command="{Binding DownloadCurrentProfileCommand}"
+                                        Margin="0,0,8,8"/>
+                            </WrapPanel>
+
+                            <TextBlock Text="{Binding CloudStatus}"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
         </Grid>
     </Border>
 </Window>

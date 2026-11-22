@@ -34,7 +34,8 @@ public class SettingsViewModel : ViewModelBase
     {
         new ThemeOption(ThemeMode.System, "Follow System"),
         new ThemeOption(ThemeMode.Light, "Light Mode"),
-        new ThemeOption(ThemeMode.Dark, "Dark Mode")
+        new ThemeOption(ThemeMode.Dark, "Dark Mode"),
+        new ThemeOption(ThemeMode.Forest, "Forest")
     };
 
     public ThemeMode SelectedTheme

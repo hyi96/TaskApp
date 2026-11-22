@@ -1,5 +1,28 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <x:Double x:Key="ScrollBarSize">10</x:Double>
+        <SolidColorBrush x:Key="ScrollBarBackgroundPointerOver" Color="Transparent"/>
+        <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="Transparent"/>
+        <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="Transparent"/>
+        <SolidColorBrush x:Key="ScrollViewerScrollBarsSeparatorBackground" Color="Transparent"/>
+    </Styles.Resources>
+
+    <Style Selector="ScrollViewer">
+        <Setter Property="AllowAutoHide" Value="False"/>
+    </Style>
+    <Style Selector="TextBox, ListBox">
+        <Setter Property="ScrollViewer.AllowAutoHide" Value="False"/>
+    </Style>
+    <Style Selector="ScrollBar">
+        <Setter Property="AllowAutoHide" Value="False"/>
+    </Style>
+    <Style Selector="ScrollBar /template/ RepeatButton#PART_LineUpButton, ScrollBar /template/ RepeatButton#PART_LineDownButton">
+        <Setter Property="IsVisible" Value="False"/>
+    </Style>
+    <Style Selector="ScrollBar /template/ Thumb">
+        <Setter Property="CornerRadius" Value="5"/>
+    </Style>
     
     <!-- Smaller ComboBox style for sort dropdowns -->
     <Style Selector="ComboBox.sort-dropdown">

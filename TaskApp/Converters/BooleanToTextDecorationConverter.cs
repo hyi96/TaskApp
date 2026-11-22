@@ -78,7 +78,8 @@ public class TodoDeadlineForegroundMultiConverter : IMultiValueConverter
         {
             "TodoOverdueBrush" => Brushes.Firebrick,
             "TodoDueSoonBrush" => Brushes.DarkGoldenrod,
-            _ => theme == ThemeVariant.Dark ? Brushes.WhiteSmoke : Brushes.Black
+            _ => theme == ThemeVariant.Dark || theme?.InheritVariant == ThemeVariant.Dark
+                ? Brushes.WhiteSmoke : Brushes.Black
         };
     }
 
