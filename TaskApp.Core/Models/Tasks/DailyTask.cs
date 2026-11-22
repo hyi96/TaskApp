@@ -21,6 +21,7 @@ public class DailyTask : TaskBase
     private DateOnly? _lastCompletionPeriod;
     private bool _rewardGoalFulfilled;
     private TimeSpan? _autocompleteTimeThreshold;
+    private TimeSpan _loggedDurationForCurrentPeriod;
     private double _streakProtectionCost = 1.0;
     private readonly List<StreakBonusRule> _streakBonusRules = new() { new(7, 10), new(14, 20), new(30, 30) };
 
@@ -109,6 +110,22 @@ public class DailyTask : TaskBase
     }
 
     public bool IsCompleteForCurrentPeriod => IsCompleteForPeriod(DateTimeOffset.UtcNow.ToLocalTime());
+
+    public TimeSpan LoggedDurationForCurrentPeriod
+    {
+        get => _loggedDurationForCurrentPeriod;
+        internal set
+        {
+            if (_loggedDurationForCurrentPeriod != value)
+            {
+                _loggedDurationForCurrentPeriod = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasLoggedDurationForCurrentPeriod));
+            }
+        }
+    }
+
+    public bool HasLoggedDurationForCurrentPeriod => LoggedDurationForCurrentPeriod > TimeSpan.Zero;
 
     public TimeSpan? AutocompleteTimeThreshold
     {

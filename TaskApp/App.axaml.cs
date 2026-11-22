@@ -213,6 +213,7 @@ namespace TaskApp
 
             // Now refresh all tasks for the new day
             _viewModel.RefreshTasksForNewDay();
+            await _viewModel.RefreshDailyLoggedDurationsAsync();
 
             // Save the changes
             await _viewModel.SaveDataAsync();

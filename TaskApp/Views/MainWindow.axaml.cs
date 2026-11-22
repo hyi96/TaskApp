@@ -1,6 +1,8 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using TaskApp.Models;
 using TaskApp.Models.Rewards;
 using TaskApp.Models.Tasks;
@@ -10,9 +12,18 @@ namespace TaskApp.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly DispatcherTimer _deadlineTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+
     public MainWindow()
     {
         InitializeComponent();
+        _deadlineTimer.Tick += (_, _) => (DataContext as MainWindowViewModel)?.RefreshDeadlineColors();
+        Opened += (_, _) =>
+        {
+            (DataContext as MainWindowViewModel)?.RefreshDeadlineColors();
+            _deadlineTimer.Start();
+        };
+        Closed += (_, _) => _deadlineTimer.Stop();
     }
 
     public async void OpenGraphWindow_Click(object? sender, RoutedEventArgs e)
@@ -59,7 +70,7 @@ public partial class MainWindow : Window
         }
     }
 
-    public void EditTask_Click(object? sender, RoutedEventArgs e)
+    public async void EditTask_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Control control && control.DataContext is object item && DataContext is MainWindowViewModel mainVm)
         {
@@ -102,9 +113,11 @@ public partial class MainWindow : Window
                 {
                     DataContext = vm
                 };
-                taskWindow.ShowDialog(this);
-                
-                _ = mainVm.SaveDataAsync();
+                await taskWindow.ShowDialog(this);
+
+                await mainVm.SaveDataAsync();
+                if (item is DailyTask editedDaily)
+                    await mainVm.RefreshDailyLoggedDurationAsync(editedDaily);
             }
         }
     }
@@ -315,21 +328,11 @@ public partial class MainWindow : Window
         }
     }
 
-    public void ToggleVacationMode_Click(object? sender, RoutedEventArgs e)
+    public async void ToggleVacationMode_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel mainVm)
         {
-            var wasVacation = mainVm.IsVacationMode;
-            mainVm.IsVacationMode = !wasVacation;
-
-            if (wasVacation)
-            {
-                // Switching back to working mode: protect all streaks so
-                // RefreshForCurrentPeriod won't reset them on the next new day.
-                mainVm.ProtectAllStreaks();
-            }
-
-            _ = mainVm.SaveDataAsync();
+            await mainVm.SetVacationModeAsync(!mainVm.IsVacationMode);
         }
     }
 }

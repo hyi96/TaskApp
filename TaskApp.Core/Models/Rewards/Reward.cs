@@ -7,6 +7,7 @@ namespace TaskApp.Models.Rewards;
 public class Reward : DomainEntity
 {
     private bool _isClaimed;
+    private bool _isRepeatable;
     private int _claimCount;
 
     public bool IsClaimed
@@ -18,11 +19,26 @@ public class Reward : DomainEntity
             {
                 _isClaimed = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsClaimedOneTime));
             }
         }
     }
 
-    public bool IsRepeatable { get; internal set; }
+    public bool IsRepeatable
+    {
+        get => _isRepeatable;
+        internal set
+        {
+            if (_isRepeatable != value)
+            {
+                _isRepeatable = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsClaimedOneTime));
+            }
+        }
+    }
+
+    public bool IsClaimedOneTime => IsClaimed && !IsRepeatable;
 
     public int ClaimCount
     {
@@ -92,7 +108,7 @@ public class Reward : DomainEntity
 
     public bool CanClaim(double availableGold)
     {
-        return availableGold >= GoldCost && (IsRepeatable || !IsClaimed);
+        return availableGold >= GoldCost && !IsClaimedOneTime;
     }
 
     public bool TryClaim(double availableGold, DateTimeOffset? claimedAt = null)

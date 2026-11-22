@@ -27,7 +27,8 @@ Background="{DynamicResource AppBackgroundBrush}">
     <conv:FilterTabFontWeightConverter x:Key="FilterTabFontWeightConverter" />
     <conv:FilterTabTextDecorationConverter x:Key="FilterTabTextDecorationConverter" />
     <conv:FilterTabOpacityConverter x:Key="FilterTabOpacityConverter" />
-    <conv:TodoOverdueForegroundMultiConverter x:Key="TodoOverdueForegroundConverter" />
+    <conv:TodoDeadlineForegroundMultiConverter x:Key="TodoDeadlineForegroundConverter" />
+    <conv:LoggedDurationDisplayConverter x:Key="LoggedDurationDisplayConverter" />
     <conv:HiddenToggleLabelConverter x:Key="HiddenToggleLabelConverter" />
     <conv:DueDateDisplayConverter x:Key="DueDateDisplayConverter" />
 </Window.Resources>
@@ -248,7 +249,7 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                               Click="ContextMenu_ToggleHidden_Click"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
-                                            <Grid RowDefinitions="Auto,Auto">
+                                            <Grid RowDefinitions="Auto,Auto,Auto">
                                                 <TextBlock Text="{Binding Title}"
                                                            TextWrapping="Wrap"
                                                            TextDecorations="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource BoolToTextDecorationConverter}}"/>
@@ -266,6 +267,13 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                                HorizontalAlignment="Right"
                                                                Foreground="{DynamicResource SecondaryTextBrush}"/>
                                                 </Grid>
+                                                <TextBlock Grid.Row="2"
+                                                           Text="{Binding LoggedDurationForCurrentPeriod, Converter={StaticResource LoggedDurationDisplayConverter}}"
+                                                           IsVisible="{Binding HasLoggedDurationForCurrentPeriod}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="11"
+                                                           Margin="0,4,0,0"
+                                                           Foreground="{DynamicResource SecondaryTextBrush}"/>
                                             </Grid>
                                         </Button>
                                         <Button Grid.Column="1" Content="&#x2713;" Click="CompleteTask_Click" Margin="4,0,0,0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding IsCompleteForCurrentPeriod, Converter={StaticResource InverseBooleanConverter}}"/>
@@ -369,9 +377,11 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                            TextWrapping="Wrap"
                                                            TextDecorations="{Binding IsRewardGoalMet, Converter={StaticResource BoolToTextDecorationConverter}}">
                                                     <TextBlock.Foreground>
-                                                        <MultiBinding Converter="{StaticResource TodoOverdueForegroundConverter}">
+                                                        <MultiBinding Converter="{StaticResource TodoDeadlineForegroundConverter}">
                                                             <Binding Path="DueDate"/>
                                                             <Binding Path="IsRewardGoalMet"/>
+                                                            <Binding Path="$parent[Window].((vm:MainWindowViewModel)DataContext).DeadlineReferenceTime"/>
+                                                            <Binding Path="$parent[Window].ActualThemeVariant"/>
                                                         </MultiBinding>
                                                     </TextBlock.Foreground>
                                                 </TextBlock>
@@ -477,7 +487,8 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                 Click="EditTask_Click" 
                                                 HorizontalAlignment="Stretch"
                                                 HorizontalContentAlignment="Stretch"
-                                                Padding="8,6">
+                                                Padding="8,6"
+                                                Opacity="{Binding IsClaimedOneTime, Converter={StaticResource BoolToOpacityConverter}}">
                                             <Button.ContextMenu>
                                                 <ContextMenu DataContext="{Binding}">
                                                     <MenuItem Header="Set as Current Activity" Click="ContextMenu_SetCurrentActivity_Click"/>
@@ -496,7 +507,8 @@ Background="{DynamicResource AppBackgroundBrush}">
                                                            IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsVerbose}"/>
                                             </Grid>
                                         </Button>
-                                        <Button Grid.Column="1" Content="Take" Click="ClaimReward_Click" Margin="4,0,0,0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="Take" Click="ClaimReward_Click" Margin="4,0,0,0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                                IsEnabled="{Binding IsClaimedOneTime, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

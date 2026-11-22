@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TaskApp.Models;
 using TaskApp.Models.Logs;
@@ -34,6 +35,7 @@ public class MainWindowViewModel : ViewModelBase
 
     private readonly ITaskAppDataStore _storageService;
     private readonly ILocalUserCatalog _userService;
+    private readonly SemaphoreSlim _saveGate = new(1);
 
     private UserProfile _user = new();
     private string _newHabitTitle = string.Empty;
@@ -50,6 +52,7 @@ public class MainWindowViewModel : ViewModelBase
     private string _todosSortMode = SortNameAsc;
     private string _rewardsSortMode = SortNameAsc;
     private bool _isVerbose;
+    private DateTimeOffset _deadlineReferenceTime = DateTimeOffset.Now;
 
     public string Title => "TaskApp";
 
@@ -65,6 +68,14 @@ public class MainWindowViewModel : ViewModelBase
         get => _isVerbose;
         set => SetProperty(ref _isVerbose, value);
     }
+
+    public DateTimeOffset DeadlineReferenceTime
+    {
+        get => _deadlineReferenceTime;
+        private set => SetProperty(ref _deadlineReferenceTime, value);
+    }
+
+    public void RefreshDeadlineColors() => DeadlineReferenceTime = DateTimeOffset.Now;
 
     public ObservableCollection<HabitTask> Habits { get; } = new();
     public ObservableCollection<DailyTask> Dailies { get; } = new();
@@ -269,7 +280,14 @@ public class MainWindowViewModel : ViewModelBase
     public UserProfile User
     {
         get => _user;
-        set => SetProperty(ref _user, value);
+        set
+        {
+            if (SetProperty(ref _user, value))
+            {
+                OnPropertyChanged(nameof(IsVacationMode));
+                OnPropertyChanged(nameof(VacationModeTooltip));
+            }
+        }
     }
 
     public bool IsVacationMode
@@ -289,6 +307,18 @@ public class MainWindowViewModel : ViewModelBase
     public string VacationModeTooltip => IsVacationMode
         ? "Click to disable vacation mode and resume normal streak tracking."
         : "Click to enable vacation mode. All streaks will be protected while on vacation.";
+
+    public async Task SetVacationModeAsync(bool enabled)
+    {
+        if (IsVacationMode == enabled)
+            return;
+
+        IsVacationMode = enabled;
+        if (!enabled)
+            ProtectAllStreaks();
+
+        await SaveDataAsync();
+    }
 
     public MainWindowViewModel(ITaskAppDataStore storageService, ILocalUserCatalog userService)
     {
@@ -444,6 +474,7 @@ public class MainWindowViewModel : ViewModelBase
             r.PropertyChanged += OnItemPropertyChanged;
         _allRewards.AddRange(rewards);
         
+        await RefreshDailyLoggedDurationsAsync();
         RefreshFilter();
     }
 
@@ -657,6 +688,10 @@ public class MainWindowViewModel : ViewModelBase
 
     private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (sender is DailyTask && e.PropertyName is
+            nameof(DailyTask.LoggedDurationForCurrentPeriod) or nameof(DailyTask.HasLoggedDurationForCurrentPeriod))
+            return;
+
         RefreshFilter();
     }
 
@@ -713,19 +748,27 @@ public class MainWindowViewModel : ViewModelBase
 
     public async Task SaveDataAsync()
     {
-        // Persist sort preferences into user profile
-        User.HabitsSortMode = HabitsSortMode;
-        User.DailiesSortMode = DailiesSortMode;
-        User.TodosSortMode = TodosSortMode;
-        User.RewardsSortMode = RewardsSortMode;
-        User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now);
+        // The local store uses one temporary file per profile file.
+        await _saveGate.WaitAsync();
+        try
+        {
+            User.HabitsSortMode = HabitsSortMode;
+            User.DailiesSortMode = DailiesSortMode;
+            User.TodosSortMode = TodosSortMode;
+            User.RewardsSortMode = RewardsSortMode;
+            User.LastActiveDate = DateOnly.FromDateTime(DateTime.Now);
 
-        await _storageService.SaveUserProfileAsync(User);
-        await _storageService.SaveTagsAsync(AvailableTags.Select(t => t.Tag).ToList());
+            await _storageService.SaveUserProfileAsync(User);
+            await _storageService.SaveTagsAsync(AvailableTags.Select(t => t.Tag).ToList());
 
-        var allTasks = _allHabits.Cast<TaskBase>().Concat(_allDailies).Concat(_allTodos).ToList();
-        await _storageService.SaveTasksAsync(allTasks);
-        await _storageService.SaveRewardsAsync(_allRewards);
+            var allTasks = _allHabits.Cast<TaskBase>().Concat(_allDailies).Concat(_allTodos).ToList();
+            await _storageService.SaveTasksAsync(allTasks);
+            await _storageService.SaveRewardsAsync(_allRewards);
+        }
+        finally
+        {
+            _saveGate.Release();
+        }
     }
 
     public void AddGold(double amount)
@@ -862,9 +905,12 @@ public class MainWindowViewModel : ViewModelBase
         return LogAsync(LogType.RewardClaimed, reward: reward, goldDelta: -Math.Abs(goldDelta));
     }
  
-    public Task LogActivityDurationAsync(TimeSpan duration, string title, Guid? taskId = null, Guid? rewardId = null)
+    public async Task LogActivityDurationAsync(TimeSpan duration, string title, Guid? taskId = null, Guid? rewardId = null)
     {
-        return LogAsync(LogType.ActivityDuration, duration: duration, title: title, taskId: taskId, rewardId: rewardId);
+        var daily = _allDailies.Find(d => d.Id == taskId);
+        await LogAsync(LogType.ActivityDuration, duration: duration, title: title, taskId: taskId, rewardId: rewardId);
+        if (daily != null)
+            await RefreshDailyLoggedDurationAsync(daily);
     }
 
     public async Task TryAutocompleteFromLoggedDurationAsync(Guid taskId)
@@ -873,9 +919,7 @@ public class MainWindowViewModel : ViewModelBase
         if (daily == null || daily.AutocompleteTimeThreshold is not TimeSpan threshold || daily.IsCompleteForCurrentPeriod)
             return;
 
-        var periodStart = daily.GetCurrentPeriodStart();
-        var periodStartOffset = GetLocalPeriodStartOffset(periodStart);
-        var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartOffset);
+        var loggedDuration = await GetLoggedDurationAsync(daily, daily.GetCurrentPeriodStart());
 
         if (loggedDuration >= threshold)
         {
@@ -990,6 +1034,8 @@ public class MainWindowViewModel : ViewModelBase
         User.Gold = Math.Max(0, User.Gold - entry.GoldDelta);
 
         await _storageService.DeleteLogEntryAsync(entry.Id);
+        if (entry.Type == LogType.ActivityDuration && _allDailies.Find(d => d.Id == entry.TaskId) is { } loggedDaily)
+            await RefreshDailyLoggedDurationAsync(loggedDaily);
         RefreshFilter();
         await SaveDataAsync();
         return true;
@@ -1090,6 +1136,7 @@ public class MainWindowViewModel : ViewModelBase
         var lastActiveTime = new DateTimeOffset(lastActiveDate.ToDateTime(new TimeOnly(12, 0)), now.Offset);
 
         return _allDailies
+            .Where(d => !d.IsHidden)
             .Where(d => 
             {
                 var currentPeriodStart = d.GetCurrentPeriodStart();
@@ -1110,6 +1157,28 @@ public class MainWindowViewModel : ViewModelBase
             .ToList();
     }
 
+    public async Task RefreshDailyLoggedDurationsAsync()
+    {
+        foreach (var daily in _allDailies.ToArray())
+            await RefreshDailyLoggedDurationAsync(daily);
+    }
+
+    public async Task RefreshDailyLoggedDurationAsync(DailyTask daily)
+    {
+        if (!_allDailies.Contains(daily))
+            return;
+
+        var periodStart = daily.GetCurrentPeriodStart();
+        var duration = await GetLoggedDurationAsync(daily, periodStart);
+        if (_allDailies.Contains(daily) && daily.GetCurrentPeriodStart() == periodStart)
+            daily.LoggedDurationForCurrentPeriod = duration;
+    }
+
+    private Task<TimeSpan> GetLoggedDurationAsync(DailyTask daily, DateOnly periodStart)
+    {
+        return _storageService.GetActivityDurationForTaskSinceAsync(daily.Id, GetLocalPeriodStartOffset(periodStart));
+    }
+
     private async Task<TimeSpan?> GetAutocompleteRemainingTimeAsync(Guid taskId, DateTimeOffset sessionStartedAt, TimeSpan currentSessionElapsed)
     {
         var daily = _allDailies.FirstOrDefault(d => d.Id == taskId);
@@ -1118,7 +1187,7 @@ public class MainWindowViewModel : ViewModelBase
 
         var periodStart = daily.GetCurrentPeriodStart();
         var periodStartOffset = GetLocalPeriodStartOffset(periodStart);
-        var loggedDuration = await _storageService.GetActivityDurationForTaskSinceAsync(taskId, periodStartOffset);
+        var loggedDuration = await GetLoggedDurationAsync(daily, periodStart);
         var currentPeriodSessionElapsed = GetSessionElapsedSince(sessionStartedAt, currentSessionElapsed, periodStartOffset);
         var totalTimeSpent = loggedDuration + currentPeriodSessionElapsed;
         return threshold - totalTimeSpent;

@@ -22,6 +22,8 @@
                     <SolidColorBrush x:Key="GoldTextBrush" Color="#F57F17"/>
                     <SolidColorBrush x:Key="AppTextBrush" Color="#212121"/>
                     <SolidColorBrush x:Key="SecondaryTextBrush" Color="#666666"/>
+                    <SolidColorBrush x:Key="TodoDueSoonBrush" Color="#895600"/>
+                    <SolidColorBrush x:Key="TodoOverdueBrush" Color="#AF2430"/>
                     <SolidColorBrush x:Key="LogBorderBrush" Color="#E0E0E0"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
@@ -34,6 +36,8 @@
                     <SolidColorBrush x:Key="GoldTextBrush" Color="#FFD54F"/>
                     <SolidColorBrush x:Key="AppTextBrush" Color="#E0E0E0"/>
                     <SolidColorBrush x:Key="SecondaryTextBrush" Color="#A0A0A0"/>
+                    <SolidColorBrush x:Key="TodoDueSoonBrush" Color="#FFD166"/>
+                    <SolidColorBrush x:Key="TodoOverdueBrush" Color="#FF8989"/>
                     <SolidColorBrush x:Key="LogBorderBrush" Color="#3D3D3D"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
