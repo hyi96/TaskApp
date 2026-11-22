@@ -1,6 +1,6 @@
 # Architecture
 
-TaskApp follows the MVVM pattern using Avalonia UI. The solution now separates reusable domain/data code into `TaskApp.Core` so the desktop app, future cloud API, and future Android client can share the same task logic and data contracts.
+TaskApp's Avalonia desktop app follows the MVVM pattern. The desktop app, Cloud API, and Android client share models, mappers, and contracts through `TaskApp.Core`.
 
 ## Solution Layout
 
@@ -11,12 +11,14 @@ TaskApp.slnx
 |   |-- Data/                  # Serialization DTOs
 |   `-- Services/              # Mappers, store interfaces, snapshot contract
 |-- TaskApp.Api/               # ASP.NET Core API for account/profile snapshot storage
+|-- TaskApp.Android/           # Native Android UI and local snapshot cache
 |-- TaskApp/                   # Avalonia desktop application
 |   |-- App.axaml(.cs)         # Application entry, lifecycle, day detection
 |   |-- ViewModels/            # Presentation logic and commands
 |   |-- Views/                 # Avalonia XAML + code-behind
 |   |-- Services/              # Local JSON/SQLite/user/settings infrastructure
 |   |-- Converters/            # Avalonia value converters
+|   |-- Styles/                # Shared scrollbar styles and Forest theme resources
 |   `-- Assets/                # App resources and screenshots
 `-- TaskApp.Tests/             # xUnit test project
 ```
@@ -31,7 +33,8 @@ Views (TaskApp)
         -> Local JSON + SQLite files
 
 Models, DTOs, mappers, and snapshot contracts live in TaskApp.Core.
-TaskApp.Api consumes the same Core contracts and stores profile snapshots in SQLite.
+Desktop Cloud Sync and the Android app use TaskAppCloudClient to upload and download
+TaskAppDataSnapshot objects. TaskApp.Api stores these snapshots in SQLite.
 ```
 
 ## Application Lifecycle
@@ -72,15 +75,15 @@ The desktop app still uses local JSON and SQLite through `StorageService`, but t
 | `ITaskAppDataStore` | Persistence boundary for tasks, rewards, tags, profile data, logs, merge, undo, and activity-duration queries |
 | `IUserCatalog` | Cloud-ready user/account boundary |
 | `ILocalUserCatalog` | Desktop-specific user catalog with local directories and import/export |
-| `TaskAppDataSnapshot` | Canonical full-user-data payload for future API bootstrap/import/sync |
+| `TaskAppDataSnapshot` | Complete profile payload for cloud upload, download, and caching |
 
 ## Key Design Decisions
 
 | Decision | Rationale |
 |---|---|
-| Shared `TaskApp.Core` project | Allows desktop, future API, and future Android clients to reuse domain logic and DTOs |
+| Shared `TaskApp.Core` project | Lets desktop, API, and Android reuse domain logic and DTOs |
 | Store interfaces | Keeps view models from depending directly on local JSON/SQLite infrastructure |
-| `TaskAppDataSnapshot` | Provides one canonical payload for future cloud upload/import/bootstrap sync |
+| Whole-profile snapshots | Keeps the transfer format shared across clients. Uploads replace the stored profile. |
 | JSON for tasks/rewards/tags | Human-readable, easy to inspect and recover manually |
 | SQLite for logs | Efficient for append-heavy time-series data and range queries |
 | Atomic file writes | Prevents data loss on crash during write |

@@ -1,12 +1,14 @@
 # Cloud Foundation
 
-This branch establishes the first cloud/mobile boundary without changing desktop behavior.
+TaskApp shares profile data between desktop and Android through an optional Cloud API. The desktop app keeps its local data store and uses snapshots for explicit transfers.
 
 ## Current Shape
 
 - `TaskApp.Core` owns domain models, serialization DTOs, mappers, store interfaces, and the full-data snapshot contract.
 - `TaskApp` owns Avalonia desktop UI and local infrastructure.
-- `TaskApp.Tests` references both projects and continues to validate desktop behavior.
+- `TaskApp.Api` stores accounts and profile snapshots in SQLite.
+- `TaskApp.Android` downloads profiles and caches snapshots on the device.
+- `TaskApp.Tests` exercises the desktop app, shared contracts, and API storage.
 
 ## Shared Contracts
 
@@ -14,8 +16,8 @@ This branch establishes the first cloud/mobile boundary without changing desktop
 
 `ILocalUserCatalog` preserves the current local multi-user behavior. `IUserCatalog` is the narrower account boundary that a future cloud-backed identity system can implement.
 
-`TaskAppDataSnapshot` gives API/import/sync work a single canonical payload for a user's current data.
+`TaskAppDataSnapshot` is the complete payload for one profile. Desktop and Android use `TaskAppCloudClient` to send and receive it.
 
-## Next Milestone
+## Transfer Behavior
 
-The next milestone is to harden desktop cloud sync: add clearer account/profile setup, improve pull safety, and then replace the temporary account ID flow with login/logout.
+A cloud account can have several profiles. Uploading replaces the stored snapshot for the chosen profile. See the [Cloud API guide](cloud-api.md) for account setup and desktop sync, or the [Android guide](android-apk.md) for the phone workflow.

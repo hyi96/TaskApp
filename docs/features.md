@@ -32,12 +32,13 @@ Dailies are recurring tasks that must be completed within each period to maintai
   - 30-day streak → +30% bonus gold
 - **Autocomplete** — Dailies can set a time threshold (`AutocompleteTimeThreshold`). When the cumulative activity timer duration for that daily exceeds the threshold in the current period, the daily is automatically marked complete and a notification is shown.
 - **Period Awareness** — Dailies know their current period start and end dates. The UI shows whether the daily is due or already completed for the current period.
+- **Time Logged This Period** — A daily shows the sum of saved activity sessions in its current period. For a session that crosses a period boundary, only the portion in the current period counts.
 
 ### Todos
 
 Todos are one-off tasks for things that need to get done once.
 
-- **Due Date** — Optional deadline for scheduling.
+- **Due Date** — An unfinished todo turns amber within three days of its deadline and red afterward. Editing or clearing the deadline updates its color in the current theme.
 - **Checklist** — Each todo can have a list of sub-items (`ChecklistItem`) that can be independently checked off.
 - **Completion** — Marking a todo as complete earns gold and records the completion timestamp.
 - **Filters** — Todos can be filtered by: Active (not completed), Scheduled (has a due date, not completed), Completed, or Hidden.
@@ -50,6 +51,7 @@ Rewards are incentives that cost gold to claim.
 
 - **Gold Cost** — Each reward has a configurable gold cost. You can only claim a reward if you have enough gold.
 - **One-Time vs. Repeatable** — One-time rewards can only be claimed once. Repeatable rewards can be claimed as many times as you can afford.
+- **Claimed Rewards** — Claimed one-time rewards are dimmed and their **Take** button is disabled. Undoing the claim makes the button available again.
 - **Claim Count** — The total number of claims is tracked for repeatable rewards.
 - **Filters** — Rewards can be filtered by: All, One-Time, Repeatable, or Hidden.
 
@@ -84,7 +86,7 @@ Streak protection lets you pay gold to preserve a daily's streak when you miss o
 
 ### How It Works
 
-1. When a new day is detected and uncompleted dailies are found, the **New Day Window** appears.
+1. When a new day is detected and visible, uncompleted dailies are found, the **New Day Window** appears.
 2. Each missed daily shows a **Check** toggle (mark as retroactively completed) and a **Protect** toggle (pay gold to keep the streak).
 3. Check and Protect are mutually exclusive — enabling one disables the other.
 4. The window displays the total protection cost and the user's available gold (including projected gold earned from checked items).
@@ -256,7 +258,7 @@ TaskApp detects when the calendar day changes and handles the transition.
 ### Flow
 
 1. `DayDetectionService` polls every 60 seconds. When `DateTime.Now.Date` advances, it fires `NewDayDetected`.
-2. The app collects all dailies that were **not completed** in their most recent period using a gap-based filter (`LastCompletionPeriod` before the previous period start).
+2. The app collects visible dailies that were **not completed** in their most recent period using a gap-based filter (`LastCompletionPeriod` before the previous period start).
 3. If vacation mode is enabled, all daily streaks are silently protected at no gold cost and no window is shown.
 4. Otherwise, if any uncompleted dailies exist, a **New Day Window** is shown listing them for review:
    - **Check toggle** — Retroactively marks the daily as completed for the previous period and awards gold (with streak bonus).
@@ -293,15 +295,16 @@ Vacation mode protects all daily streaks during absences without any gold cost.
 
 ## Theming
 
-TaskApp supports three theme modes via the Settings window:
+Open the Settings gear and select **General → Theme**:
 
 | Mode | Behavior |
 |---|---|
 | Light | Always uses the light Fluent theme |
 | Dark | Always uses the dark Fluent theme |
-| System | Follows the operating system's theme preference |
+| Forest | Uses deep green surfaces, teal accents, warm gold highlights, and an included graph palette. The native frame is tinted on Windows 11. |
+| Follow System | Follows the operating system's theme preference |
 
-The theme setting is app-wide (not per-user) and takes effect immediately.
+The theme is app-wide. The selection applies immediately and is saved for the next launch. Desktop scrollbars use a slim, fixed gutter in every theme.
 
 ---
 

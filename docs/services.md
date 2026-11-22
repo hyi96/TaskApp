@@ -12,7 +12,7 @@ Service code is split between `TaskApp.Core/Services/` and `TaskApp/Services/`. 
 
 `ILocalUserCatalog` captures the current desktop multi-user behavior, including import/export and local data directories. The smaller `IUserCatalog` surface is the cloud-ready user/account boundary.
 
-`TaskAppDataSnapshot` is a canonical full-user-data payload for future bootstrap sync, cloud upload, and import/export work.
+`TaskAppDataSnapshot` contains a complete profile for cloud upload and download. Android caches this same format locally.
 
 ---
 
@@ -143,7 +143,7 @@ Singleton service for app-wide settings.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `ThemeMode` | `ThemeMode` | `System` | UI theme (Light, Dark, System) |
+| `ThemeMode` | `ThemeMode` | `System` | UI theme (Light, Dark, Forest, or Follow System) |
 
 ### ThemeMode Enum
 
@@ -152,6 +152,7 @@ Singleton service for app-wide settings.
 | `Light` | Forces light theme |
 | `Dark` | Forces dark theme |
 | `System` | Follows OS preference |
+| `Forest` | Uses the green and teal Forest palette, including a matching native frame on Windows 11 |
 
 ### Storage
 

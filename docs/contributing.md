@@ -19,18 +19,16 @@ Guidelines for building, developing, and contributing to TaskApp.
 git clone https://github.com/hyi96/TaskApp.git
 cd TaskApp
 
-# Restore dependencies
-dotnet restore
+# Build and run the desktop app on Windows
+dotnet run --project TaskApp/TaskApp.csproj -f net10.0-windows10.0.19041.0
 
-# Build
-dotnet build
-
-# Run
-dotnet run --project TaskApp
-
-# Run tests
-dotnet test
+# Run the tests on Windows
+dotnet test TaskApp.Tests/TaskApp.Tests.csproj
 ```
+
+Use `-f net10.0` to run the desktop app on macOS or Linux. To build desktop release archives from Windows, run `.\build-all.ps1 -Configuration Release -SkipAndroid` in PowerShell. Release builds replace the contents of `dist/`. Close any running app launched from that directory before building.
+
+See the [Android build guide](android-apk.md#build) for SDK setup and APK packaging. See the [Cloud API guide](cloud-api.md#run-locally) to run the backend by itself.
 
 ---
 
@@ -39,6 +37,9 @@ dotnet test
 | Project | Type | Purpose |
 |---|---|---|
 | `TaskApp` | WinExe (`net10.0` + `net10.0-windows10.0.19041.0`\*) | Main desktop application |
+| `TaskApp.Core` | Library (`net10.0`) | Shared domain, mappers, and snapshot contracts |
+| `TaskApp.Api` | ASP.NET Core (`net10.0`) | Cloud account and profile snapshot API |
+| `TaskApp.Android` | Android app (`net10.0-android`) | Native Android client |
 | `TaskApp.Tests` | Library (`net10.0-windows10.0.19041.0`) | xUnit test suite |
 
 \* The main project multi-targets both TFMs. Windows builds include `Microsoft.Toolkit.Uwp.Notifications` for toast notifications; non-Windows builds compile without it. The `build-all.ps1` script selects the correct TFM per platform RID automatically.
@@ -89,7 +90,7 @@ See [Architecture](architecture.md) for the full directory structure.
 
 ### Data Transfer Objects
 
-- DTOs live in `TaskApp/Data/` and are plain classes with public getters/setters.
+- DTOs live in `TaskApp.Core/Data/` and are plain classes with public getters/setters.
 - DTOs are mapped to/from domain models via static mapper classes (`TaskMapper`, `RewardMapper`).
 - DTOs must not contain domain logic.
 
@@ -107,7 +108,7 @@ See [Architecture](architecture.md) for the full directory structure.
 6. Update the XAML view to bind to the new property.
 7. If the property is stored in SQLite, update `EnsureColumnsExistAsync` in `StorageService`.
 8. Write tests for the new property.
-9. Run `dotnet test` to verify nothing is broken.
+9. Run `dotnet test TaskApp.Tests/TaskApp.Tests.csproj`.
 
 ### Adding a new service
 
@@ -130,8 +131,8 @@ See [Architecture](architecture.md) for the full directory structure.
 
 ## Pull Request Checklist
 
-- [ ] Code builds without warnings (`dotnet build`)
-- [ ] All existing tests pass (`dotnet test`)
+- [ ] The desktop project builds
+- [ ] All existing tests pass (`dotnet test TaskApp.Tests/TaskApp.Tests.csproj`)
 - [ ] New tests added for new functionality
 - [ ] Domain model changes include mapper updates
 - [ ] File writes use atomic write pattern

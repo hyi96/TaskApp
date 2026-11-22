@@ -70,6 +70,12 @@ The main project grants test access to internals:
 | `DailyAutocompleteTests` | Activity timer autocomplete threshold logic |
 | `ManualDurationLoggingTests` | Manual activity duration logging |
 | `MergeActivityTests` | Activity log merging between tasks |
+| `DesktopChecklistTests` | Deadline colors, logged time totals, vacation mode, hidden dailies, and reward claims |
+| `SettingsWindowTests` | Settings gear, Cloud Sync tab, and layout |
+| `ScrollbarStyleTests` | Fixed gutters for vertical, horizontal, and embedded desktop scrollbars |
+| `ThemeTests` | Saved theme values, Forest resources, chart colors, and Windows frame defaults |
+| `CloudApiStorageTests` | SQLite storage for cloud accounts and profile snapshots |
+| `TaskAppDataSnapshotTests` | Snapshot capture, restore, and JSON serialization |
 
 ---
 
@@ -79,19 +85,19 @@ The main project grants test access to internals:
 
 ```bash
 # Run all tests
-dotnet test
+dotnet test TaskApp.Tests/TaskApp.Tests.csproj
 
 # Run all tests with detailed output
-dotnet test --verbosity normal
+dotnet test TaskApp.Tests/TaskApp.Tests.csproj --verbosity normal
 
 # Run tests in a specific class
-dotnet test --filter "FullyQualifiedName~DailyTaskTests"
+dotnet test TaskApp.Tests/TaskApp.Tests.csproj --filter "FullyQualifiedName~DailyTaskTests"
 
 # Run a specific test method
-dotnet test --filter "FullyQualifiedName~DailyTaskTests.Complete_IncreasesStreak"
+dotnet test TaskApp.Tests/TaskApp.Tests.csproj --filter "FullyQualifiedName~DailyTaskTests.Complete_ConsecutiveDays_IncrementsStreak"
 
 # Run with coverage
-dotnet test --collect:"XPlat Code Coverage"
+dotnet test TaskApp.Tests/TaskApp.Tests.csproj --collect:"XPlat Code Coverage"
 ```
 
 ### Visual Studio

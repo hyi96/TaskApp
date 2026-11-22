@@ -1,6 +1,6 @@
 # TaskApp Documentation
 
-**TaskApp** is a cross-platform desktop productivity application built with [Avalonia UI](https://avaloniaui.net/) and .NET 10. It combines task management with a gamification layer — users earn gold by completing tasks and spend it on custom rewards. The project multi-targets `net10.0` and `net10.0-windows10.0.19041.0` — Windows builds include native toast notifications via `Microsoft.Toolkit.Uwp.Notifications`, while macOS and Linux builds compile without the notification package (the notification call is a silent no-op). The `build-all.ps1` script publishes self-contained binaries for all platforms automatically.
+**TaskApp** combines a cross-platform [Avalonia UI](https://avaloniaui.net/) desktop app, a native Android client, and an optional ASP.NET Core API for sharing profiles. The desktop app stores data locally and runs without a cloud account.
 
 ## Features
 
@@ -16,7 +16,8 @@
 - **Multi-User Profiles** — Create, switch, rename, delete, import, and export user profiles.
 - **Undo System** — Undo any logged action (completions, claims, streak protections) with full state reversal.
 - **New Day Detection** — Automatic detection of day changes with a review window to check off or protect missed dailies (supports multi-day gaps).
-- **Theming** — Light, Dark, and System theme modes.
+- **Theming** — Light, Dark, Forest, and Follow System. Forest uses a matching native frame on Windows 11, and each theme uses the same compact scrollbars.
+- **Cloud Profiles** — Upload or download profile snapshots in desktop Settings. Use the profile picker on Android to switch between uploaded profiles.
 - **Data Safety** — Atomic writes with `.tmp` → rename pattern, `.bak` backup rotation, and corruption detection with automatic fallback.
 - **Vacation Mode** — Protects all daily streaks during absences without gold cost.
 - **Notifications** — Windows toast notifications for autocomplete events.
@@ -50,17 +51,16 @@
 git clone https://github.com/hyi96/TaskApp.git
 cd TaskApp
 
-# Build
-dotnet build
-
-# Run
-dotnet run --project TaskApp
+# Run the desktop app on Windows
+dotnet run --project TaskApp/TaskApp.csproj -f net10.0-windows10.0.19041.0
 ```
+
+Use `-f net10.0` on macOS and Linux. See [Contributing](contributing.md#building) for desktop release builds and [Android APK](android-apk.md) for the Android workload and packaging instructions.
 
 ### Run Tests
 
 ```bash
-dotnet test
+dotnet test TaskApp.Tests/TaskApp.Tests.csproj
 ```
 
 ## Project Structure
@@ -69,7 +69,8 @@ For the current exact layout, see [Architecture](architecture.md). The shared do
 
 ```text
 TaskApp.Core/               # Shared domain, DTOs, mappers, and service contracts
-TaskApp.Api/                # ASP.NET Core API for desktop cloud-sync testing
+TaskApp.Api/                # ASP.NET Core API for account and profile snapshots
+TaskApp.Android/            # Native Android app
 TaskApp/                    # Avalonia desktop app and local infrastructure
 TaskApp.Tests/              # xUnit test project
 docs/                       # Documentation (you are here)
@@ -80,8 +81,10 @@ docs/                       # Documentation (you are here)
 | Document | Description |
 |---|---|
 | [Architecture](architecture.md) | Solution structure, layers, and data flow |
-| [Cloud Foundation](cloud-foundation.md) | Shared-core and store-interface plan for cloud/API/Android work |
+| [Cloud Foundation](cloud-foundation.md) | Shared-core interfaces and how profile snapshots are used |
 | [Cloud API](cloud-api.md) | Local API run instructions and profile snapshot endpoints |
+| [Android APK](android-apk.md) | Install, sign in, switch profiles, and build the Android app |
+| [VPS Deployment](../deploy/vps/README.md) | Deploy the Cloud API with Docker Compose and Caddy |
 | [Domain Models](models.md) | Entity reference — tasks, rewards, tags, logs |
 | [Services](services.md) | Service layer — storage, users, settings, mappers |
 | [Features](features.md) | Detailed feature guide with usage details |

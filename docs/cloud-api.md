@@ -1,11 +1,11 @@
 # Cloud API
 
-`TaskApp.Api` is the backend slice for proving cloud sync on desktop first, then downloading those profiles from Android.
+`TaskApp.Api` stores accounts and profile snapshots for the desktop and Android apps. A single account can hold multiple profiles.
 
 ## Run Locally
 
 ```bash
-dotnet run --project TaskApp.Api --urls http://localhost:5080
+dotnet run --project TaskApp.Api/TaskApp.Api.csproj -- --urls http://localhost:5080
 ```
 
 The default SQLite database is created under `TaskApp.Api/App_Data/` and is ignored by Git.
@@ -14,43 +14,29 @@ For production, set `TASKAPP_API_KEY`. Outside Development, the API refuses to s
 
 ## Desktop Workflow
 
-1. Start the API locally or use `https://taskapp-api.hyi96.dev`.
-2. Open the desktop app.
-3. Open Settings.
-4. Set the API URL.
-5. Set the server API key when creating a new account on the VPS.
-6. Click `Create Account`; the desktop app stores the returned account ID and account secret.
-7. Click `Login` to verify the account ID and account secret.
-8. Click `Upload All Profiles` to push every local desktop user profile under the same cloud account.
-9. Use `Upload Profile` or `Download Profile` for only the current desktop profile.
+1. Open the Settings gear and select **Cloud Sync**.
+2. Set the **API URL** to your server, the default `https://taskapp-api.hyi96.dev`, or the local development API.
+3. For a new account on a production server, enter the server API key and click **Create Account**. The desktop app saves the account ID and account secret from the response.
+4. For an existing account, enter its account ID and account secret. Click **Login** to verify them. The Cloud login indicator shows the verification state.
+5. Click **Upload Profile** for the active local profile or **Upload All Profiles** for every local profile. **Download Profile** asks for confirmation before replacing the active local profile with its cloud snapshot.
 
-The desktop user switch still switches local profiles under the same cloud account. Login/logout is account-level and can be expanded later.
+Use **Copy** beside the Account Secret field to transfer the secret securely to your phone. The server API key is for server administration and account creation. The Android app uses the account ID and account secret.
 
 ## Android Workflow
 
-1. Install the APK.
-2. Enter the same API URL, account ID, and account secret from desktop Settings.
-3. Tap `Login`.
-4. Tap `List profiles`; the first profile ID is filled automatically if the field is empty.
-5. Tap `Download profile` to confirm the phone can read the desktop-uploaded snapshot.
+Follow the [Android sign-in guide](android-apk.md#sign-in-and-switch-profiles). The **Profile** picker switches profiles within the logged-in account. On desktop, the user switch selects a local profile under the same cloud account.
+
+Each upload replaces the stored snapshot for that profile. Changes from multiple devices are not merged. Download the latest snapshot before editing on another device.
 
 ## VPS Deployment
 
-Use the Docker Compose stack in `deploy/vps/`.
-
-```bash
-cp deploy/vps/.env.example deploy/vps/.env
-# Edit TASKAPP_DOMAIN and TASKAPP_API_KEY
-docker compose --env-file deploy/vps/.env -f deploy/vps/docker-compose.yml up -d --build
-```
-
-Caddy terminates HTTPS and proxies to `TaskApp.Api`. The SQLite database is stored in a Docker volume.
+Follow the [VPS deployment guide](../deploy/vps/README.md). Caddy terminates HTTPS and proxies to `TaskApp.Api`. The SQLite database is stored in a Docker volume.
 
 ## Endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/health` | API health check |
+| `GET` | `/health` | API reachability and SQLite connectivity check |
 | `POST` | `/api/accounts` | Create an account and return its one-time visible login secret |
 | `POST` | `/api/accounts/login` | Verify account ID and account secret |
 | `GET` | `/api/accounts/{accountId}/profiles` | List profile snapshots under an account |

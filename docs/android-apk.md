@@ -1,10 +1,16 @@
 # Android APK
 
-`TaskApp.Android` is the first Android slice. It is a small native Android bootstrap client that proves login and profile download before the full desktop UI is ported.
+`TaskApp.Android` is the native Android client. Use it to open a cloud profile, complete dailies and todos, update habit counters, and claim rewards. Create and edit tasks and rewards in the desktop app.
 
-The app defaults to `https://taskapp-api.hyi96.dev`. It does not embed secrets. First create/login/upload from desktop, then enter the same account ID and account secret in Android. `List profiles` fills the first profile ID when the field is empty, and `Download profile` confirms the phone can read the desktop-uploaded snapshot.
+## Sign In and Switch Profiles
 
-This matches the current cloud model: one account contains one or more TaskApp profiles. Desktop user switching remains profile switching under the same account.
+1. In the desktop app, open the Settings gear, select **Cloud Sync**, and upload a profile as described in the [desktop workflow](cloud-api.md#desktop-workflow).
+2. Install the signed APK and open TaskApp on Android.
+3. Enter the API URL, account ID, and account secret from desktop. The default URL is `https://taskapp-api.hyi96.dev`. Use an HTTPS address the phone can reach for a self-hosted API.
+4. Tap **Login**. The app lists profiles under that account and downloads the selected profile.
+5. Use the **Profile** picker to switch profiles. **Refresh** refreshes the picker and reloads the selected profile. **Download** reloads the current profile. **Upload** sends the current local snapshot.
+
+The app caches downloaded snapshots locally. When you complete a task, update a habit, or claim a reward, it saves the change locally and attempts an upload. If the upload fails, use **Upload** to send the saved change before refreshing or downloading. Uploads replace the entire profile snapshot, so bring the latest snapshot onto a device before editing the same profile there.
 
 ## Setup
 
@@ -14,26 +20,20 @@ Install the Android workload:
 dotnet workload restore TaskApp.Android/TaskApp.Android.csproj
 ```
 
-Install Android SDK dependencies. Pass an explicit JDK path if Java is not discoverable from `JAVA_HOME`.
+Set `JAVA_HOME` to your JDK directory (JDK 17 works for this project), then install the Android SDK dependencies:
 
 ```powershell
 dotnet build TaskApp.Android/TaskApp.Android.csproj `
   -t:InstallAndroidDependencies `
   -f net10.0-android `
   -p:AndroidSdkDirectory="$env:LOCALAPPDATA\Android\Sdk" `
-  -p:JavaSdkDirectory="C:\Users\hao\.codex\android-build-tools\jdk-17.0.19+10" `
+  -p:JavaSdkDirectory="$env:JAVA_HOME" `
   -p:AcceptAndroidSDKLicenses=True
-```
-
-On this development machine, the JDK is installed at:
-
-```text
-C:\Users\hao\.codex\android-build-tools\jdk-17.0.19+10
 ```
 
 ## Build
 
-Publish all release builds, including a side-loadable APK:
+Publish all release builds, including a sideloadable APK. The script replaces `dist` on every run, so close any app running from that directory before building.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build-all.ps1 -Configuration Release
@@ -45,7 +45,7 @@ The signed APK is copied to:
 dist\Android\dev.hyi96.taskapp-Signed.apk
 ```
 
-For an Android-only publish:
+For an Android-only publish, which recreates `dist` with only the Android output:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build-all.ps1 -Configuration Release -SkipDesktop
